@@ -1,0 +1,152 @@
+/* Minimal, reusable CSS for bookmarks app */
+body {
+    font-family: system-ui, sans-serif;
+    background: #f8f9fa;
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+    max-width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
+}
+
+/* Make the bookmarks container a responsive grid */
+.bookmarks {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* Prevent individual bookmarks from stretching beyond the container */
+.bookmark {
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 15px;
+    margin-bottom: 15px;
+    background-color: #fff;
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    transition: background 0.2s;
+    max-width: 100%;
+    word-wrap: break-word;
+    box-sizing: border-box;
+}
+
+/* #edit-bookmark-form {
+    display: flex;
+} */
+
+.bookmark-title {
+    font-size: 1.25rem;
+    font-weight: bold;
+}
+
+.bookmark-url {
+    color: #007bff;
+    text-decoration: none;
+}
+
+.bookmark-url:hover {
+    text-decoration: underline;
+}
+
+.bookmark-tags {
+    font-style: italic;
+    color: #555;
+}
+
+.bookmark-meta {
+    margin-top: 10px;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.btn {
+    display: block;
+    width: 100%;
+    padding: 10px 0;
+    margin-bottom: 10px;
+    background: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    font-weight: bold;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn:hover {
+    background: #0056b3;
+}
+
+.btn-light {
+    background: #f8f9fa;
+    color: #222;
+    border: 1px solid #ccc;
+}
+
+.btn-light:hover {
+    background: #e2e6ea;
+}
+
+.sidebar-section h4 {
+    font-size: 1.1rem;
+    margin-bottom: 10px;
+}
+
+.form-group {
+    /*display: flex;*/
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    font-weight: bold;
+}
+
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    padding: 8px;
+    margin-top: 5px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 1rem;
+}
+
+.button-group {
+    display: flex;
+    justify-content: space-between;
+}
+
+.form-group button {
+    padding: 10px 15px;
+    /*margin-right: 10px;*/
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.form-group button:hover {
+    background-color: #0056b3;
+}
+
+.back-link {
+    display: inline-block;
+    margin-top: 20px;
+    color: #007bff;
+    text-decoration: none;
+}
+
+.back-link:hover {
+    text-decoration: underline;
+}

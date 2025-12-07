@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ bookmark.title }}</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+
+<body>
+    <div class="container">
+        <h1 class="bookmark-title">{{ bookmark.title }}</h1>
+        <a href="{{ bookmark.url }}" target="_blank" class="bookmark-url">{{ bookmark.url }}</a>
+        <p class="bookmark-description">{{ bookmark.description }}</p>
+        <div class="bookmark-tags">Tags: {{ bookmark.tags | join(', ') }}</div>
+        <div class="bookmark-meta">
+            <p>Date Added: {{ bookmark.dateAdded }}</p>
+        </div>
+
+        <h2>Edit Bookmark</h2>
+        <div class="edit-bookmark-form">
+            <form action="{{ url_for('main.update_bookmark', id=id) }}" method="POST">
+                <div class="form-group">
+                    <label for="url">URL</label>
+                    <input type="url" id="url" name="url" value="{{ bookmark.url }}" required>
+                </div>
+                <div class="form-group">
+                    <label for="title">Title</label>
+                    <input type="text" id="title" name="title" value="{{ bookmark.title }}" required>
+                </div>
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <textarea id="description" name="description" required>{{ bookmark.description }}</textarea>
+                </div>
+                <div class="form-group">
+                    <label for="tags">Tags (comma-separated)</label>
+                    <input type="text" id="tags" name="tags" value="{{ bookmark.tags | join(', ') }}" required>
+                </div>
+                <input type="hidden" name="filter_tag" value="{{ filter_tag or '' }}">
+                <input type="hidden" name="filter_criteria" value="{{ filter_criteria or '' }}">
+                <input type="hidden" name="filter_description" value="{{ filter_description or '' }}">
+                <button type="submit" class="btn btn-primary">Update Bookmark</button>
+            </form>
+            <form action="{{ url_for('main.delete_bookmark_route', id=id) }}" method="POST">
+                <input type="hidden" name="filter_tag" value="{{ filter_tag or '' }}">
+                <input type="hidden" name="filter_criteria" value="{{ filter_criteria or '' }}">
+                <input type="hidden" name="filter_description" value="{{ filter_description or '' }}">
+                <button type="submit" class="btn btn-danger">Delete Bookmark</button>
+            </form>
+        </div>
+    </div>
+
+    <a href="{{ url_for('main.bookmarks', tag=filter_tag, criteria=filter_criteria, description=filter_description) }}" class="back-link">← Back to Bookmarks</a>
+    </div>
+</body>
+
+</html>

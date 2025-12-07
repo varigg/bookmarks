@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bookmarks ({{ bookmarks|length }} selected)</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+
+<body>
+    <div class="container" style="display: flex; gap: 2rem;">
+        <aside style="min-width: 220px;">
+            <a href="{{ url_for('main.new_bookmark') }}" class="btn">+ New Bookmark</a>
+            <button onclick="document.getElementById('magic-add-modal').showModal()" class="btn"
+                style="background: linear-gradient(45deg, #6610f2, #d63384); border: none;">✨ Magic Add</button>
+            <div class="sidebar-section mb-4">
+                <h4>Filter by Tags</h4>
+
+                <!-- Selected tags display -->
+                {% if filter_tags %}
+                <div class="selected-tags"
+                    style="margin-bottom: 10px; padding: 10px; background: #f0f0f0; border-radius: 4px;">
+                    <strong>Active filters (AND):</strong>
+                    {% for tag in filter_tags %}
+                    <div style="margin-top: 5px;">
+                        <span class="tag-badge"
+                            style="background: #007bff; color: white; padding: 3px 8px; border-radius: 3px; font-size: 0.85em;">
+                            {{ tag }}
+                            {% set remaining_tags = filter_tags | reject('equalto', tag) | list %}
+                            <a href="{{ url_for('main.bookmarks', tag=remaining_tags|join(',') if remaining_tags else None, criteria=filter_criteria, description=filter_description) }}"
+                                style="color: white; text-decoration: none; font-weight: bold; margin-left: 5px;">×</a>
+                        </span>
+                    </div>
+                    {% endfor %}
+                    <div style="margin-top: 8px;">
+                        <a href="{{ url_for('main.bookmarks', criteria=filter_criteria, description=filter_description) }}"
+                            class="btn btn-light" style="font-size: 0.85em;">Clear all tags</a>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Available tags list -->
+                <div class="tag-list">
+                    {% for tag, count in all_tags.items() %}
+                    {% set is_selected = tag in filter_tags %}
+                    {% if is_selected %}
+                    {% set new_tags = filter_tags | reject('equalto', tag) | list %}
+                    {% else %}
+                    {% set new_tags = (filter_tags + [tag]) | list %}
+                    {% endif %}
+                    <a href="{{ url_for('main.bookmarks', tag=new_tags|join(',') if new_tags else None, criteria=filter_criteria, description=filter_description) }}"
+                        class="btn btn-light"
+                        style="display: block; margin-bottom: 5px; text-align: left; {% if is_selected %}background: #e3f2fd; border-color: #2196f3;{% endif %}">
+                        <span style="display: inline-block; width: 20px;">{% if is_selected %}☑{% else %}☐{% endif
+                            %}</span>
+                        {{ tag }} <span style="color: #666; font-size: 0.85em;">({{ count }})</span>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="sidebar-section mb-4">
+                <h4>Filter by Description</h4>
+                <a href="{{ url_for('main.bookmarks', tag=filter_tag, description='URL not reachable', criteria=filter_criteria) }}"
+                    class="btn btn-light">URL Not Reachable</a>
+                <a href="{{ url_for('main.bookmarks', tag=filter_tag, criteria=filter_criteria) }}"
+                    class="btn btn-light">Clear Description Filter</a>
+            </div>
+            <div class="sidebar-section mb-4">
+                <h4>Quick Filters</h4>
+                <a href="{{ url_for('main.bookmarks', favorite='true', criteria=filter_criteria, tag=filter_tag, description=filter_description) }}"
+                    class="btn btn-light" style="{% if filter_favorite %}background: #e3f2fd; border-color: #2196f3;{% endif %}">
+                    ⭐ Favorites
+                </a>
+                {% if filter_favorite %}
+                <a href="{{ url_for('main.bookmarks', criteria=filter_criteria, tag=filter_tag, description=filter_description) }}"
+                    class="btn btn-light" style="font-size: 0.85em;">Clear Favorite Filter</a>
+                {% endif %}
+            </div>
+            <div class="sidebar-section mb-4">
+                <h4>Selected Items</h4>
+                <p>{{ bookmarks|length }} items selected</p>
+            </div>
+            <div class="sidebar-section">
+                <h4>Sort</h4>
+                <a href="{{ url_for('main.bookmarks', criteria='newest', tag=filter_tag, description=filter_description, favorite=filter_favorite) }}"
+                    class="btn btn-light">Newest</a>
+                <a href="{{ url_for('main.bookmarks', criteria='oldest', tag=filter_tag, description=filter_description, favorite=filter_favorite) }}"
+                    class="btn btn-light">Oldest</a>
+                <a href="{{ url_for('main.bookmarks', criteria='a-z', tag=filter_tag, description=filter_description, favorite=filter_favorite) }}"
+                    class="btn btn-light">A-Z</a>
+                <a href="{{ url_for('main.bookmarks', criteria='z-a', tag=filter_tag, description=filter_description, favorite=filter_favorite) }}"
+                    class="btn btn-light">Z-A</a>
+                <a href="{{ url_for('main.bookmarks', criteria='favorites', tag=filter_tag, description=filter_description, favorite=filter_favorite) }}"
+                    class="btn btn-light">Favorites First</a>
+            </div>
+            <div class="sidebar-section mb-4">
+                <h4>Quick Filters</h4>
+                <a href="{{ url_for('main.bookmarks', favorite='true', criteria=filter_criteria, tag=filter_tag, description=filter_description) }}"
+                    class="btn btn-light" style="{% if filter_favorite %}background: #e3f2fd; border-color: #2196f3;{% endif %}">
+                    ⭐ Favorites
+                </a>
+                {% if filter_favorite %}
+                <a href="{{ url_for('main.bookmarks', criteria=filter_criteria, tag=filter_tag, description=filter_description) }}"
+                    class="btn btn-light" style="font-size: 0.85em;">Clear Favorite Filter</a>
+                {% endif %}
+            </div>
+        </aside>
+        <main style="flex: 1;">
+            <h2>Bookmarks ({{ bookmarks|length }} selected)</h2>
+            <div class="flash-messages">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                <ul class="flashes">
+                    {% for category, message in messages %}
+                    <li class="flash {{ category }}">{{ message }}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+                {% endwith %}
+            </div>
+            <div class="bookmarks">
+                {% for id, bookmark in bookmarks.items() %}
+                <div style="display: flex; align-items: start; gap: 10px; margin-bottom: 15px;">
+                    <!-- Star button -->
+                    <form action="{{ url_for('main.toggle_favorite', id=id) }}" method="post" style="margin: 0;">
+                        <input type="hidden" name="filter_tag" value="{{ filter_tag or '' }}">
+                        <input type="hidden" name="filter_criteria" value="{{ filter_criteria or '' }}">
+                        <input type="hidden" name="filter_description" value="{{ filter_description or '' }}">
+                        <input type="hidden" name="filter_favorite" value="{{ filter_favorite or '' }}">
+                        <button type="submit" style="background: none; border: none; cursor: pointer; font-size: 1.5em; padding: 5px; line-height: 1;">
+                            {% if bookmark.get('favorite') %}⭐{% else %}☆{% endif %}
+                        </button>
+                    </form>
+                    
+                    <!-- Bookmark card -->
+                    <a href="{{ url_for('main.bookmark', id=id, tag=filter_tag, criteria=filter_criteria, description=filter_description, favorite=filter_favorite) }}"
+                        class="bookmark" style="flex: 1;">
+                        <div class="bookmark-title">{{ bookmark.title }}</div>
+                        <p class="bookmark-description">{{ bookmark.description }}</p>
+                        <div class="bookmark-tags">Tags: {{ bookmark.tags | join(', ') }}</div>
+                        <div class="bookmark-meta">
+                            <span>Date Added: {{ bookmark.dateAdded }}</span>
+                        </div>
+                    </a>
+                    
+                    <!-- Delete button -->
+                    <form action="{{ url_for('main.delete_bookmark_route', id=id) }}" method="post" style="margin: 0;">
+                        <input type="hidden" name="filter_tag" value="{{ filter_tag or '' }}">
+                        <input type="hidden" name="filter_criteria" value="{{ filter_criteria or '' }}">
+                        <input type="hidden" name="filter_description" value="{{ filter_description or '' }}">
+                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+        </main>
+    </div>
+    </div>
+
+    <!-- Magic Add Modal -->
+    <dialog id="magic-add-modal"
+        style="border: none; border-radius: 8px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); width: 400px; max-width: 90vw;">
+        <h3 style="margin-top: 0;">✨ Magic Add</h3>
+        <p>Enter a URL and we'll generate the title and description for you.</p>
+        <form action="{{ url_for('main.autofill_bookmark') }}" method="POST">
+            <div class="form-group">
+                <input type="url" name="url" placeholder="https://example.com" required
+                    style="width: 100%; box-sizing: border-box;">
+            </div>
+            <div class="button-group" style="margin-top: 15px; justify-content: flex-end; gap: 10px;">
+                <button type="button" onclick="document.getElementById('magic-add-modal').close()" class="btn-light"
+                    style="width: auto; margin: 0;">Cancel</button>
+                <button type="submit" class="btn"
+                    style="width: auto; margin: 0; background: linear-gradient(45deg, #6610f2, #d63384);">Generate</button>
+            </div>
+        </form>
+    </dialog>
+</body>
+
+</html>

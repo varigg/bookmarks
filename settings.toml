@@ -1,0 +1,17 @@
+[default]
+DATA_SOURCE = "bookmarks.js"
+SECRET_KEY = ""
+DEBUG = false
+PORT = 5001
+
+[development]
+DATA_SOURCE = "bookmarks.js"
+DEBUG = true
+
+[production]
+DATA_SOURCE = "/home/varigg/projects/python/bookmarks/bookmarks.js"
+SECRET_KEY = "CHANGE_ME_IN_PRODUCTION"
+
+[testing]
+DATA_SOURCE = "/home/varigg/projects/python/bookmarks/test_bookmarks.js"
+DEBUG = true
