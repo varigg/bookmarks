@@ -7,9 +7,10 @@ This module provides thread-safe bookmark data access without global state.
 Each instance maintains its own bookmark collection loaded from the data source.
 """
 
-from typing import Optional
+from typing import Optional, Union
 
 from bookmarks.datafile import get_data, write_data
+from bookmarks.domain import Bookmark
 from bookmarks.exceptions import BookmarkNotFoundError, DataStorageError
 
 
@@ -41,16 +42,28 @@ class BookmarkRepository:
 
     def get_all(self) -> dict[str, dict]:
         """
-        Get all bookmarks.
+        Get all bookmarks as dictionaries.
         
         Returns:
             Dictionary mapping bookmark IDs to bookmark data dictionaries.
         """
         return self._bookmarks.copy()
 
+    def get_all_as_objects(self) -> dict[str, Bookmark]:
+        """
+        Get all bookmarks as Bookmark objects.
+        
+        Returns:
+            Dictionary mapping bookmark IDs to Bookmark instances.
+        """
+        return {
+            bookmark_id: Bookmark.from_dict(data)
+            for bookmark_id, data in self._bookmarks.items()
+        }
+
     def get_by_id(self, bookmark_id: str) -> Optional[dict]:
         """
-        Get a single bookmark by ID.
+        Get a single bookmark by ID as a dictionary.
         
         Args:
             bookmark_id: The bookmark ID to retrieve.
@@ -59,6 +72,19 @@ class BookmarkRepository:
             Bookmark dictionary or None if not found.
         """
         return self._bookmarks.get(bookmark_id)
+
+    def get_by_id_as_object(self, bookmark_id: str) -> Optional[Bookmark]:
+        """
+        Get a single bookmark by ID as a Bookmark object.
+        
+        Args:
+            bookmark_id: The bookmark ID to retrieve.
+            
+        Returns:
+            Bookmark instance or None if not found.
+        """
+        data = self._bookmarks.get(bookmark_id)
+        return Bookmark.from_dict(data) if data else None
 
     def get_by_id_or_raise(self, bookmark_id: str) -> dict:
         """
@@ -78,13 +104,13 @@ class BookmarkRepository:
             raise BookmarkNotFoundError(bookmark_id)
         return bookmark
 
-    def save(self, bookmark_id: str, bookmark: dict) -> None:
+    def save(self, bookmark_id: str, bookmark: Union[dict, Bookmark]) -> None:
         """
         Save or update a bookmark.
         
         Args:
             bookmark_id: The ID to save the bookmark under.
-            bookmark: The bookmark data dictionary.
+            bookmark: The bookmark data (dictionary or Bookmark instance).
             
         Raises:
             DataStorageError: If saving fails.
@@ -92,8 +118,11 @@ class BookmarkRepository:
         # Ensure ID is string
         bookmark_id = str(bookmark_id)
         
+        # Convert Bookmark to dict if needed
+        bookmark_dict = bookmark.to_dict() if isinstance(bookmark, Bookmark) else bookmark
+        
         # Update in-memory store
-        self._bookmarks[bookmark_id] = bookmark
+        self._bookmarks[bookmark_id] = bookmark_dict
         
         # Persist to storage
         try:

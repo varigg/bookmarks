@@ -232,9 +232,13 @@ Format your response as JSON:
         """
         title = page_content["title"]
         # Use first paragraph from markdown as description
-        lines = [l.strip() for l in page_content["markdown"].split("\n") if l.strip()]
+        lines = [
+            line.strip()
+            for line in page_content["markdown"].split("\n")
+            if line.strip()
+        ]
         description = next(
-            (l for l in lines if not l.startswith("#") and len(l) > 20),
+            (line for line in lines if not line.startswith("#") and len(line) > 20),
             f"Content from {urlparse(page_content['url']).netloc}",
         )
 

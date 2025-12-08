@@ -9,22 +9,29 @@ New code should use BookmarkRepository directly from bookmarks.repository.
 This will be phased out in Phase 4 of the refactoring.
 """
 
+from typing import Optional, Union
+
 from bookmarks.repository import BookmarkRepository
 
 # Global repository instance for backward compatibility
 # TODO: Remove in Phase 4 when routes use Flask application context
-_repository = None
+_repository: Optional[BookmarkRepository] = None
 
 
 def _get_repository() -> BookmarkRepository:
-    """Get or create the global repository instance."""
+    """
+    Get or create the global repository instance.
+    
+    Returns:
+        Global BookmarkRepository instance.
+    """
     global _repository
     if _repository is None:
         _repository = BookmarkRepository()
     return _repository
 
 
-def init_bookmarks():
+def init_bookmarks() -> None:
     """
     Initialize or reload bookmarks from data source.
     
@@ -34,7 +41,7 @@ def init_bookmarks():
     _repository = BookmarkRepository()
 
 
-def get_bookmarks():
+def get_bookmarks() -> dict[str, dict]:
     """
     Returns the bookmarks data.
     
@@ -44,7 +51,7 @@ def get_bookmarks():
     return _get_repository().get_all()
 
 
-def get_bookmark(id):
+def get_bookmark(id: Union[str, int]) -> Optional[dict]:
     """
     Returns the bookmark data for a given ID.
     
@@ -54,10 +61,10 @@ def get_bookmark(id):
     Returns:
         Bookmark dictionary or None if not found.
     """
-    return _get_repository().get_by_id(id)
+    return _get_repository().get_by_id(str(id))
 
 
-def save_bookmark(id, bookmark):
+def save_bookmark(id: Union[str, int], bookmark: dict) -> None:
     """
     Saves the bookmark data to the bookmarks.js file.
     
@@ -65,10 +72,10 @@ def save_bookmark(id, bookmark):
         id: The bookmark ID.
         bookmark: The bookmark data dictionary.
     """
-    _get_repository().save(id, bookmark)
+    _get_repository().save(str(id), bookmark)
 
 
-def delete_bookmark(id):
+def delete_bookmark(id: Union[str, int]) -> bool:
     """
     Deletes the bookmark with the given ID.
     
@@ -78,4 +85,4 @@ def delete_bookmark(id):
     Returns:
         True if deleted, False if not found.
     """
-    return _get_repository().delete(id)
+    return _get_repository().delete(str(id))

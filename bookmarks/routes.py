@@ -4,31 +4,29 @@
 
 import logging
 from datetime import datetime, timezone
+from typing import Any
 
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import Blueprint, Response, flash, redirect, render_template, request, url_for
+
+from bookmarks.filters import FilterState
+from bookmarks.model import delete_bookmark, get_bookmark, get_bookmarks, save_bookmark
+from bookmarks.repository import BookmarkRepository
+from bookmarks.services import PerplexityClientFactory
+from bookmarks.utils import parse_tags
 
 logger = logging.getLogger(__name__)
-
-from bookmarks.model import delete_bookmark, get_bookmark, get_bookmarks, save_bookmark
-from bookmarks.services import PerplexityClientFactory
 
 bp = Blueprint("main", __name__)
 
 
 @bp.app_context_processor
-def inject_filter_params():
+def inject_filter_params() -> dict[str, Any]:
     """Make filter parameters available to all templates."""
-    return _get_filter_context()
+    filter_state = FilterState.from_request_args(request.args)
+    return filter_state.to_dict()
 
 
-def _parse_tags(tags_string):
-    """Parses a comma-separated string of tags into a list."""
-    if not tags_string:
-        return []
-    return [tag.strip() for tag in tags_string.split(",") if tag.strip()]
-
-
-def _sort_bookmarks(bookmarks, criteria):
+def _sort_bookmarks(bookmarks: dict[str, dict], criteria: str) -> dict[str, dict]:
     """Sorts bookmarks based on the given criteria."""
     if criteria == "newest":
         return dict(
@@ -70,7 +68,7 @@ def _sort_bookmarks(bookmarks, criteria):
     return bookmarks
 
 
-def _get_all_tags(bookmarks=None):
+def _get_all_tags(bookmarks: dict[str, dict] | None = None) -> dict[str, int]:
     """Returns list of all unique tags across bookmarks with counts, sorted by frequency (most used first)."""
     if bookmarks is None:
         bookmarks = get_bookmarks()
@@ -83,15 +81,7 @@ def _get_all_tags(bookmarks=None):
     return dict(sorted(tag_counts.items(), key=lambda x: (-x[1], x[0].lower())))
 
 
-def _parse_tag_filter(tag_param):
-    """Parses tag filter parameter into list of tags."""
-    if not tag_param:
-        return []
-    # Support comma-separated tags
-    return [tag.strip() for tag in tag_param.split(",") if tag.strip()]
-
-
-def _apply_tag_filter_and(bookmarks, filter_tags):
+def _apply_tag_filter_and(bookmarks: dict[str, dict], filter_tags: list[str]) -> dict[str, dict]:
     """Filter bookmarks by tags with AND logic - bookmark must have ALL selected tags."""
     if not filter_tags:
         return bookmarks
@@ -103,20 +93,6 @@ def _apply_tag_filter_and(bookmarks, filter_tags):
     }
 
 
-def _get_filter_context():
-    """Extracts filter parameters from request args and returns as dict."""
-    tag_param = request.args.get("tag")
-    filter_tags = _parse_tag_filter(tag_param)
-
-    return {
-        "filter_tags": filter_tags,  # List of tags
-        "filter_tag": tag_param,  # Original string for URLs
-        "filter_criteria": request.args.get("criteria"),
-        "filter_description": request.args.get("description"),
-        "filter_favorite": request.args.get("favorite"),  # Favorite filter
-    }
-
-
 def _build_redirect_url(endpoint=".bookmarks", **kwargs):
     """Builds a redirect URL with optional query parameters."""
     # Filter out None values
@@ -125,32 +101,28 @@ def _build_redirect_url(endpoint=".bookmarks", **kwargs):
 
 
 @bp.route("/")
-def index():
+def index() -> Response:
     return redirect(url_for(".bookmarks"))
 
 
 @bp.route("/bookmarks")
-def bookmarks():
+def bookmarks() -> str:
     """
     Display bookmarks with optional filtering.
     """
     # Get all bookmarks
     all_bookmarks = get_bookmarks()
 
-    # Get filter context
-    filters = _get_filter_context()
-    filter_tags = filters["filter_tags"]
-    filter_criteria = filters["filter_criteria"]
-    filter_description = filters["filter_description"]
-    filter_favorite = filters["filter_favorite"]
+    # Get filter state
+    filter_state = FilterState.from_request_args(request.args)
 
     # Apply tag filter with AND logic
     filtered_bookmarks = all_bookmarks
-    if filter_tags:
-        filtered_bookmarks = _apply_tag_filter_and(filtered_bookmarks, filter_tags)
+    if filter_state.tags:
+        filtered_bookmarks = _apply_tag_filter_and(filtered_bookmarks, filter_state.tags)
 
     # Apply favorite filter
-    if filter_favorite:
+    if filter_state.favorite:
         filtered_bookmarks = {
             id: bookmark
             for id, bookmark in filtered_bookmarks.items()
@@ -158,16 +130,16 @@ def bookmarks():
         }
 
     # Apply description filter
-    if filter_description:
+    if filter_state.description:
         filtered_bookmarks = {
             id: bookmark
             for id, bookmark in filtered_bookmarks.items()
-            if filter_description.lower() in (bookmark.get("description") or "").lower()
+            if filter_state.description.lower() in (bookmark.get("description") or "").lower()
         }
 
     # Apply sorting
-    if filter_criteria:
-        filtered_bookmarks = _sort_bookmarks(filtered_bookmarks, filter_criteria)
+    if filter_state.criteria:
+        filtered_bookmarks = _sort_bookmarks(filtered_bookmarks, filter_state.criteria)
 
     # Get tags from filtered bookmarks for progressive filtering
     available_tags = _get_all_tags(filtered_bookmarks)
@@ -176,25 +148,25 @@ def bookmarks():
         "bookmarks.html",
         bookmarks=filtered_bookmarks,
         all_tags=available_tags,
-        **filters,  # Unpack all filter variables
+        **filter_state.to_dict(),  # Unpack filter state for template
     )
 
 
 @bp.route("/bookmarks/<path:id>")
-def bookmark(id):
+def bookmark(id: str) -> str | tuple[str, int]:
     """
     Returns the bookmark data for a given id.
     """
     bookmark = get_bookmark(id)
     if bookmark:
-        filters = _get_filter_context()
-        return render_template("bookmark.html", bookmark=bookmark, id=id, **filters)
+        filter_state = FilterState.from_request_args(request.args)
+        return render_template("bookmark.html", bookmark=bookmark, id=id, **filter_state.to_dict())
     else:
         return "Bookmark not found", 404
 
 
 @bp.route("/bookmarks/<path:id>/update", methods=["POST"])
-def update_bookmark(id):
+def update_bookmark(id: str) -> Response | tuple[str, int]:
     """
     Updates the URL, title, description, and tags of a bookmark.
     """
@@ -206,7 +178,7 @@ def update_bookmark(id):
     new_url = request.form.get("url")
     new_title = request.form.get("title")
     new_description = request.form.get("description")
-    new_tags = _parse_tags(request.form.get("tags"))
+    new_tags = parse_tags(request.form.get("tags"))
 
     # Update the bookmark
     bookmark["url"] = new_url
@@ -215,30 +187,26 @@ def update_bookmark(id):
     bookmark["tags"] = new_tags
     save_bookmark(id, bookmark)  # Save the updated bookmark
 
-    tag = request.form.get("filter_tag", None)
-    criteria = request.form.get("filter_criteria", None)
-    description = request.form.get("filter_description", None)
+    # Get filter state from form hidden fields
+    filter_state = FilterState.from_request_form(request.form)
 
-    # Build the redirect URL with query parameters if they exist
-    redirect_url = _build_redirect_url(
-        ".bookmarks", tag=tag, criteria=criteria, description=description
-    )
+    # Build the redirect URL with query parameters
+    redirect_url = url_for(".bookmarks", **filter_state.to_url_params())
 
     return redirect(redirect_url)
 
 
 @bp.route("/bookmarks/new", methods=["GET", "POST"])
-def new_bookmark():
+def new_bookmark() -> Response | str:
     """
     Handles the creation of a new bookmark.
     """
     if request.method == "POST":
         # Get data from the form
-        # Get data from the form
         new_url = request.form.get("url")
         new_title = request.form.get("title")
         new_description = request.form.get("description")
-        new_tags = _parse_tags(request.form.get("tags"))
+        new_tags = parse_tags(request.form.get("tags"))
 
         # Create a new bookmark object
         new_bookmark = {
@@ -252,11 +220,8 @@ def new_bookmark():
         }
 
         # Save the new bookmark
-        bookmarks = get_bookmarks()
-        # Generate a new ID based on the max integer ID + 1 to avoid collisions
-        # Default to -1 so the first ID is 0
-        current_ids = [int(bid) for bid in bookmarks.keys() if bid.isdigit()]
-        new_id = str(max(current_ids, default=-1) + 1)
+        repo = BookmarkRepository()
+        new_id = repo.generate_new_id()
         save_bookmark(new_id, new_bookmark)
 
         return redirect(url_for(".bookmarks"))
@@ -265,7 +230,7 @@ def new_bookmark():
 
 
 @bp.route("/bookmarks/autofill", methods=["POST"])
-def autofill_bookmark():
+def autofill_bookmark() -> Response:
     """
     Generates title and description for a URL using LLM.
     """
@@ -310,7 +275,7 @@ def autofill_bookmark():
 
 
 @bp.route("/bookmarks/delete/<path:id>", methods=["POST"])
-def delete_bookmark_route(id):
+def delete_bookmark_route(id: str) -> Response:
     """
     Route to delete a bookmark by ID.
     """
@@ -319,19 +284,14 @@ def delete_bookmark_route(id):
     else:
         flash("Bookmark not found.", "error")
 
-    tag = request.form.get("filter_tag", None)
-    criteria = request.form.get("filter_criteria", None)
-    description = request.form.get("filter_description", None)
+    # Get filter state from form hidden fields
+    filter_state = FilterState.from_request_form(request.form)
 
-    return redirect(
-        _build_redirect_url(
-            ".bookmarks", tag=tag, criteria=criteria, description=description
-        )
-    )
+    return redirect(url_for(".bookmarks", **filter_state.to_url_params()))
 
 
 @bp.route("/api/bookmarks", methods=["POST"])
-def api_create_bookmark():
+def api_create_bookmark() -> tuple[dict[str, Any], int]:
     """
     API endpoint to create a bookmark from a URL with auto-generated title and description.
 
@@ -375,7 +335,7 @@ def api_create_bookmark():
         # Optional parameters
         tags = data.get("tags", ["unread"])
         if isinstance(tags, str):
-            tags = _parse_tags(tags)
+            tags = parse_tags(tags)
         favorite = data.get("favorite", False)
 
         logger.info(f"API: Creating bookmark for URL: {url}")
@@ -403,9 +363,8 @@ def api_create_bookmark():
         }
 
         # Save bookmark
-        bookmarks = get_bookmarks()
-        current_ids = [int(bid) for bid in bookmarks.keys() if bid.isdigit()]
-        new_id = str(max(current_ids, default=-1) + 1)
+        repo = BookmarkRepository()
+        new_id = repo.generate_new_id()
         save_bookmark(new_id, new_bookmark)
 
         logger.info(f"API: Successfully created bookmark with ID: {new_id}")
@@ -421,7 +380,7 @@ def api_create_bookmark():
 
 
 @bp.route("/bookmarks/<path:id>/favorite", methods=["POST"])
-def toggle_favorite(id):
+def toggle_favorite(id: str) -> Response:
     """
     Toggle the favorite status of a bookmark.
     """
@@ -435,17 +394,6 @@ def toggle_favorite(id):
     save_bookmark(id, bookmark)
 
     # Preserve filters when redirecting
-    tag = request.form.get("filter_tag")
-    criteria = request.form.get("filter_criteria")
-    description = request.form.get("filter_description")
-    favorite = request.form.get("filter_favorite")
+    filter_state = FilterState.from_request_form(request.form)
 
-    return redirect(
-        _build_redirect_url(
-            ".bookmarks",
-            tag=tag,
-            criteria=criteria,
-            description=description,
-            favorite=favorite,
-        )
-    )
+    return redirect(url_for(".bookmarks", **filter_state.to_url_params()))
