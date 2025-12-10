@@ -57,9 +57,6 @@ test_bookmarks.js
 # Backup directory
 backup/
 
-# Tools directory (needs cleanup before commit)
-tools/
-
 # Temporary files
 *.bak
 *.tmp
