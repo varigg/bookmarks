@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 20px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    h2 {
+      margin-top: 0;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+    input {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    button {
+      padding: 10px 20px;
+      background: #0060df;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    button:hover {
+      background: #0050c5;
+    }
+    .help-text {
+      margin-top: 6px;
+      font-size: 13px;
+      color: #666;
+    }
+    .status {
+      margin-top: 15px;
+      padding: 10px;
+      border-radius: 4px;
+      font-size: 14px;
+      display: none;
+    }
+    .status.success {
+      background: #d4edda;
+      color: #155724;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <h2>Bookmarks Server Settings</h2>
+  
+  <form id="optionsForm">
+    <div class="form-group">
+      <label for="serverUrl">Server URL</label>
+      <input type="url" id="serverUrl" placeholder="http://localhost:5001" required>
+      <div class="help-text">
+        Enter the URL of your self-hosted bookmarks server (e.g., http://localhost:5001 or https://bookmarks.yourdomain.com)
+      </div>
+    </div>
+    
+    <button type="submit">Save Settings</button>
+  </form>
+  
+  <div id="status" class="status"></div>
+  
+  <script src="options.js"></script>
+</body>
+</html>

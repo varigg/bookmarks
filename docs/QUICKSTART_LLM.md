@@ -1,6 +1,8 @@
 # Quick Reference: Bookmark Import with LLM
 
-## Stage 1: Basic Import (No API Key Needed)
+> **For comprehensive configuration details, see [LLM Configuration Guide](LLM_CONFIGURATION.md)**
+
+## Basic Import (No API Key Needed)
 
 ```bash
 # Add bookmarks with "unread" description
@@ -10,9 +12,10 @@ uv run python tools/add_bookmarks_from_urls.py urls.txt
 uv run python tools/add_bookmarks_from_urls.py urls.txt --dry-run
 ```
 
-## Stage 2: LLM-Generated Descriptions
+## LLM-Generated Descriptions
 
 ### First Time Setup
+
 ```bash
 # 1. Install dependencies
 uv add requests beautifulsoup4 lxml
@@ -25,19 +28,25 @@ uv run python tools/add_bookmarks_from_urls.py test_urls.txt --generate-descript
 ```
 
 ### Regular Usage
+
 ```bash
-# Generate descriptions with Perplexity (Direct API)
+# Test your LLM configuration first
+uv run python tools/add_bookmarks_from_urls.py --test
+
+# Default: Perplexity with HTML extraction (fastest, works well for most sites)
 uv run python tools/add_bookmarks_from_urls.py urls.txt --generate-descriptions
 
-# Generate descriptions with Perplexity (Direct API + MarkItDown)
-uv run python tools/add_bookmarks_from_urls.py urls.txt --generate-descriptions --use-markdown
+# Use Markdown extraction (better for technical docs, preserves structure)
+uv run python tools/add_bookmarks_from_urls.py urls.txt --generate-descriptions --content-format markdown
 
-# Generate descriptions with Perplexity (MCP Protocol)
-uv run python tools/add_bookmarks_from_urls.py urls.txt --generate-descriptions --use-mcp
+# Use Perplexity MCP (advanced, requires additional setup)
+uv run python tools/add_bookmarks_from_urls.py urls.txt --generate-descriptions --provider perplexity-mcp
 
-# Preview first (recommended)
+# Preview first (recommended - no API calls made)
 uv run python tools/add_bookmarks_from_urls.py urls.txt --generate-descriptions --dry-run
 ```
+
+> **Note:** The `--provider` and `--content-format` parameters mirror the `BOOKMARKS_LLM_PROVIDER` and `BOOKMARKS_LLM_CONTENT_FORMAT` environment variables. See [LLM Configuration Guide](LLM_CONFIGURATION.md) for details.
 
 ## URL File Format
 
@@ -51,15 +60,15 @@ https://news.ycombinator.com/item?id=12345
 ## Cost Estimation
 
 | URLs | Estimated Cost | Within $5 Credit? |
-|------|---------------|-------------------|
-| 10   | $0.05         | ✅ Yes            |
-| 50   | $0.25         | ✅ Yes            |
-| 100  | $0.50         | ✅ Yes            |
-| 500  | $2.50         | ✅ Yes            |
-| 1000 | $5.00         | ✅ Yes (exactly)  |
-| 2000 | $10.00        | ❌ No ($5 extra)  |
+| ---- | -------------- | ----------------- |
+| 10   | $0.05          | ✅ Yes            |
+| 50   | $0.25          | ✅ Yes            |
+| 100  | $0.50          | ✅ Yes            |
+| 500  | $2.50          | ✅ Yes            |
+| 1000 | $5.00          | ✅ Yes (exactly)  |
+| 2000 | $10.00         | ❌ No ($5 extra)  |
 
-*Estimates based on sonar model. Actual costs may vary.*
+_Estimates based on sonar model. Actual costs may vary._
 
 ## Common Commands
 
@@ -76,12 +85,12 @@ head -10 large_list.txt | uv run python tools/add_bookmarks_from_urls.py - --gen
 
 ## Troubleshooting
 
-| Problem | Solution |
-|---------|----------|
-| "API key required" | Set `PERPLEXITY_API_KEY` environment variable |
-| "Module not found" | Run `uv add requests beautifulsoup4 lxml` |
-| Rate limited | Script handles automatically, wait a moment |
-| High costs | Use `--dry-run` first, process in smaller batches |
+| Problem            | Solution                                          |
+| ------------------ | ------------------------------------------------- |
+| "API key required" | Set `PERPLEXITY_API_KEY` environment variable     |
+| "Module not found" | Run `uv add requests beautifulsoup4 lxml`         |
+| Rate limited       | Script handles automatically, wait a moment       |
+| High costs         | Use `--dry-run` first, process in smaller batches |
 
 ## Output Example
 
@@ -110,6 +119,8 @@ LLM Usage Statistics:
 
 ## See Also
 
-- Full setup guide: `SETUP_STAGE2.md`
-- Detailed documentation: `ADDING_BOOKMARKS.md`
+- **[LLM Configuration Guide](LLM_CONFIGURATION.md)** - Complete guide to LLM service configuration
+- **[MCP Guide](MCP_GUIDE.md)** - Model Context Protocol setup details
+- **[LLM Setup Guide](SETUP_STAGE2.md)** - Advanced setup options
+- **[ADDING_BOOKMARKS.md](ADDING_BOOKMARKS.md)** - Detailed documentation on adding bookmarks
 - Get API key: https://www.perplexity.ai/settings/api

@@ -8,13 +8,14 @@ This is a Flask-based web application for managing bookmarks with LLM-powered fe
 
 - **[Main Project README](../README.md)** - Installation and quick start
 - **[Adding Bookmarks](ADDING_BOOKMARKS.md)** - How to add bookmarks manually or in bulk
-- **[LLM Quickstart](QUICKSTART_LLM.md)** - Enable auto-generation of titles/descriptions
+- **[LLM Configuration Guide](LLM_CONFIGURATION.md)** - Complete guide to LLM service configuration
+- **[LLM Quickstart](QUICKSTART_LLM.md)** - Quick start for LLM features
 
 ### User Guides
 
 - **[MCP Integration Guide](MCP_GUIDE.md)** - Model Context Protocol setup and usage
 - **[MarkItDown Comparison](MARKITDOWN_COMPARISON.md)** - Content extraction methods compared
-- **[Stage 2 Setup](SETUP_STAGE2.md)** - Advanced LLM configuration options
+- **[LLM Setup Guide](SETUP_STAGE2.md)** - Advanced LLM configuration options
 
 ### Development Documentation
 
@@ -28,12 +29,22 @@ See `dev/` subdirectory:
 ## Features
 
 - Add, edit, delete bookmarks with titles, descriptions, and tags
-- 🤖 LLM-powered auto-generation (Perplexity API)
+- 🤖 **Flexible LLM integration** - Multiple providers (Perplexity, OpenAI, Anthropic) with pluggable content extraction
 - 🔍 Multi-tag filtering (AND/OR logic)
 - ⭐ Favorites support
 - 📊 Multiple sorting options (newest, oldest, alphabetical, favorites-first)
 - 🌐 REST API for external integration
 - 🔄 Async URL checking
+
+### LLM Service Architecture
+
+The LLM service uses a **composition-based architecture**:
+
+- **Providers**: Pluggable API clients (Perplexity, OpenAI, Anthropic)
+- **Extractors**: Content extraction strategies (HTML, Markdown, MCP)
+- **Service**: Single orchestrator for all LLM operations
+
+See **[LLM Configuration Guide](LLM_CONFIGURATION.md)** for details.
 
 ## API Documentation
 

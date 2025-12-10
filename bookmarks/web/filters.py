@@ -9,7 +9,7 @@ This module provides a dataclass to manage filter state across routes.
 from dataclasses import dataclass
 from typing import Optional
 
-from bookmarks.utils import parse_tags
+from bookmarks.web.utils import parse_tags
 
 
 @dataclass
@@ -101,3 +101,99 @@ class FilterState:
         }
         # Filter out None values
         return {k: v for k, v in params.items() if v is not None}
+
+
+def apply_tag_filter(
+    bookmarks: dict[str, dict], filter_tags: list[str]
+) -> dict[str, dict]:
+    """
+    Filter bookmarks by tags with AND logic.
+    
+    Bookmark must have ALL selected tags to be included.
+    
+    Args:
+        bookmarks: Dictionary of bookmarks to filter
+        filter_tags: List of tags that bookmarks must have
+        
+    Returns:
+        Filtered dictionary of bookmarks
+    """
+    if not filter_tags:
+        return bookmarks
+
+    return {
+        id: bookmark
+        for id, bookmark in bookmarks.items()
+        if all(tag in bookmark.get("tags", []) for tag in filter_tags)
+    }
+
+
+def apply_favorite_filter(bookmarks: dict[str, dict]) -> dict[str, dict]:
+    """
+    Filter bookmarks to only show favorites.
+    
+    Args:
+        bookmarks: Dictionary of bookmarks to filter
+        
+    Returns:
+        Filtered dictionary of bookmarks (only favorites)
+    """
+    return {
+        id: bookmark
+        for id, bookmark in bookmarks.items()
+        if bookmark.get("favorite", False)
+    }
+
+
+def apply_description_filter(
+    bookmarks: dict[str, dict], search_text: str
+) -> dict[str, dict]:
+    """
+    Filter bookmarks by description text (case-insensitive).
+    
+    Args:
+        bookmarks: Dictionary of bookmarks to filter
+        search_text: Text to search for in descriptions
+        
+    Returns:
+        Filtered dictionary of bookmarks
+    """
+    if not search_text:
+        return bookmarks
+
+    search_lower = search_text.lower()
+    return {
+        id: bookmark
+        for id, bookmark in bookmarks.items()
+        if search_lower in (bookmark.get("description") or "").lower()
+    }
+
+
+def apply_filters(
+    bookmarks: dict[str, dict], filter_state: FilterState
+) -> dict[str, dict]:
+    """
+    Apply all filters from a FilterState to bookmarks.
+    
+    Args:
+        bookmarks: Dictionary of bookmarks to filter
+        filter_state: FilterState containing all filter criteria
+        
+    Returns:
+        Filtered dictionary of bookmarks
+    """
+    filtered = bookmarks
+
+    # Apply tag filter (AND logic)
+    if filter_state.tags:
+        filtered = apply_tag_filter(filtered, filter_state.tags)
+
+    # Apply favorite filter
+    if filter_state.favorite:
+        filtered = apply_favorite_filter(filtered)
+
+    # Apply description filter
+    if filter_state.description:
+        filtered = apply_description_filter(filtered, filter_state.description)
+
+    return filtered

@@ -11,7 +11,7 @@ This will be phased out in Phase 4 of the refactoring.
 
 from typing import Optional, Union
 
-from bookmarks.repository import BookmarkRepository
+from bookmarks.data.repository import BookmarkRepository
 
 # Global repository instance for backward compatibility
 # TODO: Remove in Phase 4 when routes use Flask application context

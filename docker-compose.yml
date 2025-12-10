@@ -1,0 +1,14 @@
+version: '3.8'
+services:
+  bookmarks:
+    build: .
+    image: bookmarks:local
+    ports:
+      - "5000:5000"
+    environment:
+      - BOOKMARKS_PORT=5000
+      - BOOKMARKS_DATA_SOURCE=/data/bookmarks.js
+      - BOOKMARKS_BACKUP_DIR=/data/backup
+    volumes:
+      - ./data:/data
+    restart: unless-stopped

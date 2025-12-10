@@ -26,6 +26,7 @@ Model Context Protocol (MCP) is a standardized way for AI applications to intera
 ## Approach 1: MCP in AI IDEs (Antigravity, Claude Desktop)
 
 ### How It Works
+
 - **The AI assistant** uses MCP servers
 - You configure servers in IDE settings
 - The AI calls tools on your behalf
@@ -34,6 +35,7 @@ Model Context Protocol (MCP) is a standardized way for AI applications to intera
 ### Example: Antigravity Configuration
 
 In your IDE settings, you might have:
+
 ```json
 {
   "mcpServers": {
@@ -51,6 +53,7 @@ In your IDE settings, you might have:
 Then when you ask me (Antigravity) to search the web, I can use the Perplexity MCP server automatically.
 
 ### Use Case
+
 - Interactive AI assistance
 - Ad-hoc queries
 - Exploratory work
@@ -61,6 +64,7 @@ Then when you ask me (Antigravity) to search the web, I can use the Perplexity M
 ## Approach 2: MCP in Your Python Scripts
 
 ### How It Works
+
 - **Your code** uses MCP servers
 - You install MCP client library
 - You programmatically call MCP tools
@@ -135,22 +139,22 @@ print(result['description'])
 
 ### Key Differences from Direct API
 
-| Aspect | Direct API | MCP |
-|--------|-----------|-----|
-| Setup | Simple | Requires Node.js + MCP SDK |
-| Control | Full control | Server abstracts details |
-| Web Scraping | You do it (BeautifulSoup) | Server might do it |
-| Transport | HTTP REST | stdio (JSON-RPC) |
-| Flexibility | High | Medium |
-| Standardization | API-specific | Protocol-standard |
+| Aspect          | Direct API                | MCP                        |
+| --------------- | ------------------------- | -------------------------- |
+| Setup           | Simple                    | Requires Node.js + MCP SDK |
+| Control         | Full control              | Server abstracts details   |
+| Web Scraping    | You do it (BeautifulSoup) | Server might do it         |
+| Transport       | HTTP REST                 | stdio (JSON-RPC)           |
+| Flexibility     | High                      | Medium                     |
+| Standardization | API-specific              | Protocol-standard          |
 
 ---
 
 ## Comparison: Three Approaches
 
-### 1. Direct API (Current Implementation)
+### 1. Direct API (Current Default Implementation)
 
-**File:** `perplexity_client.py`
+**Implementation:** `bookmarks/services/llm_providers.py` (PerplexityProvider class)
 
 ```python
 # You control everything
@@ -162,13 +166,22 @@ text = soup.get_text()  # Extract
 result = requests.post('https://api.perplexity.ai/chat/completions', ...)
 ```
 
+**Usage:**
+
+```python
+from bookmarks.services import LLMFactory
+service = LLMFactory.create_client(provider="perplexity", content_format="html")
+```
+
 **Pros:**
+
 - ✅ Simple setup
 - ✅ Full control
 - ✅ No extra dependencies
 - ✅ Easy to debug
 
 **Cons:**
+
 - ❌ You handle web scraping
 - ❌ Not standardized
 - ❌ API-specific code
@@ -185,12 +198,14 @@ async with stdio_client(server_params) as (read, write):
 ```
 
 **Pros:**
+
 - ✅ Standardized protocol
 - ✅ Server handles complexity
 - ✅ Can switch providers easily
 - ✅ Future-proof
 
 **Cons:**
+
 - ❌ Requires Node.js
 - ❌ More complex setup
 - ❌ Async code (more complex)
@@ -201,11 +216,13 @@ async with stdio_client(server_params) as (read, write):
 **Configuration only, no code**
 
 **Pros:**
+
 - ✅ No coding needed
 - ✅ AI uses it automatically
 - ✅ Interactive
 
 **Cons:**
+
 - ❌ Not for automation
 - ❌ Can't use in scripts
 - ❌ Requires AI IDE
@@ -215,18 +232,21 @@ async with stdio_client(server_params) as (read, write):
 ## When to Use Each Approach
 
 ### Use Direct API When:
+
 - ✅ You want simple, straightforward code
 - ✅ You need full control over web scraping
 - ✅ You're building a standalone script
 - ✅ You want to minimize dependencies
 
 ### Use MCP in Scripts When:
+
 - ✅ You want to experiment with MCP
 - ✅ You might switch between providers
 - ✅ You want standardized tool calling
 - ✅ You're building a larger system
 
 ### Use MCP in IDE When:
+
 - ✅ You want AI assistance
 - ✅ You're doing interactive work
 - ✅ You don't need automation
@@ -247,26 +267,25 @@ parser.add_argument(
 )
 
 # In the code:
-if args.use_mcp:
-    from perplexity_mcp_client import PerplexityMCPClient
-    client = PerplexityMCPClient()
-else:
-    from perplexity_client import PerplexityClient
-    client = PerplexityClient()
+from bookmarks.services import LLMFactory
+
+service = LLMFactory.create_client(
+    provider="perplexity",
+    use_mcp=args.use_mcp  # True for MCP, False for direct API
+)
 ```
 
 Usage:
+
 ```bash
-# Direct API (current)
+# Direct API (default)
 uv run python tools/add_bookmarks_from_urls.py urls.txt --generate-descriptions
 
-# MCP protocol (new)
+# MCP protocol
 uv run python tools/add_bookmarks_from_urls.py urls.txt --generate-descriptions --use-mcp
 ```
 
-### Option B: Replace with MCP
-
-Fully switch to MCP by updating `perplexity_client.py` to use MCP internally.
+> **Note:** The `--use-mcp` flag is already implemented in the tools. See [LLM Configuration Guide](LLM_CONFIGURATION.md) for more details.
 
 ---
 
@@ -292,6 +311,7 @@ Fully switch to MCP by updating `perplexity_client.py` to use MCP internally.
 ```
 
 Messages look like:
+
 ```json
 // Your script → Server
 {
@@ -333,19 +353,22 @@ response = requests.post('http://localhost:3000/mcp', ...)
 ### To Experiment with MCP:
 
 1. **Install Node.js**
+
    ```bash
    winget install OpenJS.NodeJS
    ```
 
 2. **Install MCP SDK**
+
    ```bash
    uv add mcp
    ```
 
 3. **Test the MCP client**
+
    ```python
    from perplexity_mcp_client import PerplexityMCPClient
-   
+
    client = PerplexityMCPClient()
    result = client.generate_description("https://github.com/python/cpython")
    print(result)
@@ -367,17 +390,20 @@ response = requests.post('http://localhost:3000/mcp', ...)
 ## Summary
 
 **MCP in AI IDEs (Antigravity):**
+
 - Configuration-based
 - AI uses it for you
 - No coding needed
 
 **MCP in Your Scripts:**
+
 - Code-based
 - You control it
 - Standardized protocol
 - Requires setup
 
 **Direct API (Current):**
+
 - Simplest approach
 - Full control
 - No MCP needed

@@ -6,7 +6,7 @@ Domain models for the bookmarks application.
 This module defines the core data structures used throughout the application.
 """
 
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from typing import Optional
 

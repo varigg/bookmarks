@@ -8,8 +8,9 @@ This module handles reading and writing bookmark data to/from JavaScript files.
 
 from typing import Any
 
-from dynaconf import settings
 from javascript_data_files import read_js, write_js
+
+from bookmarks import config
 
 
 def get_data_source() -> str:
@@ -19,7 +20,7 @@ def get_data_source() -> str:
     Returns:
         Path to the data source file from settings.
     """
-    return settings.DATA_SOURCE
+    return config.DATA_SOURCE
 
 
 def get_data() -> list[dict[str, Any]]:

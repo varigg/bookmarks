@@ -9,9 +9,9 @@ Each instance maintains its own bookmark collection loaded from the data source.
 
 from typing import Optional, Union
 
-from bookmarks.datafile import get_data, write_data
-from bookmarks.domain import Bookmark
-from bookmarks.exceptions import BookmarkNotFoundError, DataStorageError
+from bookmarks.core.domain import Bookmark
+from bookmarks.core.exceptions import BookmarkNotFoundError, DataStorageError
+from bookmarks.data.datafile import get_data, write_data
 
 
 class BookmarkRepository:

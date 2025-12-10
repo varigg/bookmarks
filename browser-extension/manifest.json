@@ -1,0 +1,27 @@
+{
+  "manifest_version": 2,
+  "name": "Bookmarks Server",
+  "version": "1.0.0",
+  "description": "Send current page to your self-hosted bookmarks server",
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
+  "browser_action": {
+    "default_icon": {
+      "16": "icons/bookmark-16.png",
+      "32": "icons/bookmark-32.png",
+      "48": "icons/bookmark-48.png"
+    },
+    "default_title": "Add to Bookmarks",
+    "default_popup": "popup.html"
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": false
+  },
+  "icons": {
+    "48": "icons/bookmark-48.png",
+    "96": "icons/bookmark-96.png"
+  }
+}

@@ -1,13 +1,18 @@
 import pytest
 
 from bookmarks import create_app, datafile
-from bookmarks.datafile import write_data
-from bookmarks.model import init_bookmarks
+from bookmarks.data.datafile import write_data
+from bookmarks.data.repository import BookmarkRepository
 
 
 @pytest.fixture
-def app():
-    app = create_app({"TESTING": True})
+def app(bookmarks_file):
+    """Create app with patched data source bound to a per-test file."""
+    app = create_app({
+        "TESTING": True,
+        "WTF_CSRF_ENABLED": False,  # Disable CSRF for tests
+        "CSRF_ENABLED": False,      # Alternative config key
+    })
     return app
 
 
@@ -29,33 +34,41 @@ def sample_bookmark():
 
 @pytest.fixture
 def bookmarks_file(tmp_path, monkeypatch):
-    """
-    Fixture that creates a temporary bookmarks file and patches get_data_source.
-    """
-    # Create a temporary file
-    d = tmp_path / "data"
-    d.mkdir()
-    p = d / "test_bookmarks.js"
-    p.write_text("var bookmarks = [];")
+    """Per-test data file path patched into the datafile helper."""
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    data_path = data_dir / "test_bookmarks.js"
+    data_path.write_text("var bookmarks = [];")
 
-    # Patch get_data_source to return the temporary file path
-    monkeypatch.setattr(datafile, "get_data_source", lambda: str(p))
+    # Patch get_data_source to use the per-test file
+    monkeypatch.setattr(datafile, "get_data_source", lambda: str(data_path))
 
-    yield str(p)
+    yield str(data_path)
 
-    # Cleanup is handled by pytest's tmp_path fixture
+    # Cleanup handled by tmp_path
 
 
 @pytest.fixture(autouse=True)
+def isolate_bookmarks_storage(app, bookmarks_file):
+    """Reset repository state and storage to an empty, per-test file."""
+    with app.app_context():
+        from bookmarks.web.routes import get_bookmark_service
+
+        # Reset the in-memory repository to point at the patched data source
+        get_bookmark_service().repository = BookmarkRepository()
+
+        # Ensure the file starts empty for this test
+        write_data([])
+
+    yield
+
+
+@pytest.fixture
 def setup_data(bookmarks_file, sample_bookmark):
     """
     Fixture to set up test data before each test.
     """
-    # Write sample data
     bookmarks = {"0": sample_bookmark}
     write_data(bookmarks.values())
-
-    # Initialize model with the new file
-    init_bookmarks()
 
     yield
