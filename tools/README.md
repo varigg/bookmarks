@@ -176,6 +176,15 @@ export OPENAI_API_KEY=sk-your-key
 uv run python tools/test_openai.py
 ```
 
+### `test_anthropic.py`
+
+Test Anthropic API configuration.
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-your-key
+uv run python tools/test_anthropic.py
+```
+
 ---
 
 ## Configuration
@@ -194,6 +203,7 @@ export BOOKMARKS_LLM_CONTENT_FORMAT=html
 # Set API key (depending on provider)
 export PERPLEXITY_API_KEY=pplx-your-key
 export OPENAI_API_KEY=sk-your-key
+export ANTHROPIC_API_KEY=sk-ant-your-key
 ```
 
 ---

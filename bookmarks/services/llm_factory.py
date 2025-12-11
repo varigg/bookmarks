@@ -94,14 +94,20 @@ class LLMFactory:
                 provider_name="openai",
             )
 
-        # Future providers
         elif provider == "anthropic":
-            raise NotImplementedError(
-                "Anthropic support coming soon. Currently supported: perplexity, perplexity-mcp, openai"
+            # Anthropic API provider with content extractor
+            from .llm_providers import AnthropicProvider
+
+            provider_client = AnthropicProvider(api_key=api_key)
+            return LLMService(
+                provider=provider_client,
+                content_extractor=extractor,
+                provider_name="anthropic",
             )
+
         else:
             raise ValueError(
-                f"Unknown provider: {provider}. Supported providers: perplexity, perplexity-mcp, openai"
+                f"Unknown provider: {provider}. Supported providers: perplexity, perplexity-mcp, openai, anthropic"
             )
 
     @staticmethod

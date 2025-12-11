@@ -151,15 +151,81 @@ class OpenAIProvider:
 
 
 class AnthropicProvider:
-    """API client for Anthropic (placeholder for future implementation)."""
+    """API client for Anthropic."""
 
     def __init__(self, api_key: Optional[str] = None):
-        """Initialize Anthropic provider."""
-        raise NotImplementedError("Anthropic provider coming soon.")
+        """
+        Initialize Anthropic provider.
+
+        Args:
+            api_key: API key (reads from ANTHROPIC_API_KEY env var if None)
+        """
+        self.api_key = api_key or os.getenv("ANTHROPIC_API_KEY")
+        if not self.api_key:
+            raise ValueError(
+                "Anthropic API key required. Set ANTHROPIC_API_KEY environment variable."
+            )
+        self.base_url = "https://api.anthropic.com/v1"
+        self.model = "claude-3-5-haiku-20241022"  # Fast and cost-effective model
+        self.api_version = "2023-06-01"  # API version for Messages API
 
     def call_api(self, system_prompt: str, user_prompt: str) -> Dict[str, Any]:
-        """Call Anthropic API."""
-        raise NotImplementedError("Anthropic provider coming soon.")
+        """
+        Call Anthropic messages API.
+
+        Args:
+            system_prompt: System message
+            user_prompt: User prompt
+
+        Returns:
+            Dict with 'content' (response text) and 'usage' (token stats) keys
+        """
+        headers = {
+            "x-api-key": self.api_key,
+            "anthropic-version": self.api_version,
+            "content-type": "application/json",
+        }
+
+        # Build payload according to Anthropic Messages API spec
+        payload = {
+            "model": self.model,
+            "max_tokens": 300,
+            "messages": [{"role": "user", "content": user_prompt}],
+        }
+
+        # Add system prompt if provided
+        if system_prompt:
+            payload["system"] = system_prompt
+
+        response = requests.post(
+            f"{self.base_url}/messages",
+            headers=headers,
+            json=payload,
+            timeout=30,
+        )
+
+        # Add better error handling
+        try:
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            error_detail = ""
+            try:
+                error_detail = f" - {response.json()}"
+            except (ValueError, requests.JSONDecodeError):
+                error_detail = f" - {response.text}"
+            raise requests.HTTPError(f"{e}{error_detail}", response=response)
+
+        data = response.json()
+
+        # Extract text content from response
+        content_text = ""
+        if "content" in data and len(data["content"]) > 0:
+            content_text = data["content"][0].get("text", "")
+
+        return {
+            "content": content_text,
+            "usage": data.get("usage", {}),
+        }
 
 
 class PerplexityMCPProvider:
