@@ -64,7 +64,9 @@ class HTMLExtractor:
             meta_desc = soup.find("meta", attrs={"name": "description"})
             if meta_desc and meta_desc.get("content"):
                 content = meta_desc["content"]
-                meta_description = content[0].strip() if isinstance(content, list) else content.strip()
+                meta_description = (
+                    content[0].strip() if isinstance(content, list) else content.strip()
+                )
             else:
                 meta_description = ""
 
