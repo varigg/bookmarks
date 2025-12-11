@@ -1,7 +1,14 @@
 {
   "2025-12": {
-    "requests": 33,
-    "tokens": 12702,
-    "cost": 0.16500000000000006
+    "perplexity": {
+      "requests": 38,
+      "tokens": 14940,
+      "cost": 0.19000000000000009
+    },
+    "openai": {
+      "requests": 1,
+      "tokens": 425,
+      "cost": 0.005
+    }
   }
 }

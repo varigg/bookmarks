@@ -75,7 +75,7 @@ All documentation has been organized in the `docs/` directory:
 ### LLM-Powered Enrichment
 
 - 🤖 **Automatic title and description generation** - Just send URLs, the app does the rest
-- 🔌 **Multiple LLM providers** - Perplexity, OpenAI, Anthropic (pluggable)
+- 🔌 **Multiple LLM providers** - Perplexity, OpenAI (Anthropic coming soon)
 - 📄 **Flexible content extraction** - HTML or Markdown parsing
 - 🎯 **Future: Auto-tagging** - Planned enhancement for automatic tag suggestions
 

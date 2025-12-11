@@ -52,10 +52,10 @@ def test_direct_api(url: str):
         print(f"\nDescription: {result['description']}")
 
         stats = client.get_usage_stats()
-        print("\nUsage Stats:")
-        print(f"  Requests: {stats['requests']}")
-        print(f"  Tokens: {stats['total_tokens']}")
-        print(f"  Cost: ${stats['estimated_cost_usd']:.4f}")
+        print("\nUsage Stats (Perplexity):")
+        print(f"  Requests: {stats.get('requests', 0)}")
+        print(f"  Tokens: {stats.get('total_tokens', 0)}")
+        print(f"  Cost: ${stats.get('estimated_cost_usd', 0.0):.4f}")
 
         return True
 

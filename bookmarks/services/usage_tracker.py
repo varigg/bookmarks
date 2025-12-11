@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Usage tracker for Perplexity API calls.
-Tracks requests, tokens, and estimated cost by month.
+Usage tracker for LLM API calls.
+Tracks requests, tokens, and estimated cost by month and provider.
 """
 
 import json
@@ -16,15 +16,17 @@ USAGE_FILE = os.path.join(
 
 
 class UsageTracker:
-    """Tracks API usage statistics locally."""
+    """Tracks API usage statistics locally, separated by provider."""
 
-    def __init__(self, filepath: str = USAGE_FILE):
+    def __init__(self, provider: str = "unknown", filepath: str = USAGE_FILE):
         """
         Initialize the usage tracker.
 
         Args:
+            provider: LLM provider name (e.g., "perplexity", "openai", "anthropic")
             filepath: Path to the JSON file storing usage stats.
         """
+        self.provider = provider
         self.filepath = filepath
         self.stats = self._load_stats()
 
@@ -48,7 +50,7 @@ class UsageTracker:
 
     def track_request(self, tokens: int = 0, cost: float = 0.0):
         """
-        Track a single API request.
+        Track a single API request for the current provider.
 
         Args:
             tokens: Number of tokens used.
@@ -56,31 +58,73 @@ class UsageTracker:
         """
         month = datetime.now().strftime("%Y-%m")
 
+        # Initialize month if needed
         if month not in self.stats:
-            self.stats[month] = {"requests": 0, "tokens": 0, "cost": 0.0}
+            self.stats[month] = {}
 
-        self.stats[month]["requests"] += 1
-        self.stats[month]["tokens"] += tokens
-        self.stats[month]["cost"] += cost
+        # Initialize provider stats if needed
+        if self.provider not in self.stats[month]:
+            self.stats[month][self.provider] = {
+                "requests": 0,
+                "tokens": 0,
+                "cost": 0.0,
+            }
+
+        # Update stats for this provider
+        self.stats[month][self.provider]["requests"] += 1
+        self.stats[month][self.provider]["tokens"] += tokens
+        self.stats[month][self.provider]["cost"] += cost
 
         self._save_stats()
 
-    def get_stats(self, month: Optional[str] = None) -> Dict[str, Any]:
+    def get_stats(
+        self, month: Optional[str] = None, provider: Optional[str] = None
+    ) -> Dict[str, Any]:
         """
         Get usage statistics.
 
         Args:
             month: Specific month (YYYY-MM) to get stats for.
-                   If None, returns all stats.
+                   If None, returns all months.
+            provider: Specific provider to get stats for.
+                     If None, uses tracker's provider.
 
         Returns:
             Dict containing usage stats.
         """
+        target_provider = provider or self.provider
+
         if month:
-            return self.stats.get(month, {"requests": 0, "tokens": 0, "cost": 0.0})
+            month_stats = self.stats.get(month, {})
+            return month_stats.get(
+                target_provider, {"requests": 0, "tokens": 0, "cost": 0.0}
+            )
         return self.stats
 
-    def get_current_month_stats(self) -> Dict[str, Any]:
-        """Get stats for the current month."""
+    def get_current_month_stats(self, provider: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Get stats for the current month and provider.
+
+        Args:
+            provider: Specific provider to get stats for.
+                     If None, uses tracker's provider.
+
+        Returns:
+            Dict with usage stats for the provider.
+        """
         month = datetime.now().strftime("%Y-%m")
-        return self.get_stats(month)
+        return self.get_stats(month, provider)
+
+    def get_all_providers_stats(self, month: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Get stats for all providers.
+
+        Args:
+            month: Specific month (YYYY-MM) to get stats for.
+                   If None, uses current month.
+
+        Returns:
+            Dict mapping provider names to their stats.
+        """
+        target_month = month or datetime.now().strftime("%Y-%m")
+        return self.stats.get(target_month, {})

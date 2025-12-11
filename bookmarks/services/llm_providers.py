@@ -91,15 +91,63 @@ class PerplexityProvider:
 
 
 class OpenAIProvider:
-    """API client for OpenAI (placeholder for future implementation)."""
+    """API client for OpenAI."""
 
     def __init__(self, api_key: Optional[str] = None):
-        """Initialize OpenAI provider."""
-        raise NotImplementedError("OpenAI provider coming soon.")
+        """
+        Initialize OpenAI provider.
+
+        Args:
+            api_key: API key (reads from OPENAI_API_KEY env var if None)
+        """
+        self.api_key = api_key or os.getenv("OPENAI_API_KEY")
+        if not self.api_key:
+            raise ValueError(
+                "OpenAI API key required. Set OPENAI_API_KEY environment variable."
+            )
+        self.base_url = "https://api.openai.com/v1"
+        self.model = "gpt-4o-mini"  # Cost-effective model for summarization
 
     def call_api(self, system_prompt: str, user_prompt: str) -> Dict[str, Any]:
-        """Call OpenAI API."""
-        raise NotImplementedError("OpenAI provider coming soon.")
+        """
+        Call OpenAI chat completions API.
+
+        Args:
+            system_prompt: System message
+            user_prompt: User prompt
+
+        Returns:
+            Dict with 'content' (response text) and 'usage' (token stats) keys
+        """
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+        }
+
+        payload = {
+            "model": self.model,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            "temperature": 0.2,
+            "max_tokens": 300,
+        }
+
+        response = requests.post(
+            f"{self.base_url}/chat/completions",
+            headers=headers,
+            json=payload,
+            timeout=30,
+        )
+        response.raise_for_status()
+
+        data = response.json()
+
+        return {
+            "content": data["choices"][0]["message"]["content"],
+            "usage": data.get("usage", {}),
+        }
 
 
 class AnthropicProvider:

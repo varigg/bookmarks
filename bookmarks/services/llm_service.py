@@ -25,6 +25,7 @@ class LLMService:
         self,
         provider: LLMProvider,
         content_extractor: Optional[ContentExtractor] = None,
+        provider_name: str = "unknown",
     ):
         """
         Initialize LLM service.
@@ -32,10 +33,12 @@ class LLMService:
         Args:
             provider: LLM provider client (e.g., PerplexityProvider)
             content_extractor: Content extraction strategy (None for providers that fetch content themselves like MCP)
+            provider_name: Name of the provider for usage tracking (e.g., "perplexity", "openai")
         """
         self.provider = provider
         self.content_extractor = content_extractor
-        self.tracker = UsageTracker()
+        self.provider_name = provider_name
+        self.tracker = UsageTracker(provider=provider_name)
 
     def generate_description(
         self,
@@ -96,7 +99,13 @@ class LLMService:
 
     def get_usage_stats(self) -> Dict[str, Any]:
         """Get usage statistics."""
-        return self.tracker.get_current_month_stats()
+        stats = self.tracker.get_current_month_stats()
+        # Return with consistent key names for backward compatibility
+        return {
+            "requests": stats.get("requests", 0),
+            "total_tokens": stats.get("tokens", 0),
+            "estimated_cost_usd": stats.get("cost", 0.0),
+        }
 
     @staticmethod
     def _build_system_prompt() -> str:

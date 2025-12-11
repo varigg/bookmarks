@@ -72,17 +72,18 @@ export BOOKMARKS_LLM_PROVIDER=perplexity  # or: perplexity-mcp, openai, anthropi
 # Set content extraction format
 export BOOKMARKS_LLM_CONTENT_FORMAT=html  # or: markdown
 
-# Set API key
+# Set API key (depending on provider)
 export PERPLEXITY_API_KEY=pplx-your-key
+export OPENAI_API_KEY=sk-your-key
 ```
 
 See `docs/LLM_CONFIGURATION.md` for complete setup instructions.
 
 ### Supported Providers
 
-- **perplexity**: Direct Perplexity API with HTML content extraction
+- **perplexity**: Direct Perplexity API with HTML/Markdown content extraction
 - **perplexity-mcp**: Perplexity via Model Context Protocol (no separate content extraction)
-- **openai**: OpenAI API (placeholder)
+- **openai**: OpenAI API (gpt-4o-mini model) with HTML/Markdown content extraction
 - **anthropic**: Anthropic API (placeholder)
 
 ### Content Extraction

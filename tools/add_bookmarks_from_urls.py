@@ -38,6 +38,7 @@ def test_llm_provider(provider="perplexity", content_format="html"):
     from bookmarks.services import LLMFactory
 
     test_url = "https://github.com/python/cpython"
+    provider_name = provider  # Store for stats display
 
     print("=" * 60)
     print("LLM Provider Test")
@@ -72,12 +73,13 @@ def test_llm_provider(provider="perplexity", content_format="html"):
 
         # Show usage stats if available
         stats = client.get_usage_stats()
-        if stats["requests"] > 0:
+        if stats.get("requests", 0) > 0:
             print("=" * 60)
-            print("Usage Statistics:")
-            print(f"  Requests: {stats['requests']}")
-            print(f"  Total Tokens: {stats['total_tokens']}")
-            print(f"  Estimated Cost: ${stats['estimated_cost_usd']:.4f}")
+            provider_display = provider_name.replace("-", " ").title()
+            print(f"Usage Statistics ({provider_display}):")
+            print(f"  Requests: {stats.get('requests', 0)}")
+            print(f"  Total Tokens: {stats.get('total_tokens', 0)}")
+            print(f"  Estimated Cost: ${stats.get('estimated_cost_usd', 0.0):.4f}")
 
         print("=" * 60)
         print("✓ Test successful!")

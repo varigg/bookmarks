@@ -69,24 +69,39 @@ class LLMFactory:
             from .llm_providers import PerplexityMCPProvider
 
             provider_client = PerplexityMCPProvider(api_key=api_key)
-            return LLMService(provider=provider_client, content_extractor=None)
+            return LLMService(
+                provider=provider_client,
+                content_extractor=None,
+                provider_name="perplexity-mcp",
+            )
         elif provider == "perplexity":
             # Direct API provider with content extractor
             provider_client = PerplexityProvider(api_key=api_key)
-            return LLMService(provider=provider_client, content_extractor=extractor)
+            return LLMService(
+                provider=provider_client,
+                content_extractor=extractor,
+                provider_name="perplexity",
+            )
+
+        elif provider == "openai":
+            # OpenAI API provider with content extractor
+            from .llm_providers import OpenAIProvider
+
+            provider_client = OpenAIProvider(api_key=api_key)
+            return LLMService(
+                provider=provider_client,
+                content_extractor=extractor,
+                provider_name="openai",
+            )
 
         # Future providers
-        elif provider == "openai":
-            raise NotImplementedError(
-                "OpenAI support coming soon. Currently only Perplexity is supported."
-            )
         elif provider == "anthropic":
             raise NotImplementedError(
-                "Anthropic support coming soon. Currently only Perplexity is supported."
+                "Anthropic support coming soon. Currently supported: perplexity, perplexity-mcp, openai"
             )
         else:
             raise ValueError(
-                f"Unknown provider: {provider}. Supported providers: perplexity, perplexity-mcp"
+                f"Unknown provider: {provider}. Supported providers: perplexity, perplexity-mcp, openai"
             )
 
     @staticmethod

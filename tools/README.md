@@ -156,6 +156,28 @@ uv run python tools/update_tags.py "old-tag" "new-tag"
 
 ---
 
+## Testing Tools
+
+### `test_perplexity.py`
+
+Test Perplexity API configuration.
+
+```bash
+export PERPLEXITY_API_KEY=pplx-your-key
+uv run python tools/test_perplexity.py
+```
+
+### `test_openai.py`
+
+Test OpenAI API configuration.
+
+```bash
+export OPENAI_API_KEY=sk-your-key
+uv run python tools/test_openai.py
+```
+
+---
+
 ## Configuration
 
 Most tools work with the base installation. For LLM features, see `docs/LLM_CONFIGURATION.md` for detailed setup instructions.
@@ -169,8 +191,9 @@ export BOOKMARKS_LLM_PROVIDER=perplexity
 # Set content format (html, markdown)
 export BOOKMARKS_LLM_CONTENT_FORMAT=html
 
-# Set API key
+# Set API key (depending on provider)
 export PERPLEXITY_API_KEY=pplx-your-key
+export OPENAI_API_KEY=sk-your-key
 ```
 
 ---
