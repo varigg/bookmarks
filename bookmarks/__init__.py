@@ -13,7 +13,7 @@ def create_app(test_config=None):
     """Create and configure an instance of the Flask application."""
     app = Flask(__name__, instance_relative_config=True)
     app.secret_key = config.SECRET_KEY or os.urandom(24).hex()
-    
+
     # Enable CORS for browser extension support
     CORS(app)
 
@@ -33,10 +33,10 @@ def create_app(test_config=None):
     # Register error handlers
     @app.errorhandler(404)
     def not_found_error(error):
-        return render_template('404.html'), 404
+        return render_template("404.html"), 404
 
     @app.errorhandler(500)
     def internal_error(error):
-        return render_template('500.html'), 500
+        return render_template("500.html"), 500
 
     return app

@@ -16,7 +16,7 @@ from bookmarks import config
 def get_data_source() -> str:
     """
     Get the configured data source path.
-    
+
     Returns:
         Path to the data source file from settings.
     """
@@ -26,7 +26,7 @@ def get_data_source() -> str:
 def get_data() -> list[dict[str, Any]]:
     """
     Read bookmark data from the configured data source.
-    
+
     Returns:
         List of bookmark dictionaries.
     """
@@ -36,7 +36,7 @@ def get_data() -> list[dict[str, Any]]:
 def write_data(data: list[dict[str, Any]] | Any) -> None:
     """
     Write bookmark data to the configured data source.
-    
+
     Args:
         data: Iterable of bookmark dictionaries to write.
     """

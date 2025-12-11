@@ -1,4 +1,3 @@
-
 import shutil
 from datetime import datetime
 from pathlib import Path
@@ -11,36 +10,44 @@ def backup_data_file():
     """Create a timestamped backup of the data file and rotate old backups."""
     if not BACKUP_ENABLED:
         return
-    
+
     # Resolve paths
     base_dir = Path(__file__).parent
-    src = Path(DATA_SOURCE) if Path(DATA_SOURCE).is_absolute() else base_dir / DATA_SOURCE
-    
+    src = (
+        Path(DATA_SOURCE) if Path(DATA_SOURCE).is_absolute() else base_dir / DATA_SOURCE
+    )
+
     if not src.exists():
         print(f"Warning: Data file {src} does not exist, skipping backup")
         return
-    
+
     # Create backup directory
-    backup_dir = Path(BACKUP_DIR) if Path(BACKUP_DIR).is_absolute() else base_dir / BACKUP_DIR
+    backup_dir = (
+        Path(BACKUP_DIR) if Path(BACKUP_DIR).is_absolute() else base_dir / BACKUP_DIR
+    )
     backup_dir.mkdir(exist_ok=True)
-    
+
     # Create timestamped backup
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     backup_name = f"{src.stem}_{timestamp}{src.suffix}.bck"
     dst = backup_dir / backup_name
-    
+
     try:
         shutil.copy2(src, dst)
         print(f"Backup created: {dst}")
     except Exception as e:
         print(f"Warning: Could not back up {src}: {e}")
         return
-    
+
     # Rotate old backups - keep only the most recent BACKUP_COUNT files
     if BACKUP_COUNT > 0:
         backup_pattern = f"{src.stem}_*{src.suffix}.bck"
-        backups = sorted(backup_dir.glob(backup_pattern), key=lambda p: p.stat().st_mtime, reverse=True)
-        
+        backups = sorted(
+            backup_dir.glob(backup_pattern),
+            key=lambda p: p.stat().st_mtime,
+            reverse=True,
+        )
+
         # Remove old backups beyond the limit
         for old_backup in backups[BACKUP_COUNT:]:
             try:

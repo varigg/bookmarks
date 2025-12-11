@@ -83,7 +83,7 @@ class PerplexityProvider:
         response.raise_for_status()
 
         data = response.json()
-        
+
         return {
             "content": data["choices"][0]["message"]["content"],
             "usage": data.get("usage", {}),
@@ -134,7 +134,7 @@ class PerplexityMCPProvider:
             raise ValueError(
                 "Perplexity API key required. Set PERPLEXITY_API_KEY environment variable."
             )
-        
+
         # Store MCP modules for later use
         self._asyncio = asyncio
         self._ClientSession = ClientSession
@@ -165,7 +165,7 @@ class PerplexityMCPProvider:
             command="npx",
             args=["-y", "@perplexity-ai/mcp-server"],
             env={
-                "PERPLEXITY_API_KEY": self.api_key,
+                "PERPLEXITY_API_KEY": self.api_key,  # type: ignore[dict-item]
                 "PERPLEXITY_MODEL": "sonar",
             },
         )
@@ -186,8 +186,10 @@ class PerplexityMCPProvider:
                 text_parts = []
                 if hasattr(result, "content") and isinstance(result.content, list):
                     for item in result.content:
-                        if hasattr(item, "text"):
-                            text_parts.append(item.text)
+                        # Use getattr to safely access text attribute
+                        text = getattr(item, "text", None)
+                        if text is not None:
+                            text_parts.append(str(text))
                         else:
                             text_parts.append(str(item))
 

@@ -16,7 +16,7 @@ from bookmarks.web.utils import parse_tags
 class FilterState:
     """
     Represents the current filter state for bookmarks.
-    
+
     Attributes:
         tags: List of tag strings to filter by
         tag_string: Original comma-separated tag string (for URLs)
@@ -24,21 +24,21 @@ class FilterState:
         description: Text to search for in descriptions
         favorite: Whether to filter favorites only
     """
-    
+
     tags: list[str]
     tag_string: Optional[str]
     criteria: Optional[str]
     description: Optional[str]
     favorite: Optional[str]
-    
+
     @classmethod
     def from_request_args(cls, args) -> "FilterState":
         """
         Extract filter state from Flask request.args.
-        
+
         Args:
             args: Flask request.args object
-            
+
         Returns:
             FilterState instance with extracted values
         """
@@ -50,15 +50,15 @@ class FilterState:
             description=args.get("description"),
             favorite=args.get("favorite"),
         )
-    
+
     @classmethod
     def from_request_form(cls, form) -> "FilterState":
         """
         Extract filter state from Flask request.form (hidden fields).
-        
+
         Args:
             form: Flask request.form object
-            
+
         Returns:
             FilterState instance with extracted values
         """
@@ -70,11 +70,11 @@ class FilterState:
             description=form.get("filter_description"),
             favorite=form.get("filter_favorite"),
         )
-    
+
     def to_dict(self) -> dict:
         """
         Convert to dictionary for template context.
-        
+
         Returns:
             Dictionary with filter_ prefixed keys for templates
         """
@@ -85,11 +85,11 @@ class FilterState:
             "filter_description": self.description,
             "filter_favorite": self.favorite,
         }
-    
+
     def to_url_params(self) -> dict:
         """
         Convert to URL parameters, excluding None values.
-        
+
         Returns:
             Dictionary suitable for url_for(**params)
         """
@@ -108,13 +108,13 @@ def apply_tag_filter(
 ) -> dict[str, dict]:
     """
     Filter bookmarks by tags with AND logic.
-    
+
     Bookmark must have ALL selected tags to be included.
-    
+
     Args:
         bookmarks: Dictionary of bookmarks to filter
         filter_tags: List of tags that bookmarks must have
-        
+
     Returns:
         Filtered dictionary of bookmarks
     """
@@ -131,10 +131,10 @@ def apply_tag_filter(
 def apply_favorite_filter(bookmarks: dict[str, dict]) -> dict[str, dict]:
     """
     Filter bookmarks to only show favorites.
-    
+
     Args:
         bookmarks: Dictionary of bookmarks to filter
-        
+
     Returns:
         Filtered dictionary of bookmarks (only favorites)
     """
@@ -150,11 +150,11 @@ def apply_description_filter(
 ) -> dict[str, dict]:
     """
     Filter bookmarks by description text (case-insensitive).
-    
+
     Args:
         bookmarks: Dictionary of bookmarks to filter
         search_text: Text to search for in descriptions
-        
+
     Returns:
         Filtered dictionary of bookmarks
     """
@@ -174,11 +174,11 @@ def apply_filters(
 ) -> dict[str, dict]:
     """
     Apply all filters from a FilterState to bookmarks.
-    
+
     Args:
         bookmarks: Dictionary of bookmarks to filter
         filter_state: FilterState containing all filter criteria
-        
+
     Returns:
         Filtered dictionary of bookmarks
     """

@@ -1,7 +1,7 @@
 [project]
 name = "bookmarks"
 version = "0.1.0"
-description = "Add your description here"
+description = "Self-hosted bookmark manager with LLM-powered automatic title and description generation"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

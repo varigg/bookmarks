@@ -7,6 +7,7 @@ Provides multiple extraction strategies (BeautifulSoup HTML, MarkItDown markdown
 allowing LLM clients to be independent of content format.
 """
 
+from io import BytesIO
 from typing import Dict, Protocol
 from urllib.parse import urlparse
 
@@ -61,7 +62,11 @@ class HTMLExtractor:
 
             # Extract meta description
             meta_desc = soup.find("meta", attrs={"name": "description"})
-            meta_description = meta_desc.get("content", "").strip() if meta_desc else ""
+            if meta_desc and meta_desc.get("content"):
+                content = meta_desc["content"]
+                meta_description = content[0].strip() if isinstance(content, list) else content.strip()
+            else:
+                meta_description = ""
 
             # Extract main text content
             # Remove script and style elements
@@ -122,7 +127,7 @@ class MarkdownExtractor:
             response.raise_for_status()
 
             # Convert to markdown
-            result = self.md_converter.convert_stream(response.content)
+            result = self.md_converter.convert_stream(BytesIO(response.content))
             markdown_text = result.text_content
 
             # Extract title from markdown (first H1 or use domain)

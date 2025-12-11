@@ -4,6 +4,8 @@ import json
 
 from javascript_data_files import read_js, write_js
 
+from bookmarks.data.datafile import get_data_source
+
 
 def main():
     parser = argparse.ArgumentParser(description="Update bookmarks from a JSON file.")
@@ -20,7 +22,7 @@ def main():
     )
     args = parser.parse_args()
 
-    data_source = "/mnt/c/Users/varigg/projects/python/bookmarks/bookmarks.js"
+    data_source = get_data_source()
     bookmarks = read_js(data_source, varname="bookmarks")
 
     with open(args.json_file, "r") as f:

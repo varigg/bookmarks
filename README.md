@@ -1,6 +1,25 @@
 # Bookmark Management Application
 
-A Flask-based web application for managing bookmarks with LLM-powered auto-generation of titles and descriptions.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
+
+A self-hosted Flask web application for managing bookmarks with LLM-powered auto-generation of titles and descriptions.
+
+## Overview
+
+This application is designed to run on your desktop or home server, providing a central hub for managing your bookmarks with automatic enrichment via LLMs.
+
+### Intended Workflow
+
+1. **Run the app** on your desktop or home network server
+2. **Add bookmarks seamlessly** using:
+   - 🦊 **Browser extension** (Firefox/Chrome) - One-click bookmarking from any webpage
+   - 📱 **iOS Shortcuts** - Share URLs directly from Safari or any iOS app
+   - 🌐 **Web interface** - Use the "Add" button directly in the app
+3. **Automatic enrichment** - The app automatically generates titles and descriptions using LLMs
+4. **Optional tagging** - Future enhancement to auto-suggest tags based on content
+
+The key advantage: You don't need to manually write descriptions. Just send URLs to your app, and it handles the rest.
 
 ## Quick Start
 
@@ -20,13 +39,14 @@ All documentation has been organized in the `docs/` directory:
 
 ### User Documentation
 
+- **[Browser Extension](docs/browser-extension/README.md)** - One-click bookmarking from Firefox/Chrome
+- **[iOS Shortcuts](docs/IOS_SHORTCUTS.md)** - Share URLs from Safari and iOS apps
 - **[Main Documentation](docs/README.md)** - Complete application documentation
-- **[Adding Bookmarks](docs/ADDING_BOOKMARKS.md)** - Guide to adding bookmarks
 - **[LLM Configuration Guide](docs/LLM_CONFIGURATION.md)** - Complete guide to LLM service configuration
+- **[Deployment Guide](docs/DEPLOYMENT.md)** - Running on your home server
+- **[Adding Bookmarks](docs/ADDING_BOOKMARKS.md)** - Guide to adding bookmarks (including bulk import)
 - **[LLM Quickstart](docs/QUICKSTART_LLM.md)** - Quick start for LLM features
 - **[MCP Integration Guide](docs/MCP_GUIDE.md)** - Model Context Protocol setup
-- **[MarkItDown Comparison](docs/MARKITDOWN_COMPARISON.md)** - Content extraction comparison
-- **[LLM Setup Guide](docs/SETUP_STAGE2.md)** - Advanced LLM configuration
 
 ### Development Documentation
 
@@ -37,13 +57,27 @@ All documentation has been organized in the `docs/` directory:
 
 ## Features
 
+### Core Functionality
+
 - 📚 Bookmark management with tags and descriptions
-- 🤖 **Flexible LLM integration** - Multiple providers (Perplexity, OpenAI, Anthropic) with pluggable content extraction (HTML, Markdown)
 - 🔍 Multi-tag filtering with AND/OR logic
 - ⭐ Favorites support
-- 🔄 Async URL checking
 - 📊 Multiple sorting options (newest, oldest, alphabetical, favorites-first)
-- 🎯 REST API for external integration
+- 🔄 Async URL validation
+
+### Integration Options
+
+- 🦊 **Browser Extension** - One-click bookmarking from Firefox/Chrome
+- 📱 **iOS Shortcuts** - Share from Safari or any iOS app
+- 🌐 **Web Interface** - Add and manage bookmarks directly
+- 🎯 **REST API** - For custom integrations
+
+### LLM-Powered Enrichment
+
+- 🤖 **Automatic title and description generation** - Just send URLs, the app does the rest
+- 🔌 **Multiple LLM providers** - Perplexity, OpenAI, Anthropic (pluggable)
+- 📄 **Flexible content extraction** - HTML or Markdown parsing
+- 🎯 **Future: Auto-tagging** - Planned enhancement for automatic tag suggestions
 
 ## LLM Service Architecture
 

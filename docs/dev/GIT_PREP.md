@@ -49,7 +49,7 @@ backup/                 # Archived files (gitignored)
 .gitignore             # Git ignore rules
 pyproject.toml         # Project dependencies
 README.md              # Quick start guide
-settings.toml          # Configuration
+.env.example           # Environment variables template
 uv.lock                # Dependency lock file
 wsgi.py                # WSGI entry point
 ```
@@ -61,14 +61,10 @@ wsgi.py                # WSGI entry point
 - [x] `.env` - Contains API keys
 - [x] `.flaskenv` - Flask environment
 - [x] `bookmarks.js` - User data
-- [x] `settings.toml` - Check for sensitive data
 
-### Template Files to Create
+### Template Files
 
-Consider creating template versions:
-
-- `settings.toml.example` - Configuration template
-- `.env.example` - Environment variables template
+- [x] `.env.example` - Environment variables template
 
 ## Next Steps for Git
 
@@ -86,15 +82,7 @@ Consider creating template versions:
    git commit -m "Initial commit: Clean project structure with Phase 1 refactoring complete"
    ```
 
-3. **Optional: Create template files**
-
-   ```bash
-   # Create example config files
-   cp settings.toml settings.toml.example
-   # Remove sensitive values from example
-   ```
-
-4. **Add remote** (if needed)
+3. **Add remote** (if needed)
    ```bash
    git remote add origin <repository-url>
    git push -u origin main

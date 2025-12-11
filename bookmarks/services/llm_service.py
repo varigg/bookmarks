@@ -9,7 +9,7 @@ then handles all the common logic (retry, fallback, prompt building, response pa
 
 import json
 import time
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 import requests
 
@@ -57,7 +57,7 @@ class LLMService:
         # Step 1: Extract content from URL (if extractor is configured)
         if page_content is None and self.content_extractor is not None:
             page_content = self.content_extractor.extract(url)
-        
+
         # For MCP providers, page_content may remain None (they fetch URLs themselves)
         if page_content is None:
             page_content = {}
@@ -70,7 +70,7 @@ class LLMService:
         for attempt in range(max_retries):
             try:
                 response = self.provider.call_api(system_prompt, user_prompt)
-                
+
                 # Track usage
                 usage = response.get("usage", {})
                 tokens = usage.get("total_tokens", 0)
@@ -94,7 +94,7 @@ class LLMService:
 
         return self._fallback_description(url, page_content)
 
-    def get_usage_stats(self) -> Dict[str, any]:
+    def get_usage_stats(self) -> Dict[str, Any]:
         """Get usage statistics."""
         return self.tracker.get_current_month_stats()
 
@@ -196,7 +196,9 @@ class LLMService:
             Dict with 'title' and 'description' keys
         """
         title = content.get("title", url)
-        description = content.get("meta_description", "") or content.get("text", "")[:200]
+        description = (
+            content.get("meta_description", "") or content.get("text", "")[:200]
+        )
 
         return {
             "title": title[:100] if title else url,

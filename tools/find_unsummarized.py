@@ -9,6 +9,8 @@ import json
 
 from javascript_data_files import read_js
 
+from bookmarks.data.datafile import get_data_source
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -50,7 +52,7 @@ Examples:
 
     args = parser.parse_args()
 
-    data_source = "/mnt/c/Users/varigg/projects/python/bookmarks/bookmarks.js"
+    data_source = get_data_source()
     bookmarks = read_js(data_source, varname="bookmarks")
 
     # Find all unsummarized bookmarks with their indices

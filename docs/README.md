@@ -1,18 +1,34 @@
 # Bookmark Management Application - Documentation
 
-This is a Flask-based web application for managing bookmarks with LLM-powered features.
+A self-hosted Flask web application for managing bookmarks with LLM-powered automatic enrichment.
+
+## Overview
+
+This application is designed to run on your desktop or home network server, providing a personal bookmark management system that automatically generates titles and descriptions for your saved URLs.
+
+### How It Works
+
+1. **Self-hosted** - Run on your desktop or home server (no cloud service needed)
+2. **Easy bookmarking** - Use browser extensions, iOS shortcuts, or the web interface
+3. **Auto-enrichment** - Send a URL, get back a bookmark with title and description automatically generated
+4. **Manual refinement** - Edit details as needed through the web interface
+
+**Key benefit**: You don't write descriptions. Just send URLs, and the LLM service handles the rest.
 
 ## Quick Links
 
 ### Getting Started
 
 - **[Main Project README](../README.md)** - Installation and quick start
-- **[Adding Bookmarks](ADDING_BOOKMARKS.md)** - How to add bookmarks manually or in bulk
+- **[Browser Extension](../browser-extension/README.md)** - Firefox/Chrome one-click bookmarking
+- **[iOS Shortcuts](IOS_SHORTCUTS.md)** - Share from Safari and iOS apps
+- **[Deployment Guide](DEPLOYMENT.md)** - Running on your home server
 - **[LLM Configuration Guide](LLM_CONFIGURATION.md)** - Complete guide to LLM service configuration
-- **[LLM Quickstart](QUICKSTART_LLM.md)** - Quick start for LLM features
 
 ### User Guides
 
+- **[Adding Bookmarks](ADDING_BOOKMARKS.md)** - How to add bookmarks (web UI, extensions, bulk import)
+- **[LLM Quickstart](QUICKSTART_LLM.md)** - Quick start for LLM features
 - **[MCP Integration Guide](MCP_GUIDE.md)** - Model Context Protocol setup and usage
 - **[MarkItDown Comparison](MARKITDOWN_COMPARISON.md)** - Content extraction methods compared
 - **[LLM Setup Guide](SETUP_STAGE2.md)** - Advanced LLM configuration options
@@ -28,13 +44,27 @@ See `dev/` subdirectory:
 
 ## Features
 
+### Bookmark Management
+
 - Add, edit, delete bookmarks with titles, descriptions, and tags
-- 🤖 **Flexible LLM integration** - Multiple providers (Perplexity, OpenAI, Anthropic) with pluggable content extraction
 - 🔍 Multi-tag filtering (AND/OR logic)
 - ⭐ Favorites support
 - 📊 Multiple sorting options (newest, oldest, alphabetical, favorites-first)
-- 🌐 REST API for external integration
-- 🔄 Async URL checking
+- 🔄 URL validation
+
+### Easy Integration
+
+- 🦊 **Browser Extension** - One-click bookmarking from Firefox/Chrome
+- 📱 **iOS Shortcuts** - Share URLs from Safari or any iOS app
+- 🌐 **Web Interface** - Direct add and management through the app
+- 🎯 **REST API** - Build custom integrations
+
+### LLM-Powered Automation
+
+- 🤖 **Automatic enrichment** - Just send a URL, get title and description automatically
+- 🔌 **Multiple providers** - Perplexity, OpenAI, Anthropic (pluggable architecture)
+- 📄 **Content extraction** - HTML or Markdown parsing strategies
+- 🎯 **Future enhancement** - Automatic tag suggestions based on content
 
 ### LLM Service Architecture
 
@@ -87,24 +117,16 @@ uv run pytest tests/test_app.py -v
 
 ## Configuration
 
-Application uses Dynaconf for configuration management via `settings.toml`:
+Application uses environment variables for configuration. See `CONFIGURATION.md` for details.
 
-```toml
-[default]
-DEBUG = true
-SECRET_KEY = "your-secret-key"
-DATA_SOURCE = "bookmarks.js"
+**Key environment variables:**
 
-[default.env_vars]
-PERPLEXITY_API_KEY = "pplx-xxx"
-```
+- `BOOKMARKS_DATA_SOURCE` - Path to bookmarks.js file (default: `bookmarks.js`)
+- `BOOKMARKS_SECRET_KEY` - Flask secret key (auto-generated if not set)
+- `BOOKMARKS_DEBUG` - Enable debug mode (default: `false`)
+- `BOOKMARKS_PORT` - Server port (default: `5001`)
 
-Environment-specific settings:
-
-- Create `settings.dev.toml` or `settings.prod.toml`
-- Set `ENV_FOR_DYNACONF=dev` environment variable
-
-See [Dynaconf documentation](https://www.dynaconf.com/) for details.
+See `CONFIGURATION.md` for complete configuration reference.
 
 ## Project Structure
 

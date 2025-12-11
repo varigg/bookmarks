@@ -1,0 +1,26 @@
+var bookmarks = [
+  {
+    "url": "https://github.com/python/cpython",
+    "title": "Python Programming Language - Official Repository",
+    "description": "The official Python programming language repository on GitHub. Contains the source code for Python's implementation, documentation, and development tools.",
+    "tags": ["python", "programming", "open-source"],
+    "dateAdded": "2025-01-15T10:30:00+00:00",
+    "favorite": false
+  },
+  {
+    "url": "https://flask.palletsprojects.com/",
+    "title": "Flask - Web Development, one drop at a time",
+    "description": "Flask is a lightweight WSGI web application framework for Python. It's designed to make getting started quick and easy, with the ability to scale up to complex applications.",
+    "tags": ["python", "flask", "web-development"],
+    "dateAdded": "2025-01-16T14:20:00+00:00",
+    "favorite": true
+  },
+  {
+    "url": "https://www.perplexity.ai/",
+    "title": "Perplexity AI - Ask Anything",
+    "description": "Perplexity AI is an answer engine that delivers accurate answers to complex questions using large language models and web search.",
+    "tags": ["ai", "llm", "search"],
+    "dateAdded": "2025-01-17T09:15:00+00:00",
+    "favorite": false
+  }
+];

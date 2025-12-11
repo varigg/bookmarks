@@ -67,15 +67,13 @@ class LLMFactory:
         if provider == "perplexity-mcp":
             # MCP provider - no content extractor needed (MCP server fetches content)
             from .llm_providers import PerplexityMCPProvider
-            
+
             provider_client = PerplexityMCPProvider(api_key=api_key)
             return LLMService(provider=provider_client, content_extractor=None)
         elif provider == "perplexity":
             # Direct API provider with content extractor
             provider_client = PerplexityProvider(api_key=api_key)
-            return LLMService(
-                provider=provider_client, content_extractor=extractor
-            )
+            return LLMService(provider=provider_client, content_extractor=extractor)
 
         # Future providers
         elif provider == "openai":
@@ -107,9 +105,9 @@ class LLMFactory:
             String describing the client configuration
         """
         provider_display = provider.replace("-", " ").title()
-        
+
         if provider == "perplexity-mcp":
             return f"{provider_display}"
-        
+
         format_name = "Markdown" if content_format.lower() == "markdown" else "HTML"
         return f"{provider_display} ({format_name})"

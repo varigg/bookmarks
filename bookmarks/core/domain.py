@@ -15,7 +15,7 @@ from typing import Optional
 class Bookmark:
     """
     Represents a single bookmark with all its metadata.
-    
+
     Attributes:
         url: The URL of the bookmarked page
         title: The title of the bookmark
@@ -24,6 +24,7 @@ class Bookmark:
         dateAdded: ISO format timestamp of when bookmark was created
         favorite: Whether this bookmark is marked as favorite
     """
+
     url: str
     title: str
     description: str
@@ -35,10 +36,10 @@ class Bookmark:
     def from_dict(cls, data: dict) -> "Bookmark":
         """
         Create a Bookmark instance from a dictionary.
-        
+
         Args:
             data: Dictionary containing bookmark data
-            
+
         Returns:
             Bookmark instance with data from the dictionary
         """
@@ -54,7 +55,7 @@ class Bookmark:
     def to_dict(self) -> dict:
         """
         Convert the Bookmark instance to a dictionary.
-        
+
         Returns:
             Dictionary representation of the bookmark
         """
@@ -71,19 +72,19 @@ class Bookmark:
     ) -> "Bookmark":
         """
         Factory method to create a new bookmark with current timestamp.
-        
+
         Args:
             url: The URL of the bookmarked page
             title: The title of the bookmark
             description: A description of the bookmarked content
             tags: Optional list of tags (defaults to empty list)
             favorite: Whether this bookmark is marked as favorite (defaults to False)
-            
+
         Returns:
             New Bookmark instance with dateAdded set to current time
         """
         from datetime import timezone
-        
+
         return cls(
             url=url,
             title=title,
@@ -103,7 +104,7 @@ class Bookmark:
     ) -> None:
         """
         Update bookmark fields with new values.
-        
+
         Args:
             url: New URL (if provided)
             title: New title (if provided)

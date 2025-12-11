@@ -93,6 +93,7 @@ See `docs/LLM_CONFIGURATION.md` for complete setup instructions.
 ### What It Does
 
 When generating descriptions, the script:
+
 1. Fetches the page content (HTML or Markdown)
 2. Calls the LLM provider to generate title and description
 3. Creates bookmark with:
@@ -104,6 +105,7 @@ When generating descriptions, the script:
 ### Error Handling
 
 If LLM generation fails:
+
 - Falls back to basic bookmark entry
 - Tags with `unsummarized` for later processing
 - Logs error for review

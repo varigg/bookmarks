@@ -3,12 +3,13 @@ Retrieve all tags from bookmarks.
 """
 
 import argparse
-from bookmarks.model import get_bookmarks
+
+from bookmarks.data.model import get_bookmarks
 
 
 def main():
     parser = argparse.ArgumentParser(description="Retrieve all tags from bookmarks.")
-    args = parser.parse_args()
+    parser.parse_args()
     bookmarks = get_bookmarks()
     tags = set()
     for id in bookmarks:

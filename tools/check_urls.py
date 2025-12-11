@@ -35,7 +35,9 @@ async def check_urls():
     """
     Checks all bookmark URLs for reachability and updates the description for those that fail.
     """
-    data_source = "/mnt/c/Users/varigg/projects/python/bookmarks/bookmarks.js"
+    from bookmarks.data.datafile import get_data_source
+    
+    data_source = get_data_source()
     bookmarks = read_js(data_source, varname="bookmarks")
     updated = False
 

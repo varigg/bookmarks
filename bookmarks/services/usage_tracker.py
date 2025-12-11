@@ -8,7 +8,7 @@ Tracks requests, tokens, and estimated cost by month.
 import json
 import os
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 USAGE_FILE = os.path.join(
     os.path.dirname(os.path.dirname(__file__)), "usage_stats.json"
@@ -28,7 +28,7 @@ class UsageTracker:
         self.filepath = filepath
         self.stats = self._load_stats()
 
-    def _load_stats(self) -> Dict[str, Dict[str, any]]:
+    def _load_stats(self) -> Dict[str, Dict[str, Any]]:
         """Load stats from file or return empty dict."""
         if os.path.exists(self.filepath):
             try:
@@ -65,7 +65,7 @@ class UsageTracker:
 
         self._save_stats()
 
-    def get_stats(self, month: Optional[str] = None) -> Dict[str, any]:
+    def get_stats(self, month: Optional[str] = None) -> Dict[str, Any]:
         """
         Get usage statistics.
 
@@ -80,7 +80,7 @@ class UsageTracker:
             return self.stats.get(month, {"requests": 0, "tokens": 0, "cost": 0.0})
         return self.stats
 
-    def get_current_month_stats(self) -> Dict[str, any]:
+    def get_current_month_stats(self) -> Dict[str, Any]:
         """Get stats for the current month."""
         month = datetime.now().strftime("%Y-%m")
         return self.get_stats(month)

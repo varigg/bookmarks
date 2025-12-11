@@ -30,72 +30,71 @@ from bookmarks.data.model import get_bookmarks, save_bookmark
 def test_llm_provider(provider="perplexity", content_format="html"):
     """
     Test LLM provider configuration by generating a description for a test URL.
-    
+
     Args:
         provider: LLM provider to test
         content_format: Content extraction format to use
     """
     from bookmarks.services import LLMFactory
-    
+
     test_url = "https://github.com/python/cpython"
-    
-    print("="*60)
+
+    print("=" * 60)
     print("LLM Provider Test")
-    print("="*60)
+    print("=" * 60)
     print(f"Provider: {provider}")
     print(f"Content Format: {content_format}")
     print(f"Test URL: {test_url}")
     print()
-    
+
     try:
         print("Initializing client...")
         client = LLMFactory.create_client(
-            provider=provider,
-            content_format=content_format
+            provider=provider, content_format=content_format
         )
         client_name = LLMFactory.get_client_type_name(
-            provider=provider,
-            content_format=content_format
+            provider=provider, content_format=content_format
         )
         print(f"✓ Initialized {client_name} client")
         print()
-        
+
         print("Generating description...")
         result = client.generate_description(test_url)
-        
+
         print()
-        print("="*60)
+        print("=" * 60)
         print("RESULT:")
-        print("="*60)
+        print("=" * 60)
         print(f"Title: {result['title']}")
         print()
         print(f"Description: {result['description']}")
         print()
-        
+
         # Show usage stats if available
         stats = client.get_usage_stats()
-        if stats['requests'] > 0:
-            print("="*60)
+        if stats["requests"] > 0:
+            print("=" * 60)
             print("Usage Statistics:")
             print(f"  Requests: {stats['requests']}")
             print(f"  Total Tokens: {stats['total_tokens']}")
             print(f"  Estimated Cost: ${stats['estimated_cost_usd']:.4f}")
-        
-        print("="*60)
+
+        print("=" * 60)
         print("✓ Test successful!")
-        print("="*60)
+        print("=" * 60)
         return True
-        
+
     except Exception as e:
         print()
-        print("="*60)
+        print("=" * 60)
         print("✗ Test failed!")
-        print("="*60)
+        print("=" * 60)
         print(f"Error: {e}")
         print()
         import traceback
+
         traceback.print_exc()
-        print("="*60)
+        print("=" * 60)
         return False
 
 
@@ -153,15 +152,13 @@ def generate_description_with_llm(url, provider="perplexity", content_format="ht
 
     try:
         client = LLMFactory.create_client(
-            provider=provider,
-            content_format=content_format
+            provider=provider, content_format=content_format
         )
         result = client.generate_description(url)
         return result
     except Exception as e:
         provider_name = LLMFactory.get_client_type_name(
-            provider=provider,
-            content_format=content_format
+            provider=provider, content_format=content_format
         )
         raise RuntimeError(f"{provider_name} error: {e}")
 
@@ -201,12 +198,10 @@ def add_bookmarks(
 
         try:
             llm_client = LLMFactory.create_client(
-                provider=provider,
-                content_format=content_format
+                provider=provider, content_format=content_format
             )
             client_name = LLMFactory.get_client_type_name(
-                provider=provider,
-                content_format=content_format
+                provider=provider, content_format=content_format
             )
             print(f"✓ Initialized {client_name} client")
             print()
@@ -233,9 +228,7 @@ def add_bookmarks(
         if generate_descriptions:
             try:
                 print(f"{progress} 🔍 Generating description for: {url}")
-                llm_data = generate_description_with_llm(
-                    url, provider, content_format
-                )
+                llm_data = generate_description_with_llm(url, provider, content_format)
                 bookmark = {
                     "url": url,
                     "title": llm_data["title"],
@@ -295,7 +288,10 @@ def main():
         epilog=__doc__,
     )
     parser.add_argument(
-        "url_file", type=str, nargs="?", help="Path to file containing URLs (one per line)"
+        "url_file",
+        type=str,
+        nargs="?",
+        help="Path to file containing URLs (one per line)",
     )
     parser.add_argument(
         "--generate-descriptions",
@@ -332,8 +328,7 @@ def main():
     # Handle test mode
     if args.test:
         success = test_llm_provider(
-            provider=args.provider,
-            content_format=args.content_format
+            provider=args.provider, content_format=args.content_format
         )
         sys.exit(0 if success else 1)
 

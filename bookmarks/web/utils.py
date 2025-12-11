@@ -10,13 +10,13 @@ This module contains shared utility functions used across the application.
 def parse_tags(tags_input: str | None) -> list[str]:
     """
     Parse comma-separated tag string into a list of tags.
-    
+
     Args:
         tags_input: Comma-separated string of tags, or None.
-        
+
     Returns:
         List of trimmed, non-empty tag strings.
-        
+
     Examples:
         >>> parse_tags("python, flask, web")
         ['python', 'flask', 'web']

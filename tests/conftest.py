@@ -8,11 +8,13 @@ from bookmarks.data.repository import BookmarkRepository
 @pytest.fixture
 def app(bookmarks_file):
     """Create app with patched data source bound to a per-test file."""
-    app = create_app({
-        "TESTING": True,
-        "WTF_CSRF_ENABLED": False,  # Disable CSRF for tests
-        "CSRF_ENABLED": False,      # Alternative config key
-    })
+    app = create_app(
+        {
+            "TESTING": True,
+            "WTF_CSRF_ENABLED": False,  # Disable CSRF for tests
+            "CSRF_ENABLED": False,  # Alternative config key
+        }
+    )
     return app
 
 

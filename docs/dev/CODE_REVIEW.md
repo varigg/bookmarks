@@ -25,7 +25,7 @@ This is a well-structured Flask application following modern Python and Flask be
 ### 3. Flask Best Practices
 
 - **Application factory pattern**: `create_app()` function for testability.
-- **Configuration management**: Uses `dynaconf` for settings.
+- **Configuration management**: Uses environment variables via `bookmarks/config.py`.
 - **Template context processors**: `inject_filter_params` for shared template data.
 - **Proper response types**: Routes return appropriate Flask response objects.
 - **Flash messages**: Used for user feedback on operations.
