@@ -1,5 +1,5 @@
 # Minimal Dockerfile for local testing (binds to $BOOKMARKS_PORT or 5000)
-FROM python:3.12-slim
+FROM python:3.14-slim
 
 # Create app user and workdir
 RUN useradd --create-home --shell /bin/false appuser
