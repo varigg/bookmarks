@@ -13,18 +13,14 @@ def backup_data_file():
 
     # Resolve paths
     base_dir = Path(__file__).parent
-    src = (
-        Path(DATA_SOURCE) if Path(DATA_SOURCE).is_absolute() else base_dir / DATA_SOURCE
-    )
+    src = Path(DATA_SOURCE) if Path(DATA_SOURCE).is_absolute() else base_dir / DATA_SOURCE
 
     if not src.exists():
         print(f"Warning: Data file {src} does not exist, skipping backup")
         return
 
     # Create backup directory
-    backup_dir = (
-        Path(BACKUP_DIR) if Path(BACKUP_DIR).is_absolute() else base_dir / BACKUP_DIR
-    )
+    backup_dir = Path(BACKUP_DIR) if Path(BACKUP_DIR).is_absolute() else base_dir / BACKUP_DIR
     backup_dir.mkdir(exist_ok=True)
 
     # Create timestamped backup

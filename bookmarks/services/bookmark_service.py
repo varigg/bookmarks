@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Service layer for bookmark business logic."""
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from bookmarks import config
 from bookmarks.core.exceptions import BookmarkNotFoundError, LLMGenerationError
@@ -63,7 +62,7 @@ class BookmarkService:
             "description": description,
             "tags": tags,
             "favorite": favorite,
-            "dateAdded": datetime.now(timezone.utc).isoformat(),
+            "dateAdded": datetime.now(UTC).isoformat(),
         }
 
         # Generate ID and save
@@ -157,9 +156,7 @@ class BookmarkService:
         bookmark["favorite"] = not bookmark.get("favorite", False)
         self.repository.save(bookmark_id, bookmark)
 
-        logger.info(
-            f"Toggled favorite for bookmark {bookmark_id}: {bookmark['favorite']}"
-        )
+        logger.info(f"Toggled favorite for bookmark {bookmark_id}: {bookmark['favorite']}")
         return bookmark
 
     def generate_metadata(self, url: str, use_mcp: bool = False) -> dict[str, str]:
@@ -192,10 +189,8 @@ class BookmarkService:
             return {"title": title, "description": description}
 
         except Exception as e:
-            logger.error(
-                f"Error generating metadata for {url}: {str(e)}", exc_info=True
-            )
-            raise LLMGenerationError(url=url, original_error=e)
+            logger.error(f"Error generating metadata for {url}: {str(e)}", exc_info=True)
+            raise LLMGenerationError(url=url, original_error=e) from e
 
     def create_bookmark_with_llm(
         self,

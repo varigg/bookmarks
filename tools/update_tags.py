@@ -3,6 +3,7 @@ Convert a tag across all bookmarks to a new tag name.
 """
 
 import argparse
+
 from bookmarks.model import get_bookmarks, save_bookmark
 
 bookmarks = get_bookmarks()

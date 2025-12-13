@@ -1,12 +1,9 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Input validation schemas using Pydantic.
 
 This module defines validation models for bookmark data.
 """
-
-from typing import List, Optional
 
 from pydantic import BaseModel, Field, HttpUrl, field_validator
 
@@ -17,13 +14,9 @@ class BookmarkCreateSchema(BaseModel):
     """Schema for creating a new bookmark."""
 
     url: HttpUrl = Field(..., description="The URL of the bookmark")
-    title: str = Field(
-        ..., min_length=1, max_length=500, description="The title of the bookmark"
-    )
-    description: str = Field(
-        "", max_length=2000, description="The description of the bookmark"
-    )
-    tags: List[str] = Field(
+    title: str = Field(..., min_length=1, max_length=500, description="The title of the bookmark")
+    description: str = Field("", max_length=2000, description="The description of the bookmark")
+    tags: list[str] = Field(
         default_factory=list, description="Comma-separated tags or list of tags"
     )
 
@@ -39,16 +32,14 @@ class BookmarkCreateSchema(BaseModel):
 class BookmarkUpdateSchema(BaseModel):
     """Schema for updating an existing bookmark."""
 
-    url: Optional[HttpUrl] = Field(None, description="The URL of the bookmark")
-    title: Optional[str] = Field(
+    url: HttpUrl | None = Field(None, description="The URL of the bookmark")
+    title: str | None = Field(
         None, min_length=1, max_length=500, description="The title of the bookmark"
     )
-    description: Optional[str] = Field(
+    description: str | None = Field(
         None, max_length=2000, description="The description of the bookmark"
     )
-    tags: Optional[List[str]] = Field(
-        None, description="Comma-separated tags or list of tags"
-    )
+    tags: list[str] | None = Field(None, description="Comma-separated tags or list of tags")
 
     @field_validator("tags", mode="before")
     @classmethod

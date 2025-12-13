@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 LLM provider API clients.
 
@@ -8,7 +7,7 @@ They receive prompts and return raw responses.
 """
 
 import os
-from typing import Any, Dict, Optional, Protocol
+from typing import Any, Protocol
 
 import requests
 
@@ -16,7 +15,7 @@ import requests
 class LLMProvider(Protocol):
     """Protocol defining the interface for LLM provider API clients."""
 
-    def call_api(self, system_prompt: str, user_prompt: str) -> Dict[str, Any]:
+    def call_api(self, system_prompt: str, user_prompt: str) -> dict[str, Any]:
         """
         Make API call to the LLM provider.
 
@@ -33,7 +32,7 @@ class LLMProvider(Protocol):
 class PerplexityProvider:
     """API client for Perplexity."""
 
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: str | None = None):
         """
         Initialize Perplexity provider.
 
@@ -48,7 +47,7 @@ class PerplexityProvider:
         self.base_url = "https://api.perplexity.ai"
         self.model = "sonar"
 
-    def call_api(self, system_prompt: str, user_prompt: str) -> Dict[str, Any]:
+    def call_api(self, system_prompt: str, user_prompt: str) -> dict[str, Any]:
         """
         Call Perplexity chat completions API.
 
@@ -93,7 +92,7 @@ class PerplexityProvider:
 class OpenAIProvider:
     """API client for OpenAI."""
 
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: str | None = None):
         """
         Initialize OpenAI provider.
 
@@ -102,13 +101,11 @@ class OpenAIProvider:
         """
         self.api_key = api_key or os.getenv("OPENAI_API_KEY")
         if not self.api_key:
-            raise ValueError(
-                "OpenAI API key required. Set OPENAI_API_KEY environment variable."
-            )
+            raise ValueError("OpenAI API key required. Set OPENAI_API_KEY environment variable.")
         self.base_url = "https://api.openai.com/v1"
         self.model = "gpt-4o-mini"  # Cost-effective model for summarization
 
-    def call_api(self, system_prompt: str, user_prompt: str) -> Dict[str, Any]:
+    def call_api(self, system_prompt: str, user_prompt: str) -> dict[str, Any]:
         """
         Call OpenAI chat completions API.
 
@@ -153,7 +150,7 @@ class OpenAIProvider:
 class AnthropicProvider:
     """API client for Anthropic."""
 
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: str | None = None):
         """
         Initialize Anthropic provider.
 
@@ -169,7 +166,7 @@ class AnthropicProvider:
         self.model = "claude-3-5-haiku-20241022"  # Fast and cost-effective model
         self.api_version = "2023-06-01"  # API version for Messages API
 
-    def call_api(self, system_prompt: str, user_prompt: str) -> Dict[str, Any]:
+    def call_api(self, system_prompt: str, user_prompt: str) -> dict[str, Any]:
         """
         Call Anthropic messages API.
 
@@ -213,7 +210,7 @@ class AnthropicProvider:
                 error_detail = f" - {response.json()}"
             except (ValueError, requests.JSONDecodeError):
                 error_detail = f" - {response.text}"
-            raise requests.HTTPError(f"{e}{error_detail}", response=response)
+            raise requests.HTTPError(f"{e}{error_detail}", response=response) from e
 
         data = response.json()
 
@@ -231,7 +228,7 @@ class AnthropicProvider:
 class PerplexityMCPProvider:
     """API client for Perplexity using MCP protocol."""
 
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: str | None = None):
         """
         Initialize Perplexity MCP provider.
 
@@ -255,7 +252,7 @@ class PerplexityMCPProvider:
         self._StdioServerParameters = StdioServerParameters
         self._stdio_client = stdio_client
 
-    def call_api(self, system_prompt: str, user_prompt: str) -> Dict[str, Any]:
+    def call_api(self, system_prompt: str, user_prompt: str) -> dict[str, Any]:
         """
         Call Perplexity via MCP protocol.
 
@@ -271,7 +268,7 @@ class PerplexityMCPProvider:
         """
         return self._asyncio.run(self._call_mcp_async(user_prompt))
 
-    async def _call_mcp_async(self, user_prompt: str) -> Dict[str, Any]:
+    async def _call_mcp_async(self, user_prompt: str) -> dict[str, Any]:
         """Async implementation of MCP call."""
 
         # Configure the Perplexity MCP server
@@ -284,32 +281,32 @@ class PerplexityMCPProvider:
             },
         )
 
-        async with self._stdio_client(server_params) as (read, write):
-            async with self._ClientSession(read, write) as session:
-                await session.initialize()
+        async with (
+            self._stdio_client(server_params) as (read, write),
+            self._ClientSession(read, write) as session,
+        ):
+            await session.initialize()
 
-                # Build messages - MCP expects this format
-                messages = [{"role": "user", "content": user_prompt}]
+            # Build messages - MCP expects this format
+            messages = [{"role": "user", "content": user_prompt}]
 
-                # Call the perplexity_ask tool
-                result = await session.call_tool(
-                    "perplexity_ask", arguments={"messages": messages}
-                )
+            # Call the perplexity_ask tool
+            result = await session.call_tool("perplexity_ask", arguments={"messages": messages})
 
-                # Extract text from MCP result
-                text_parts = []
-                if hasattr(result, "content") and isinstance(result.content, list):
-                    for item in result.content:
-                        # Use getattr to safely access text attribute
-                        text = getattr(item, "text", None)
-                        if text is not None:
-                            text_parts.append(str(text))
-                        else:
-                            text_parts.append(str(item))
+            # Extract text from MCP result
+            text_parts = []
+            if hasattr(result, "content") and isinstance(result.content, list):
+                for item in result.content:
+                    # Use getattr to safely access text attribute
+                    text = getattr(item, "text", None)
+                    if text is not None:
+                        text_parts.append(str(text))
+                    else:
+                        text_parts.append(str(item))
 
-                content = "\n".join(text_parts) if text_parts else str(result)
+            content = "\n".join(text_parts) if text_parts else str(result)
 
-                return {
-                    "content": content,
-                    "usage": {},  # MCP doesn't provide token usage
-                }
+            return {
+                "content": content,
+                "usage": {},  # MCP doesn't provide token usage
+            }

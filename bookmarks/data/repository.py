@@ -1,13 +1,10 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Repository pattern for bookmark data access.
 
 This module provides thread-safe bookmark data access without global state.
 Each instance maintains its own bookmark collection loaded from the data source.
 """
-
-from typing import Optional, Union
 
 from bookmarks.core.domain import Bookmark
 from bookmarks.core.exceptions import BookmarkNotFoundError, DataStorageError
@@ -57,11 +54,10 @@ class BookmarkRepository:
             Dictionary mapping bookmark IDs to Bookmark instances.
         """
         return {
-            bookmark_id: Bookmark.from_dict(data)
-            for bookmark_id, data in self._bookmarks.items()
+            bookmark_id: Bookmark.from_dict(data) for bookmark_id, data in self._bookmarks.items()
         }
 
-    def get_by_id(self, bookmark_id: str) -> Optional[dict]:
+    def get_by_id(self, bookmark_id: str) -> dict | None:
         """
         Get a single bookmark by ID as a dictionary.
 
@@ -73,7 +69,7 @@ class BookmarkRepository:
         """
         return self._bookmarks.get(bookmark_id)
 
-    def get_by_id_as_object(self, bookmark_id: str) -> Optional[Bookmark]:
+    def get_by_id_as_object(self, bookmark_id: str) -> Bookmark | None:
         """
         Get a single bookmark by ID as a Bookmark object.
 
@@ -104,7 +100,7 @@ class BookmarkRepository:
             raise BookmarkNotFoundError(bookmark_id)
         return bookmark
 
-    def save(self, bookmark_id: str, bookmark: Union[dict, Bookmark]) -> None:
+    def save(self, bookmark_id: str, bookmark: dict | Bookmark) -> None:
         """
         Save or update a bookmark.
 
@@ -119,9 +115,7 @@ class BookmarkRepository:
         bookmark_id = str(bookmark_id)
 
         # Convert Bookmark to dict if needed
-        bookmark_dict = (
-            bookmark.to_dict() if isinstance(bookmark, Bookmark) else bookmark
-        )
+        bookmark_dict = bookmark.to_dict() if isinstance(bookmark, Bookmark) else bookmark
 
         # Update in-memory store
         self._bookmarks[bookmark_id] = bookmark_dict
@@ -157,9 +151,7 @@ class BookmarkRepository:
         try:
             write_data(self._bookmarks.values())
         except Exception as e:
-            raise DataStorageError(
-                f"Failed to delete bookmark {bookmark_id}: {e}"
-            ) from e
+            raise DataStorageError(f"Failed to delete bookmark {bookmark_id}: {e}") from e
 
         return True
 
@@ -170,7 +162,7 @@ class BookmarkRepository:
         Returns:
             String ID for a new bookmark.
         """
-        current_ids = [int(bid) for bid in self._bookmarks.keys() if bid.isdigit()]
+        current_ids = [int(bid) for bid in self._bookmarks if bid.isdigit()]
         return str(max(current_ids, default=-1) + 1)
 
     def exists(self, bookmark_id: str) -> bool:

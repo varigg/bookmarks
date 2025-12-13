@@ -38,14 +38,10 @@ BACKUP_ENABLED: bool = get_config("BOOKMARKS_BACKUP_ENABLED", "true").lower() in
     "yes",
 )
 BACKUP_DIR: str = get_config("BOOKMARKS_BACKUP_DIR", "backup")
-BACKUP_COUNT: int = int(
-    get_config("BOOKMARKS_BACKUP_COUNT", "5")
-)  # Keep last N backups
+BACKUP_COUNT: int = int(get_config("BOOKMARKS_BACKUP_COUNT", "5"))  # Keep last N backups
 
 # LLM configuration
 LLM_PROVIDER: str = get_config(
     "BOOKMARKS_LLM_PROVIDER", "perplexity"
 )  # perplexity, perplexity-mcp, openai, anthropic
-LLM_CONTENT_FORMAT: str = get_config(
-    "BOOKMARKS_LLM_CONTENT_FORMAT", "html"
-)  # html, markdown
+LLM_CONTENT_FORMAT: str = get_config("BOOKMARKS_LLM_CONTENT_FORMAT", "html")  # html, markdown

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Usage tracker for LLM API calls.
 Tracks requests, tokens, and estimated cost by month and provider.
@@ -8,11 +7,9 @@ Tracks requests, tokens, and estimated cost by month and provider.
 import json
 import os
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any
 
-USAGE_FILE = os.path.join(
-    os.path.dirname(os.path.dirname(__file__)), "usage_stats.json"
-)
+USAGE_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "usage_stats.json")
 
 
 class UsageTracker:
@@ -30,13 +27,13 @@ class UsageTracker:
         self.filepath = filepath
         self.stats = self._load_stats()
 
-    def _load_stats(self) -> Dict[str, Dict[str, Any]]:
+    def _load_stats(self) -> dict[str, dict[str, Any]]:
         """Load stats from file or return empty dict."""
         if os.path.exists(self.filepath):
             try:
-                with open(self.filepath, "r") as f:
+                with open(self.filepath) as f:
                     return json.load(f)
-            except (json.JSONDecodeError, IOError):
+            except (OSError, json.JSONDecodeError):
                 return {}
         return {}
 
@@ -45,7 +42,7 @@ class UsageTracker:
         try:
             with open(self.filepath, "w") as f:
                 json.dump(self.stats, f, indent=2)
-        except IOError as e:
+        except OSError as e:
             print(f"Warning: Could not save usage stats: {e}")
 
     def track_request(self, tokens: int = 0, cost: float = 0.0):
@@ -77,9 +74,7 @@ class UsageTracker:
 
         self._save_stats()
 
-    def get_stats(
-        self, month: Optional[str] = None, provider: Optional[str] = None
-    ) -> Dict[str, Any]:
+    def get_stats(self, month: str | None = None, provider: str | None = None) -> dict[str, Any]:
         """
         Get usage statistics.
 
@@ -96,12 +91,10 @@ class UsageTracker:
 
         if month:
             month_stats = self.stats.get(month, {})
-            return month_stats.get(
-                target_provider, {"requests": 0, "tokens": 0, "cost": 0.0}
-            )
+            return month_stats.get(target_provider, {"requests": 0, "tokens": 0, "cost": 0.0})
         return self.stats
 
-    def get_current_month_stats(self, provider: Optional[str] = None) -> Dict[str, Any]:
+    def get_current_month_stats(self, provider: str | None = None) -> dict[str, Any]:
         """
         Get stats for the current month and provider.
 
@@ -115,7 +108,7 @@ class UsageTracker:
         month = datetime.now().strftime("%Y-%m")
         return self.get_stats(month, provider)
 
-    def get_all_providers_stats(self, month: Optional[str] = None) -> Dict[str, Any]:
+    def get_all_providers_stats(self, month: str | None = None) -> dict[str, Any]:
         """
         Get stats for all providers.
 

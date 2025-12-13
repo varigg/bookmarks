@@ -22,9 +22,7 @@ class TestAutofillRoute(unittest.TestCase):
         mock_get_service.return_value = mock_service
 
         # Make request
-        response = self.client.post(
-            "/bookmarks/autofill", data={"url": "https://example.com"}
-        )
+        response = self.client.post("/bookmarks/autofill", data={"url": "https://example.com"})
 
         # Debug: print response details
         print(f"Status code: {response.status_code}")
@@ -49,9 +47,7 @@ class TestAutofillRoute(unittest.TestCase):
         mock_get_service.return_value = mock_service
 
         # Make request
-        response = self.client.post(
-            "/bookmarks/autofill", data={"url": "https://example.com"}
-        )
+        response = self.client.post("/bookmarks/autofill", data={"url": "https://example.com"})
 
         # Verify response (should still render page but with error message)
         self.assertEqual(response.status_code, 200)

@@ -12,22 +12,18 @@ async def check_url(session, url):
         async with session.head(url, timeout=timeout, allow_redirects=True) as response:
             # If HEAD returns client error, try GET
             if 400 <= response.status < 500:
-                async with session.get(
-                    url, timeout=timeout, allow_redirects=True
-                ) as get_response:
+                async with session.get(url, timeout=timeout, allow_redirects=True) as get_response:
                     return (get_response.status, None)
             return (response.status, None)
 
     except aiohttp.ClientError as e:
         # If HEAD fails with exception, try GET
         try:
-            async with session.get(
-                url, timeout=timeout, allow_redirects=True
-            ) as response:
+            async with session.get(url, timeout=timeout, allow_redirects=True) as response:
                 return (response.status, None)
         except aiohttp.ClientError:
             return (None, str(e))
-    except asyncio.TimeoutError:
+    except TimeoutError:
         return (None, "Request timeout")
 
 
@@ -50,18 +46,14 @@ async def check_urls():
                 indices.append(i)
 
         results = await asyncio.gather(*tasks)
-        for idx, (status, error) in zip(indices, results):
+        for idx, (status, error) in zip(indices, results, strict=False):
             if status and status >= 400:
-                print(
-                    f"FAIL: Entry {idx + 1}: {bookmarks[idx]['url']} - Status: {status}"
-                )
+                print(f"FAIL: Entry {idx + 1}: {bookmarks[idx]['url']} - Status: {status}")
                 bookmarks[idx]["description"] = f"URL not reachable ({status})"
                 updated = True
             elif error:
                 error_message = error.split("\n")[0]  # Get a concise error message
-                print(
-                    f"FAIL: Entry {idx + 1}: {bookmarks[idx]['url']} - Error: {error_message}"
-                )
+                print(f"FAIL: Entry {idx + 1}: {bookmarks[idx]['url']} - Error: {error_message}")
                 bookmarks[idx]["description"] = "URL not reachable (Connection Error)"
                 updated = True
 

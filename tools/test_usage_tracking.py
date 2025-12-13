@@ -6,6 +6,7 @@ Test script for UsageTracker.
 import os
 import unittest
 from datetime import datetime
+
 from bookmarks.services import UsageTracker
 
 TEST_USAGE_FILE = "test_usage_stats.json"

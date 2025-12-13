@@ -71,3 +71,6 @@ Thumbs.db
 
 # Development/transitory notes
 docs/dev/prompt.md
+
+# MkDocs build output
+site/

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Routes for the bookmark application."""
 
 import logging
@@ -39,7 +38,7 @@ def _load_form_data(schema_cls):
 
 def get_bookmark_service():
     """Get or create bookmark service instance in app context."""
-    if 'bookmark_service' not in g:
+    if "bookmark_service" not in g:
         g.bookmark_service = BookmarkService()
     return g.bookmark_service
 
@@ -94,7 +93,9 @@ def bookmark(id: str) -> str | tuple[str, int]:
     bookmark_data = get_bookmark_service().get_bookmark_by_id(id)
     if bookmark_data:
         filter_state = FilterState.from_request_args(request.args)
-        return render_template("bookmark.html", bookmark=bookmark_data, id=id, **filter_state.to_dict())
+        return render_template(
+            "bookmark.html", bookmark=bookmark_data, id=id, **filter_state.to_dict()
+        )
     else:
         return "Bookmark not found", 404
 
@@ -158,7 +159,7 @@ def autofill_bookmark():
     """
     try:
         # Validate input data
-        data = AutofillSchema(**request.form) # type: ignore - pydantic dynamic typing0555555555555555555555555555555555555555555555555555555
+        data = AutofillSchema(**request.form)  # type: ignore - pydantic dynamic typing0555555555555555555555555555555555555555555555555555555
         url = str(data.url)  # Convert HttpUrl to string
     except Exception:
         return "Missing or invalid URL", 400
@@ -171,15 +172,11 @@ def autofill_bookmark():
         metadata = get_bookmark_service().generate_metadata(url)
 
         # Safe handling of potentially None values
-        title = metadata.get('title') or ''
-        description = metadata.get('description', '')
-        
-        logger.info(
-            f"Generated title: {title[:50] if title else 'N/A'}..."
-        )  # Log first 50 chars
-        logger.info(
-            f"Generated description length: {len(description)} chars"
-        )
+        title = metadata.get("title") or ""
+        description = metadata.get("description", "")
+
+        logger.info(f"Generated title: {title[:50] if title else 'N/A'}...")  # Log first 50 chars
+        logger.info(f"Generated description length: {len(description)} chars")
 
         return render_template(
             "new_bookmark.html",
@@ -282,9 +279,7 @@ def api_create_bookmark() -> tuple[dict[str, Any], int]:
         return {"success": True, "bookmark": {"id": new_id, **new_bookmark}}, 201
 
     except Exception as e:
-        logger.error(
-            f"API: Unexpected error creating bookmark: {str(e)}", exc_info=True
-        )
+        logger.error(f"API: Unexpected error creating bookmark: {str(e)}", exc_info=True)
         return {"success": False, "error": f"Internal server error: {str(e)}"}, 500
 
 

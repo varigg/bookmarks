@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Sorting utilities for bookmarks."""
 
 from enum import Enum
@@ -15,9 +14,7 @@ class SortCriteria(str, Enum):
     FAVORITES_FIRST = "favorites"
 
 
-def sort_bookmarks(
-    bookmarks: dict[str, dict], criteria: str | SortCriteria
-) -> dict[str, dict]:
+def sort_bookmarks(bookmarks: dict[str, dict], criteria: str | SortCriteria) -> dict[str, dict]:
     """
     Sort bookmarks based on the given criteria.
 
@@ -45,14 +42,10 @@ def sort_bookmarks(
             )
         )
     elif criteria == SortCriteria.OLDEST:
-        return dict(
-            sorted(bookmarks.items(), key=lambda item: item[1].get("dateAdded", ""))
-        )
+        return dict(sorted(bookmarks.items(), key=lambda item: item[1].get("dateAdded", "")))
     elif criteria == SortCriteria.ALPHABETICAL_AZ:
         return dict(
-            sorted(
-                bookmarks.items(), key=lambda item: (item[1].get("title") or "").lower()
-            )
+            sorted(bookmarks.items(), key=lambda item: (item[1].get("title") or "").lower())
         )
     elif criteria == SortCriteria.ALPHABETICAL_ZA:
         return dict(

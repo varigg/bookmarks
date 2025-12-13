@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Content extraction layer for converting web pages to structured content.
 
@@ -8,7 +7,7 @@ allowing LLM clients to be independent of content format.
 """
 
 from io import BytesIO
-from typing import Dict, Protocol
+from typing import Protocol
 from urllib.parse import urlparse
 
 import requests
@@ -19,7 +18,7 @@ from markitdown import MarkItDown
 class ContentExtractor(Protocol):
     """Protocol defining the interface for content extraction strategies."""
 
-    def extract(self, url: str, timeout: int = 10) -> Dict[str, str]:
+    def extract(self, url: str, timeout: int = 10) -> dict[str, str]:
         """
         Extract content from a URL.
 
@@ -36,7 +35,7 @@ class ContentExtractor(Protocol):
 class HTMLExtractor:
     """Extract plain text content from HTML using BeautifulSoup."""
 
-    def extract(self, url: str, timeout: int = 10) -> Dict[str, str]:
+    def extract(self, url: str, timeout: int = 10) -> dict[str, str]:
         """
         Extract plain text content from a URL using BeautifulSoup.
 
@@ -48,9 +47,7 @@ class HTMLExtractor:
             Dict with 'title', 'text', and 'meta_description' keys
         """
         try:
-            headers = {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-            }
+            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
             response = requests.get(url, headers=headers, timeout=timeout)
             response.raise_for_status()
 
@@ -109,7 +106,7 @@ class MarkdownExtractor:
         """Initialize markdown extractor with MarkItDown converter."""
         self.md_converter = MarkItDown()
 
-    def extract(self, url: str, timeout: int = 10) -> Dict[str, str]:
+    def extract(self, url: str, timeout: int = 10) -> dict[str, str]:
         """
         Extract and convert web page to markdown.
 
@@ -122,9 +119,7 @@ class MarkdownExtractor:
         """
         try:
             # Fetch the page
-            headers = {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-            }
+            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
             response = requests.get(url, headers=headers, timeout=timeout)
             response.raise_for_status()
 

@@ -1,0 +1,75 @@
+site_name: Bookmarks
+site_description: Self-hosted bookmark manager with LLM-powered automatic enrichment
+site_author: varigg
+site_url: https://varigg.github.io/bookmarks
+
+repo_name: varigg/bookmarks
+repo_url: https://github.com/varigg/bookmarks
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - admonition
+  - pymdownx.details
+  - pymdownx.tabbed:
+      alternate_style: true
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+
+docs_dir: docs
+
+nav:
+  - Home: README.md
+  - Guides:
+      - Quick Start: QUICKSTART_LLM.md
+      - Adding Bookmarks: ADDING_BOOKMARKS.md
+      - LLM Configuration: LLM_CONFIGURATION.md
+      - Setup Stage 2: SETUP_STAGE2.md
+      - MCP Guide: MCP_GUIDE.md
+      - MarkItDown Comparison: MARKITDOWN_COMPARISON.md
+      - iOS Shortcuts: IOS_SHORTCUTS.md
+      - Deployment: DEPLOYMENT.md
+  - Development:
+      - Design Patterns: dev/DESIGN_PATTERNS.md
+      - Reorganization: dev/REORGANIZATION.md
+      - Refactoring Progress: dev/REFACTORING_PROGRESS.md
+      - Future Enhancements: dev/FUTURE_ENHANCEMENTS.md
+      - Code Review: dev/CODE_REVIEW.md
+      - Git Prep: dev/GIT_PREP.md
+
+plugins:
+  - search
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/varigg/bookmarks

@@ -1,13 +1,10 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Factory for creating LLM services from different providers.
 
 Supports creating services for Perplexity, OpenAI, Anthropic, etc.
 with optional content extraction strategies (HTML, Markdown).
 """
-
-from typing import Optional
 
 from .content_extractor import HTMLExtractor, MarkdownExtractor
 from .llm_providers import PerplexityProvider
@@ -26,7 +23,7 @@ class LLMFactory:
     def create_client(
         provider: str = "perplexity",
         content_format: str = "html",
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
     ) -> LLMService:
         """
         Create an LLM service.
@@ -48,8 +45,7 @@ class LLMFactory:
 
         if provider not in LLMFactory.PROVIDERS:
             raise ValueError(
-                f"Unsupported provider: {provider}. "
-                f"Choose from: {', '.join(LLMFactory.PROVIDERS)}"
+                f"Unsupported provider: {provider}. Choose from: {', '.join(LLMFactory.PROVIDERS)}"
             )
 
         if content_format not in LLMFactory.CONTENT_FORMATS:
@@ -59,9 +55,7 @@ class LLMFactory:
             )
 
         # Select content extractor
-        extractor = (
-            MarkdownExtractor() if content_format == "markdown" else HTMLExtractor()
-        )
+        extractor = MarkdownExtractor() if content_format == "markdown" else HTMLExtractor()
 
         # Create service with appropriate provider
         if provider == "perplexity-mcp":

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 LLM Service - orchestrates content extraction, prompt building, and LLM API calls.
 
@@ -9,7 +8,7 @@ then handles all the common logic (retry, fallback, prompt building, response pa
 
 import json
 import time
-from typing import Any, Dict, Optional
+from typing import Any
 
 import requests
 
@@ -24,7 +23,7 @@ class LLMService:
     def __init__(
         self,
         provider: LLMProvider,
-        content_extractor: Optional[ContentExtractor] = None,
+        content_extractor: ContentExtractor | None = None,
         provider_name: str = "unknown",
     ):
         """
@@ -43,9 +42,9 @@ class LLMService:
     def generate_description(
         self,
         url: str,
-        page_content: Optional[Dict[str, str]] = None,
+        page_content: dict[str, str] | None = None,
         max_retries: int = 3,
-    ) -> Dict[str, str]:
+    ) -> dict[str, str]:
         """
         Generate title and description for a URL.
 
@@ -97,7 +96,7 @@ class LLMService:
 
         return self._fallback_description(url, page_content)
 
-    def get_usage_stats(self) -> Dict[str, Any]:
+    def get_usage_stats(self) -> dict[str, Any]:
         """Get usage statistics."""
         stats = self.tracker.get_current_month_stats()
         # Return with consistent key names for backward compatibility
@@ -116,7 +115,7 @@ class LLMService:
         )
 
     @staticmethod
-    def _build_user_prompt(url: str, content: Dict[str, str]) -> str:
+    def _build_user_prompt(url: str, content: dict[str, str]) -> str:
         """
         Build user prompt based on extracted content.
 
@@ -161,9 +160,7 @@ class LLMService:
         return "\n".join(prompt_parts)
 
     @staticmethod
-    def _parse_response(
-        content: str, url: str, page_content: Dict[str, str]
-    ) -> Dict[str, str]:
+    def _parse_response(content: str, url: str, page_content: dict[str, str]) -> dict[str, str]:
         """
         Parse LLM response into title and description.
 
@@ -193,7 +190,7 @@ class LLMService:
         return {"title": content[:100], "description": content}
 
     @staticmethod
-    def _fallback_description(url: str, content: Dict[str, str]) -> Dict[str, str]:
+    def _fallback_description(url: str, content: dict[str, str]) -> dict[str, str]:
         """
         Generate fallback description when LLM fails.
 
@@ -205,9 +202,7 @@ class LLMService:
             Dict with 'title' and 'description' keys
         """
         title = content.get("title", url)
-        description = (
-            content.get("meta_description", "") or content.get("text", "")[:200]
-        )
+        description = content.get("meta_description", "") or content.get("text", "")[:200]
 
         return {
             "title": title[:100] if title else url,

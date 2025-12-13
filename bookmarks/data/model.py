@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Legacy model interface for bookmark operations.
 
@@ -9,13 +8,11 @@ New code should use BookmarkRepository directly from bookmarks.repository.
 This will be phased out in Phase 4 of the refactoring.
 """
 
-from typing import Optional, Union
-
 from bookmarks.data.repository import BookmarkRepository
 
 # Global repository instance for backward compatibility
 # TODO: Remove in Phase 4 when routes use Flask application context
-_repository: Optional[BookmarkRepository] = None
+_repository: BookmarkRepository | None = None
 
 
 def _get_repository() -> BookmarkRepository:
@@ -51,7 +48,7 @@ def get_bookmarks() -> dict[str, dict]:
     return _get_repository().get_all()
 
 
-def get_bookmark(id: Union[str, int]) -> Optional[dict]:
+def get_bookmark(id: str | int) -> dict | None:
     """
     Returns the bookmark data for a given ID.
 
@@ -64,7 +61,7 @@ def get_bookmark(id: Union[str, int]) -> Optional[dict]:
     return _get_repository().get_by_id(str(id))
 
 
-def save_bookmark(id: Union[str, int], bookmark: dict) -> None:
+def save_bookmark(id: str | int, bookmark: dict) -> None:
     """
     Saves the bookmark data to the bookmarks.js file.
 
@@ -75,7 +72,7 @@ def save_bookmark(id: Union[str, int], bookmark: dict) -> None:
     _get_repository().save(str(id), bookmark)
 
 
-def delete_bookmark(id: Union[str, int]) -> bool:
+def delete_bookmark(id: str | int) -> bool:
     """
     Deletes the bookmark with the given ID.
 

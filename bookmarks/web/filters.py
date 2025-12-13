@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Filter state management for bookmark filtering.
 
@@ -7,7 +6,6 @@ This module provides a dataclass to manage filter state across routes.
 """
 
 from dataclasses import dataclass
-from typing import Optional
 
 from bookmarks.web.utils import parse_tags
 
@@ -26,10 +24,10 @@ class FilterState:
     """
 
     tags: list[str]
-    tag_string: Optional[str]
-    criteria: Optional[str]
-    description: Optional[str]
-    favorite: Optional[str]
+    tag_string: str | None
+    criteria: str | None
+    description: str | None
+    favorite: str | None
 
     @classmethod
     def from_request_args(cls, args) -> "FilterState":
@@ -103,9 +101,7 @@ class FilterState:
         return {k: v for k, v in params.items() if v is not None}
 
 
-def apply_tag_filter(
-    bookmarks: dict[str, dict], filter_tags: list[str]
-) -> dict[str, dict]:
+def apply_tag_filter(bookmarks: dict[str, dict], filter_tags: list[str]) -> dict[str, dict]:
     """
     Filter bookmarks by tags with AND logic.
 
@@ -138,16 +134,10 @@ def apply_favorite_filter(bookmarks: dict[str, dict]) -> dict[str, dict]:
     Returns:
         Filtered dictionary of bookmarks (only favorites)
     """
-    return {
-        id: bookmark
-        for id, bookmark in bookmarks.items()
-        if bookmark.get("favorite", False)
-    }
+    return {id: bookmark for id, bookmark in bookmarks.items() if bookmark.get("favorite", False)}
 
 
-def apply_description_filter(
-    bookmarks: dict[str, dict], search_text: str
-) -> dict[str, dict]:
+def apply_description_filter(bookmarks: dict[str, dict], search_text: str) -> dict[str, dict]:
     """
     Filter bookmarks by description text (case-insensitive).
 
@@ -169,9 +159,7 @@ def apply_description_filter(
     }
 
 
-def apply_filters(
-    bookmarks: dict[str, dict], filter_state: FilterState
-) -> dict[str, dict]:
+def apply_filters(bookmarks: dict[str, dict], filter_state: FilterState) -> dict[str, dict]:
     """
     Apply all filters from a FilterState to bookmarks.
 

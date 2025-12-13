@@ -5,7 +5,7 @@ This script reads bookmarks.js, converts all Unix timestamps to ISO format,
 and writes the updated data back.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from bookmarks.model import get_bookmarks, save_bookmark
 
@@ -25,7 +25,7 @@ def convert_unix_to_iso(unix_timestamp):
         # Handle both string and int input
         timestamp = int(unix_timestamp)
         # Convert to datetime object in UTC
-        dt = datetime.fromtimestamp(timestamp, tz=timezone.utc)
+        dt = datetime.fromtimestamp(timestamp, tz=UTC)
         # Return ISO format string without timezone (to match 'summarized' format)
         # Replace tzinfo to get naive datetime, then format with microseconds
         return dt.replace(tzinfo=None).isoformat()

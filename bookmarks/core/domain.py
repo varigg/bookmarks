@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Domain models for the bookmarks application.
 
@@ -7,8 +6,7 @@ This module defines the core data structures used throughout the application.
 """
 
 from dataclasses import asdict, dataclass, field
-from datetime import datetime
-from typing import Optional
+from datetime import UTC, datetime
 
 
 @dataclass
@@ -67,7 +65,7 @@ class Bookmark:
         url: str,
         title: str,
         description: str,
-        tags: Optional[list[str]] = None,
+        tags: list[str] | None = None,
         favorite: bool = False,
     ) -> "Bookmark":
         """
@@ -83,24 +81,23 @@ class Bookmark:
         Returns:
             New Bookmark instance with dateAdded set to current time
         """
-        from datetime import timezone
 
         return cls(
             url=url,
             title=title,
             description=description,
             tags=tags or [],
-            dateAdded=datetime.now(timezone.utc).isoformat(),
+            dateAdded=datetime.now(UTC).isoformat(),
             favorite=favorite,
         )
 
     def update(
         self,
-        url: Optional[str] = None,
-        title: Optional[str] = None,
-        description: Optional[str] = None,
-        tags: Optional[list[str]] = None,
-        favorite: Optional[bool] = None,
+        url: str | None = None,
+        title: str | None = None,
+        description: str | None = None,
+        tags: list[str] | None = None,
+        favorite: bool | None = None,
     ) -> None:
         """
         Update bookmark fields with new values.

@@ -25,7 +25,7 @@ def main():
     data_source = get_data_source()
     bookmarks = read_js(data_source, varname="bookmarks")
 
-    with open(args.json_file, "r") as f:
+    with open(args.json_file) as f:
         updates = json.load(f)
 
     for i, update_data in enumerate(updates):
@@ -35,9 +35,7 @@ def main():
         elif args.start_index is not None:
             index = args.start_index + i
         else:
-            raise ValueError(
-                f"Update {i} has no 'index' field and no --start-index was provided"
-            )
+            raise ValueError(f"Update {i} has no 'index' field and no --start-index was provided")
 
         if index < len(bookmarks):
             bookmarks[index]["description"] = update_data["description"]

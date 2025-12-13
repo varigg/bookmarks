@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Add new bookmarks from a list of URLs.
 
@@ -21,7 +20,7 @@ import argparse
 import re
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from bookmarks.data.model import get_bookmarks, save_bookmark
@@ -50,9 +49,7 @@ def test_llm_provider(provider="perplexity", content_format="html"):
 
     try:
         print("Initializing client...")
-        client = LLMFactory.create_client(
-            provider=provider, content_format=content_format
-        )
+        client = LLMFactory.create_client(provider=provider, content_format=content_format)
         client_name = LLMFactory.get_client_type_name(
             provider=provider, content_format=content_format
         )
@@ -109,7 +106,7 @@ def read_urls_from_file(filepath):
     # Regex for markdown links: [text](url)
     markdown_link_pattern = re.compile(r"\[.*?\]\((.*?)\)")
 
-    with open(filepath, "r", encoding="utf-8") as f:
+    with open(filepath, encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             # Skip empty lines and comments
@@ -134,7 +131,7 @@ def create_basic_bookmark(url):
         "title": url,  # Use URL as title initially
         "description": "Imported from URL list. Needs summary.",
         "tags": ["unsummarized"],
-        "dateAdded": datetime.now(timezone.utc).isoformat(),
+        "dateAdded": datetime.now(UTC).isoformat(),
     }
 
 
@@ -153,21 +150,19 @@ def generate_description_with_llm(url, provider="perplexity", content_format="ht
     from bookmarks.services import LLMFactory
 
     try:
-        client = LLMFactory.create_client(
-            provider=provider, content_format=content_format
-        )
+        client = LLMFactory.create_client(provider=provider, content_format=content_format)
         result = client.generate_description(url)
         return result
     except Exception as e:
         provider_name = LLMFactory.get_client_type_name(
             provider=provider, content_format=content_format
         )
-        raise RuntimeError(f"{provider_name} error: {e}")
+        raise RuntimeError(f"{provider_name} error: {e}") from e
 
 
 def get_next_bookmark_id(bookmarks):
     """Generate the next available bookmark ID."""
-    current_ids = [int(bid) for bid in bookmarks.keys() if bid.isdigit()]
+    current_ids = [int(bid) for bid in bookmarks if bid.isdigit()]
     return str(max(current_ids, default=-1) + 1)
 
 
@@ -199,9 +194,7 @@ def add_bookmarks(
         from bookmarks.services import LLMFactory
 
         try:
-            llm_client = LLMFactory.create_client(
-                provider=provider, content_format=content_format
-            )
+            llm_client = LLMFactory.create_client(provider=provider, content_format=content_format)
             client_name = LLMFactory.get_client_type_name(
                 provider=provider, content_format=content_format
             )
@@ -236,7 +229,7 @@ def add_bookmarks(
                     "title": llm_data["title"],
                     "description": llm_data["description"],
                     "tags": ["summarized"],
-                    "dateAdded": datetime.now(timezone.utc).isoformat(),
+                    "dateAdded": datetime.now(UTC).isoformat(),
                 }
                 print(f"         ✓ Title: {llm_data['title'][:60]}...")
 
@@ -329,9 +322,7 @@ def main():
 
     # Handle test mode
     if args.test:
-        success = test_llm_provider(
-            provider=args.provider, content_format=args.content_format
-        )
+        success = test_llm_provider(provider=args.provider, content_format=args.content_format)
         sys.exit(0 if success else 1)
 
     # Check if file exists
