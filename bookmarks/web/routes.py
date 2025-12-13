@@ -101,7 +101,7 @@ def bookmark(id: str) -> str | tuple[str, int]:
 
 
 @bp.route("/bookmarks/<path:id>/update", methods=["POST"])
-def update_bookmark(id: str) -> str | tuple[str, int]:
+def update_bookmark(id: str):
     """
     Updates the URL, title, description, and tags of a bookmark.
     """

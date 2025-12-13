@@ -227,6 +227,7 @@ dev = [
     { name = "mkdocs-material" },
     { name = "pre-commit" },
     { name = "pytest" },
+    { name = "ty" },
 ]
 
 [package.metadata]
@@ -253,6 +254,7 @@ dev = [
     { name = "mkdocs-material", specifier = ">=9.5.47" },
     { name = "pre-commit", specifier = ">=4.0.1" },
     { name = "pytest", specifier = ">=8.3.5" },
+    { name = "ty", specifier = ">=0.0.1a34" },
 ]
 
 [[package]]

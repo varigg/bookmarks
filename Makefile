@@ -1,7 +1,7 @@
 # Bookmarks Project Makefile
 # Automation shortcuts for common development tasks
 
-.PHONY: help test test-verbose test-coverage lint format format-check clean install run docker-build docker-up docker-down
+.PHONY: help test test-verbose test-coverage lint typecheck format format-check clean-code clean install run docker-build docker-up docker-down
 
 # Default target: show help
 help:
@@ -11,8 +11,10 @@ help:
 	@echo "  make test-verbose   - Run tests with verbose output"
 	@echo "  make test-coverage  - Run tests with coverage report"
 	@echo "  make lint           - Run ruff linter (check only)"
+	@echo "  make typecheck      - Run ty type checker"
 	@echo "  make format         - Run ruff formatter and fix imports"
 	@echo "  make format-check   - Check formatting without modifying files"
+	@echo "  make clean-code     - Format, lint, and test (run before commit)"
 	@echo "  make clean          - Remove cache and build artifacts"
 	@echo "  make run            - Run the Flask development server"
 	@echo "  make docker-build   - Build Docker image"
@@ -39,6 +41,10 @@ test-coverage:
 lint:
 	uv run ruff check .
 
+# Type check with ty (excludes routes due to Pydantic dynamic typing)
+typecheck:
+	uv run ty check --exclude "bookmarks/web/routes.py" --exclude "tools/**" .
+
 # Format code (fix)
 format:
 	uv run ruff format .
@@ -48,6 +54,16 @@ format:
 format-check:
 	uv run ruff format --check .
 	uv run ruff check .
+
+# Run format, lint, and test (pre-commit quality check)
+clean-code:
+	@echo "🔧 Formatting code..."
+	@$(MAKE) format
+	@echo "\n🔍 Linting code..."
+	@$(MAKE) lint
+	@echo "\n✅ Running tests..."
+	@$(MAKE) test
+	@echo "\n✨ All checks passed! Ready to commit."
 
 # Clean cache and build artifacts
 clean:
