@@ -23,12 +23,57 @@ The key advantage: You don't need to manually write descriptions. Just send URLs
 
 ## Quick Start
 
+### Local Development (One-Command)
+
 ```bash
-# Install dependencies
+# Clone and setup (copy-paste ready)
+git clone https://github.com/varigg/bookmarks.git && cd bookmarks && uv sync && cp .env.example .env && echo "Setup complete! Edit .env with your API keys, then run: uv run flask --app wsgi run --debug"
+```
+
+### Docker (One-Command)
+
+```bash
+# Clone and run with Docker (copy-paste ready)
+git clone https://github.com/varigg/bookmarks.git && cd bookmarks && cp .env.example .env && echo "Edit .env with your API keys, then run: docker compose up --build -d"
+```
+
+### Step-by-Step Setup
+
+**Local Development:**
+```bash
+# 1. Clone the repository
+git clone https://github.com/varigg/bookmarks.git
+cd bookmarks
+
+# 2. Install dependencies
 uv sync
 
-# Run the application
+# 3. Configure environment
+cp .env.example .env
+# Edit .env and add your LLM API keys
+
+# 4. Run the application
 uv run flask --app wsgi run --debug
+```
+
+**Docker:**
+```bash
+# 1. Clone the repository
+git clone https://github.com/varigg/bookmarks.git
+cd bookmarks
+
+# 2. Configure environment
+cp .env.example .env
+# Edit .env and add your LLM API keys
+
+# 3. Build and run with Docker Compose
+docker compose up --build -d
+
+# View logs
+docker compose logs -f
+
+# Stop services
+docker compose down
 ```
 
 Visit `http://localhost:5000` to access the application.
