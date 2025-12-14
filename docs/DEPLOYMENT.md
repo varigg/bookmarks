@@ -52,6 +52,15 @@ pip install /tmp/bookmarks-*.whl
 /opt/bookmarks/venv/bin/gunicorn 'wsgi:app' --bind 0.0.0.0:5000 --workers 3
 ```
 
+**Important**: Use `--bind 0.0.0.0:5000` to accept connections from any network interface. If you use `--bind 127.0.0.1:5000` or omit the bind address, the app will only be accessible from localhost and not from other machines on your network.
+
+For development with Flask:
+
+```bash
+# Flask development server (accessible from network)
+uv run flask --app wsgi run --host 0.0.0.0 --port 5000 --debug
+```
+
 5. Optional: create a `systemd` unit (see section C below) to run as a service.
 
 Notes:

@@ -1,16 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bookmarks ({{ bookmarks|length }} selected)</title>
-    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="stylesheet" href="/static/shared.css">
 </head>
-
 <body>
-    <div class="container" style="display: flex; gap: 2rem;">
-        <aside style="min-width: 220px;">
+    <div class="container">
+        <aside class="sidebar">
             <a href="{{ url_for('main.new_bookmark') }}" class="btn">+ New Bookmark</a>
             <button onclick="document.getElementById('magic-add-modal').showModal()" class="btn"
                 style="background: linear-gradient(45deg, #6610f2, #d63384); border: none;">✨ Magic Add</button>
@@ -106,8 +104,8 @@
                 {% endif %}
             </div>
         </aside>
-        <main style="flex: 1;">
-            <h2>Bookmarks ({{ bookmarks|length }} selected)</h2>
+        <main class="content">
+            <h2>Bookmarks ({{ bookmarks|length}} selected)</h2>
             <div class="flash-messages">
                 {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
@@ -119,45 +117,45 @@
                 {% endif %}
                 {% endwith %}
             </div>
-            <div class="bookmarks">
+            <div class="bookmark-list">
                 {% for id, bookmark in bookmarks.items() %}
-                <div style="display: flex; align-items: start; gap: 10px; margin-bottom: 15px;">
-                    <!-- Star button -->
-                    <form action="{{ url_for('main.toggle_favorite', id=id) }}" method="post" style="margin: 0;">
-                        <input type="hidden" name="filter_tag" value="{{ filter_tag or '' }}">
-                        <input type="hidden" name="filter_criteria" value="{{ filter_criteria or '' }}">
-                        <input type="hidden" name="filter_description" value="{{ filter_description or '' }}">
-                        <input type="hidden" name="filter_favorite" value="{{ filter_favorite or '' }}">
-                        <button type="submit" style="background: none; border: none; cursor: pointer; font-size: 1.5em; padding: 5px; line-height: 1;">
-                            {% if bookmark.get('favorite') %}⭐{% else %}☆{% endif %}
-                        </button>
-                    </form>
-                    
-                    <!-- Bookmark card -->
-                    <a href="{{ url_for('main.bookmark', id=id, tag=filter_tag, criteria=filter_criteria, description=filter_description, favorite=filter_favorite) }}"
-                        class="bookmark" style="flex: 1;">
-                        <div class="bookmark-title">{{ bookmark.title }}</div>
-                        <p class="bookmark-description">{{ bookmark.description }}</p>
-                        <div class="bookmark-tags">Tags: {{ bookmark.tags | join(', ') }}</div>
-                        <div class="bookmark-meta">
-                            <span>Date Added: {{ bookmark.dateAdded }}</span>
+                <div class="bookmark-card">
+                    <div style="display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 1rem;">
+                        <a href="{{ url_for('main.bookmark', id=id, tag=filter_tag, criteria=filter_criteria, description=filter_description, favorite=filter_favorite) }}"
+                           class="bookmark-title" style="flex: 1;">
+                            {{ bookmark.title }}
+                        </a>
+                        <form action="{{ url_for('main.toggle_favorite', id=id) }}" method="post" style="margin: 0;">
+                            <input type="hidden" name="filter_tag" value="{{ filter_tag or '' }}">
+                            <input type="hidden" name="filter_criteria" value="{{ filter_criteria or '' }}">
+                            <input type="hidden" name="filter_description" value="{{ filter_description or '' }}">
+                            <input type="hidden" name="filter_favorite" value="{{ filter_favorite or '' }}">
+                            <button type="submit" class="bookmark-favorite" style="background: none; border: none; cursor: pointer; font-size: 1.25em;">
+                                {% if bookmark.get('favorite') %}⭐{% else %}☆{% endif %}
+                            </button>
+                        </form>
+                    </div>
+                    <p class="bookmark-description">{{ bookmark.description }}</p>
+                    <div class="bookmark-meta">
+                        <div class="bookmark-tags">
+                            {% for tag in bookmark.tags %}
+                            <span class="bookmark-tag">{{ tag }}</span>
+                            {% endfor %}
                         </div>
-                    </a>
-                    
-                    <!-- Delete button -->
-                    <form action="{{ url_for('main.delete_bookmark_route', id=id) }}" method="post" style="margin: 0;">
+                        <span class="bookmark-date">{{ bookmark.dateAdded }}</span>
+                    </div>
+                    <form action="{{ url_for('main.delete_bookmark_route', id=id) }}" method="post" style="margin-top: 0.5rem;">
                         <input type="hidden" name="filter_tag" value="{{ filter_tag or '' }}">
                         <input type="hidden" name="filter_criteria" value="{{ filter_criteria or '' }}">
                         <input type="hidden" name="filter_description" value="{{ filter_description or '' }}">
-                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                        <button type="submit" class="btn btn-light" style="padding: 0.25rem 0.5rem; font-size: 0.875rem;">Delete</button>
                     </form>
                 </div>
                 {% endfor %}
-            </div>
         </main>
     </div>
-    </div>
 
+    <!-- Magic Add Modal -->
     <!-- Magic Add Modal -->
     <dialog id="magic-add-modal"
         style="border: none; border-radius: 8px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); width: 400px; max-width: 90vw;">

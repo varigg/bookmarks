@@ -40,6 +40,7 @@ git clone https://github.com/varigg/bookmarks.git && cd bookmarks && cp .env.exa
 ### Step-by-Step Setup
 
 **Local Development:**
+
 ```bash
 # 1. Clone the repository
 git clone https://github.com/varigg/bookmarks.git
@@ -52,11 +53,17 @@ uv sync
 cp .env.example .env
 # Edit .env and add your LLM API keys
 
-# 4. Run the application
+# 4. Run the application (local machine)
 uv run flask --app wsgi run --debug
+
+# For network access (e.g., from phone or other devices):
+uv run flask --app wsgi run --host 0.0.0.0 --port 5000 --debug
 ```
 
+> **Network Access Note**: Use `--host 0.0.0.0` to make the app accessible from other devices on your network. Without it, the app only accepts connections from localhost.
+
 **Docker:**
+
 ```bash
 # 1. Clone the repository
 git clone https://github.com/varigg/bookmarks.git

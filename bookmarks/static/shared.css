@@ -1,0 +1,189 @@
+/* Minimal shared CSS for bookmarks - mobile-first responsive design */
+:root {
+    --primary: #2563eb;
+    --primary-hover: #1d4ed8;
+    --bg: #ffffff;
+    --surface: #f8fafc;
+    --border: #e2e8f0;
+    --text: #1e293b;
+    --text-secondary: #64748b;
+    --text-muted: #94a3b8;
+    --warning: #f59e0b;
+    --radius: 0.5rem;
+    --space-sm: 0.5rem;
+    --space-md: 1rem;
+    --space-lg: 1.5rem;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: var(--text);
+    background: var(--bg);
+    line-height: 1.5;
+}
+
+/* Mobile-first layout */
+.container {
+    min-height: 100vh;
+    display: grid;
+    grid-template-areas: "sidebar" "content";
+}
+
+.sidebar {
+    grid-area: sidebar;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: var(--space-md);
+}
+
+.content {
+    grid-area: content;
+    padding: var(--space-md);
+}
+
+/* Tablet+ layout */
+@media (min-width: 768px) {
+    .container {
+        grid-template-columns: 280px 1fr;
+        grid-template-areas: "sidebar content";
+    }
+    
+    .sidebar {
+        border-bottom: none;
+        border-right: 1px solid var(--border);
+        padding: var(--space-lg);
+    }
+    
+    .content {
+        padding: var(--space-lg);
+        max-width: 1200px;
+    }
+}
+
+/* Buttons */
+.btn {
+    display: block;
+    width: 100%;
+    padding: var(--space-sm) var(--space-md);
+    margin-bottom: var(--space-sm);
+    background: var(--primary);
+    color: white;
+    border: 1px solid var(--primary);
+    border-radius: var(--radius);
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn:hover {
+    background: var(--primary-hover);
+}
+
+.btn-light {
+    background: var(--bg);
+    color: var(--text);
+    border-color: var(--border);
+}
+
+.btn-light:hover {
+    background: var(--surface);
+}
+
+/* Bookmark list */
+.bookmark-list {
+    display: grid;
+    gap: var(--space-md);
+}
+
+@media (min-width: 768px) {
+    .bookmark-list {
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    }
+}
+
+/* Bookmark card */
+.bookmark-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: var(--space-lg);
+    transition: all 0.2s;
+}
+
+.bookmark-card:hover {
+    border-color: var(--primary);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.bookmark-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--primary);
+    text-decoration: none;
+    margin-bottom: var(--space-sm);
+    display: block;
+}
+
+.bookmark-title:hover {
+    text-decoration: underline;
+}
+
+.bookmark-favorite {
+    color: var(--warning);
+    margin-left: var(--space-sm);
+}
+
+.bookmark-description {
+    color: var(--text-secondary);
+    margin-bottom: var(--space-md);
+    line-height: 1.6;
+}
+
+.bookmark-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    font-size: 0.875rem;
+    color: var(--text-muted);
+}
+
+.bookmark-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+}
+
+.bookmark-tag {
+    background: var(--surface);
+    color: var(--text-secondary);
+    padding: 0.25rem var(--space-sm);
+    border-radius: 0.25rem;
+    border: 1px solid var(--border);
+    font-size: 0.875rem;
+}
+
+/* Sidebar sections */
+.sidebar-section {
+    margin-bottom: var(--space-lg);
+}
+
+.sidebar-section h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: var(--space-sm);
+    color: var(--text);
+}
+
+/* Tag list */
+.tag-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
