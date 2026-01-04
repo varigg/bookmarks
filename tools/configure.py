@@ -29,6 +29,7 @@ def main():
 
     # Basic Settings
     port = get_input("Server Port", "5000")
+    data_dir = get_input("Data directory (shared with the host)", "/srv/bookmarks-data")
     secret_key = secrets.token_hex(24)
 
     # LLM Settings
@@ -59,7 +60,7 @@ def main():
         f.write("# Bookmarks Application Configuration (Generated)\n\n")
         f.write(f"BOOKMARKS_PORT={port}\n")
         f.write(f"BOOKMARKS_SECRET_KEY={secret_key}\n")
-        f.write("BOOKMARKS_DATA_DIR=/data\n")
+        f.write(f"BOOKMARKS_DATA_DIR={data_dir}\n")
         f.write("BOOKMARKS_DEBUG=false\n\n")
 
         f.write("# LLM Settings\n")

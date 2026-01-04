@@ -37,6 +37,8 @@ git clone https://github.com/varigg/bookmarks.git && cd bookmarks && uv sync && 
 git clone https://github.com/varigg/bookmarks.git && cd bookmarks && cp .env.example .env && echo "Edit .env with your API keys, then run: docker compose up --build -d"
 ```
 
+> **Data directory note:** `docker compose` now shares the `BOOKMARKS_DATA_DIR` path (default `/srv/bookmarks-data`) between the container and the host, so your `bookmarks.js` and `backup/` stay on the host. Create that directory (plus a `backup/` child) and set ownership before running Docker, or let `make service-install` handle it for you.
+
 ### Step-by-Step Setup
 
 **Local Development:**
@@ -180,13 +182,16 @@ Configuration is managed via environment variables for easy self-hosting. See **
 
 ### Quick Configuration
 
-| Variable                       | Default        | Description                                               |
-| ------------------------------ | -------------- | --------------------------------------------------------- |
-| `BOOKMARKS_DATA_SOURCE`        | `bookmarks.js` | Path to the bookmarks data file                           |
-| `BOOKMARKS_BACKUP_ENABLED`     | `true`         | Enable automatic backups on startup                       |
-| `BOOKMARKS_BACKUP_COUNT`       | `5`            | Number of backups to keep                                 |
-| `BOOKMARKS_LLM_PROVIDER`       | `perplexity`   | LLM provider (perplexity/perplexity-mcp/openai/anthropic) |
-| `BOOKMARKS_LLM_CONTENT_FORMAT` | `html`         | Content extraction (html/markdown)                        |
+| Variable                       | Default               | Description                                                                                                                                  |
+| ------------------------------ | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `BOOKMARKS_DATA_DIR`           | `/srv/bookmarks-data` | Base directory for `bookmarks.js` and backups (the guided install binds it to the host; override it to point somewhere else on your system). |
+| `BOOKMARKS_DATA_SOURCE`        | `bookmarks.js`        | Path to the bookmarks data file                                                                                                              |
+| `BOOKMARKS_BACKUP_ENABLED`     | `true`                | Enable automatic backups on startup                                                                                                          |
+| `BOOKMARKS_BACKUP_COUNT`       | `5`                   | Number of backups to keep                                                                                                                    |
+| `BOOKMARKS_LLM_PROVIDER`       | `perplexity`          | LLM provider (perplexity/perplexity-mcp/openai/anthropic)                                                                                    |
+| `BOOKMARKS_LLM_CONTENT_FORMAT` | `html`                | Content extraction (html/markdown)                                                                                                           |
+
+`BOOKMARKS_DATA_DIR` defaults to `/srv/bookmarks-data` when you run `make service-install`, which keeps `bookmarks.js` and `backup/` on the host. The target creates that directory pair for you; if you prefer to run Docker manually, create it yourself beforehand or override the variable to point elsewhere so your data stays outside of the repo tree.
 
 ### Environment Variables for LLM Features
 

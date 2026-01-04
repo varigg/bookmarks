@@ -50,11 +50,13 @@ htmlcov/
 .env
 .flaskenv
 
-# Data files (keep template, ignore actual data)
+# Data files and directory
+data/
+!data/.gitkeep
 bookmarks.js
 test_bookmarks.js
 
-# Backup directory
+# Backup directory (now inside data/)
 backup/
 
 # Temporary files

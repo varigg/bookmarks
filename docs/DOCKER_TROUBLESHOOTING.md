@@ -5,6 +5,7 @@ Common issues when running the bookmarks application with Docker.
 ## Permission Denied Error
 
 **Error:**
+
 ```
 permission denied while trying to connect to the Docker daemon socket
 ```
@@ -39,6 +40,7 @@ sudo make service-install
 ## Docker Daemon Not Running
 
 **Error:**
+
 ```
 Cannot connect to the Docker daemon
 ```
@@ -78,6 +80,7 @@ Start-Process "C:\Program Files\Docker\Docker\Docker Desktop.exe"
 ## Image Build Failures
 
 **Error:**
+
 ```
 failed to solve: failed to compute cache key
 ```
@@ -85,11 +88,13 @@ failed to solve: failed to compute cache key
 **Solutions:**
 
 1. **Clear Docker build cache:**
+
    ```bash
    docker builder prune -a
    ```
 
 2. **Rebuild without cache:**
+
    ```bash
    docker compose build --no-cache
    ```
@@ -104,6 +109,7 @@ failed to solve: failed to compute cache key
 ## Port Already in Use
 
 **Error:**
+
 ```
 Bind for 0.0.0.0:5000 failed: port is already allocated
 ```
@@ -111,15 +117,17 @@ Bind for 0.0.0.0:5000 failed: port is already allocated
 **Solutions:**
 
 1. **Change the port in `.env`:**
+
    ```bash
    echo "BOOKMARKS_PORT=5001" >> .env
    ```
 
 2. **Stop the conflicting service:**
+
    ```bash
    # Find what's using port 5000
    sudo lsof -i :5000
-   
+
    # Stop the process (replace PID with actual process ID)
    kill <PID>
    ```
@@ -134,24 +142,29 @@ Bind for 0.0.0.0:5000 failed: port is already allocated
 ## Volume Permission Issues
 
 **Error:**
+
 ```
-Permission denied when accessing /data/bookmarks.js
+PermissionError: [Errno 13] Permission denied: '/srv/bookmarks-data/backup'
 ```
 
 **Solution:**
 
-Named volumes (default) should avoid this issue. If you're using bind mounts:
+The guided install binds `${BOOKMARKS_DATA_DIR:-/srv/bookmarks-data}` from the host into the container. Make sure that directory (and its `backup/` child) exists and is writable:
 
 ```bash
-# Fix permissions on the data directory
-sudo chown -R $USER:$USER ./data
+sudo mkdir -p /srv/bookmarks-data/backup
+sudo chown -R $USER:$USER /srv/bookmarks-data
+sudo chmod -R u+rwX /srv/bookmarks-data
 ```
+
+If you prefer, let the `make service-install` target handle directory creation and permissions for you.
 
 ---
 
 ## Container Keeps Restarting
 
 **Check logs:**
+
 ```bash
 docker compose logs -f bookmarks
 ```
@@ -163,6 +176,7 @@ docker compose logs -f bookmarks
 3. **Port conflict** - Change `BOOKMARKS_PORT`
 
 **Restart with fresh state:**
+
 ```bash
 docker compose down
 docker compose up -d
@@ -192,17 +206,20 @@ make service-install
 If you're still stuck:
 
 1. **Check logs:**
+
    ```bash
    docker compose logs -f
    ```
 
 2. **Verify Docker installation:**
+
    ```bash
    docker --version
    docker compose version
    ```
 
 3. **Test basic Docker functionality:**
+
    ```bash
    docker run hello-world
    ```

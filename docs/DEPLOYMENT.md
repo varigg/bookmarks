@@ -213,12 +213,14 @@ If you prefer the one-step, reproducible experience, Docker is the recommended p
 docker build -t bookmarks:local .
 
 # run (maps host 5000 to container 5000)
-docker run -d --name bookmarks -p 5000:5000 -v "$(pwd)/data:/data" \
-  -e BOOKMARKS_PORT=5000 -e BOOKMARKS_DATA_SOURCE=/data/bookmarks.js bookmarks:local
+docker run -d --name bookmarks -p 5000:5000 -v "/srv/bookmarks-data:/srv/bookmarks-data" \
+  -e BOOKMARKS_PORT=5000 -e BOOKMARKS_DATA_DIR=/srv/bookmarks-data -e BOOKMARKS_DATA_SOURCE=bookmarks.js bookmarks:local
 
 # or use the guided installation (recommended)
 make service-install
 ```
+
+Before running Docker manually, create `/srv/bookmarks-data/backup` on the host and make sure it is writable so that `bookmarks.js` and the app backups persist outside the repository.
 
 ### Guided Installation (`make service-install`)
 
@@ -226,50 +228,32 @@ The project includes an interactive configuration wizard and a one-command insta
 
 1.  **Configure**: Run `make configure` (or let `service-install` call it for you) to generate a `.env` file with a secret key and your LLM API keys.
 2.  **Install**: Run `make service-install`. This will:
-    -   Run the configuration wizard if `.env` is missing.
-    -   Build the Docker image.
-    -   Start the containerized service with a **named volume** for persistent data.
+    - Run the configuration wizard if `.env` is missing.
+    - Build the Docker image.
+    - Start the containerized service with a **named volume** for persistent data.
+
+The wizard prompts for `BOOKMARKS_DATA_DIR` (default `/srv/bookmarks-data`), and `make service-install` makes sure that directory plus `backup/` exist before binding it into the container so you can manage `bookmarks.js` directly from the host.
 
 This approach ensures a standard, repeatable setup with minimal manual steps.
 
 ### Notes about volumes and persistence
 
--   **Named Volumes (Recommended)**: By default, `docker-compose.yml` uses a named volume `bookmarks_data`. This is more robust than bind mounts for production as it avoids host permission issues.
--   **Data Location**: The service maps the volume to `/data` inside the container. Your `bookmarks.js` and `backup/` directory will persist here even if the container is removed.
--   **Auto-Creation**: If `bookmarks.js` doesn't exist, the app automatically creates an empty one on first run.
+- **Host-shared directory (default)**: `docker compose` binds `${BOOKMARKS_DATA_DIR:-/srv/bookmarks-data}` from the host into the container so your `bookmarks.js` and `backup/` folders live on the host filesystem and survive container upgrades.
+- **Permissions**: The directory (and its `backup/` child) must be writable by the Docker runtime. `make service-install` creates these paths for you, or you can create them manually with `mkdir -p /srv/bookmarks-data/backup` + appropriate `chown`/`chmod` calls.
+- **Alternative: named volumes**: If you prefer to hand off persistence to Docker, set `BOOKMARKS_DATA_DIR` to the mount point provided by a named volume (e.g., `/data`) and update the volume clause in the Compose file accordingly.
+- **Auto-creation**: If `bookmarks.js` doesn't exist, the app automatically creates an empty file on first run inside the shared directory.
 
 ### Importing Existing Bookmarks
 
-If you have an existing `bookmarks.js` file, import it into the Docker volume:
+If you already have a `bookmarks.js` file, simply copy it into the host data directory and restart the stack. That directory is mounted into the container, so no `docker cp` dance is required:
 
-**Option 1: Use the import script (recommended)**
 ```bash
-./scripts/import-bookmarks.sh path/to/bookmarks.js
-docker compose restart
+docker compose down
+cp /path/to/bookmarks.js ${BOOKMARKS_DATA_DIR:-/srv/bookmarks-data}/bookmarks.js
+docker compose up -d
 ```
 
-**Option 2: Manual import**
-```bash
-# Copy into the running container
-docker cp bookmarks.js bookmarks-1:/data/bookmarks.js
-docker compose restart
-
-# Or use a temporary container
-docker run --rm \
-  -v bookmarks_bookmarks_data:/data \
-  -v $(pwd):/host \
-  alpine cp /host/bookmarks.js /data/bookmarks.js
-docker compose restart
-```
-
-**Option 3: Export from volume**
-```bash
-# Export current bookmarks from Docker volume
-docker run --rm \
-  -v bookmarks_bookmarks_data:/data \
-  -v $(pwd):/host \
-  alpine cp /data/bookmarks.js /host/bookmarks-backup.js
-```
+Since the directory lives on the host, you can inspect or archive the `backup/` folder directly (e.g., `ls /srv/bookmarks-data/backup`). If you prefer to keep data inside Docker-managed storage, the `scripts/import-bookmarks.sh` helper still targets the `bookmarks_bookmarks_data` volume used by older compose setups.
 
 ### Development vs production
 

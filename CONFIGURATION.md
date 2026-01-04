@@ -6,17 +6,20 @@ The bookmarks application uses simple environment variables for configuration, m
 
 All configuration is done through environment variables:
 
-| Variable                       | Default          | Description                                        |
-| ------------------------------ | ---------------- | -------------------------------------------------- |
-| `BOOKMARKS_DATA_SOURCE`        | `bookmarks.js`   | Path to the bookmarks data file                    |
-| `BOOKMARKS_SECRET_KEY`         | (auto-generated) | Flask secret key for sessions                      |
-| `BOOKMARKS_DEBUG`              | `false`          | Enable debug mode (`true`/`false`)                 |
-| `BOOKMARKS_PORT`               | `5001`           | Port number for the server                         |
-| `BOOKMARKS_BACKUP_ENABLED`     | `true`           | Enable automatic backups on startup                |
-| `BOOKMARKS_BACKUP_DIR`         | `backup`         | Directory to store backup files                    |
-| `BOOKMARKS_BACKUP_COUNT`       | `5`              | Number of backups to keep (older ones are deleted) |
-| `BOOKMARKS_LLM_PROVIDER`       | `perplexity`     | LLM provider (perplexity/openai/anthropic)         |
-| `BOOKMARKS_LLM_CONTENT_FORMAT` | `markdown`       | Content extraction format (html/markdown)          |
+| Variable                       | Default          | Description                                                                                                    |
+| ------------------------------ | ---------------- | -------------------------------------------------------------------------------------------------------------- |
+| `BOOKMARKS_DATA_DIR`           | `.`              | Base directory for `bookmarks.js` and backups (the service install binds `/srv/bookmarks-data` from the host). |
+| `BOOKMARKS_DATA_SOURCE`        | `bookmarks.js`   | Path to the bookmarks data file                                                                                |
+| `BOOKMARKS_SECRET_KEY`         | (auto-generated) | Flask secret key for sessions                                                                                  |
+| `BOOKMARKS_DEBUG`              | `false`          | Enable debug mode (`true`/`false`)                                                                             |
+| `BOOKMARKS_PORT`               | `5001`           | Port number for the server                                                                                     |
+| `BOOKMARKS_BACKUP_ENABLED`     | `true`           | Enable automatic backups on startup                                                                            |
+| `BOOKMARKS_BACKUP_DIR`         | `backup`         | Directory to store backup files                                                                                |
+| `BOOKMARKS_BACKUP_COUNT`       | `5`              | Number of backups to keep (older ones are deleted)                                                             |
+| `BOOKMARKS_LLM_PROVIDER`       | `perplexity`     | LLM provider (perplexity/openai/anthropic)                                                                     |
+| `BOOKMARKS_LLM_CONTENT_FORMAT` | `markdown`       | Content extraction format (html/markdown)                                                                      |
+
+`BOOKMARKS_DATA_DIR` defaults to the current directory for local development, but `make service-install` overrides it to `/srv/bookmarks-data` and creates that directory (plus a `backup/` subfolder) on the host before starting the container. Update the variable to point somewhere else if you want your data to live in a different location.
 
 ## Usage Examples
 

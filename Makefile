@@ -2,6 +2,8 @@
 # Automation shortcuts for common development tasks
 
 .PHONY: help test test-verbose test-coverage lint typecheck format format-check clean-code clean install run docker-build docker-up docker-down configure service-install
+CONFIG_ENV_FILE := $(HOME)/.config/bookmarks/.env
+DEFAULT_DATA_DIR := /srv/bookmarks-data
 
 # Default target: show help
 help:
@@ -98,8 +100,18 @@ configure:
 	uv run python tools/configure.py
 
 service-install: configure
-	@echo "🔨 Building Docker image..."
-	@docker compose build || { \
+	@env_file=$(CONFIG_ENV_FILE); \
+	if [ -f "$$env_file" ]; then \
+		set -a; \
+		. "$$env_file"; \
+		set +a; \
+	fi; \
+	data_dir="$${BOOKMARKS_DATA_DIR:-$(DEFAULT_DATA_DIR)}"; \
+	mkdir -p "$$data_dir" "$$data_dir/backup"; \
+	chmod -R u+rwX "$$data_dir"; \
+	echo "📁 Data directory ready: $$data_dir"; \
+	echo "🔨 Building Docker image..."; \
+	if ! docker compose build; then \
 		echo ""; \
 		echo "❌ Docker build failed. Common issues:"; \
 		echo ""; \
@@ -111,6 +123,6 @@ service-install: configure
 		echo "   sudo systemctl start docker"; \
 		echo ""; \
 		exit 1; \
-	}
-	@echo "🚀 Starting services..."
-	@docker compose up -d
+	fi; \
+	echo "🚀 Starting services..."; \
+	docker compose up -d
