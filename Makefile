@@ -1,7 +1,7 @@
 # Bookmarks Project Makefile
 # Automation shortcuts for common development tasks
 
-.PHONY: help test test-verbose test-coverage lint typecheck format format-check clean-code clean install run docker-build docker-up docker-down
+.PHONY: help test test-verbose test-coverage lint typecheck format format-check clean-code clean install run docker-build docker-up docker-down configure service-install
 
 # Default target: show help
 help:
@@ -20,6 +20,8 @@ help:
 	@echo "  make docker-build   - Build Docker image"
 	@echo "  make docker-up      - Start services with docker-compose"
 	@echo "  make docker-down    - Stop docker-compose services"
+	@echo "  make configure      - Run interactive configuration wizard"
+	@echo "  make service-install - Configure and start services with named volumes"
 
 # Install dependencies
 install:
@@ -90,3 +92,10 @@ docker-down:
 infrastructure-build: docker-build
 infrastructure-up: docker-up
 infrastructure-stop: docker-down
+
+# Configuration and Installation
+configure:
+	uv run python tools/configure.py
+
+service-install: configure
+	docker compose up -d

@@ -14,5 +14,8 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
     volumes:
-      - ./data:/data
+      - bookmarks_data:/data
     restart: unless-stopped
+
+volumes:
+  bookmarks_data:

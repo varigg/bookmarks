@@ -11,7 +11,8 @@ Pick the approach that best fits your environment and comfort level.
 - Use a **wheel**: build a wheel locally, copy the wheel to the server, install into a virtualenv, and run with Gunicorn (recommended minimal-effort approach).
 - Use a **zipapp**: create a single `.pyz` file that bundles your app and vendored dependencies (useful when you want one file, but harder to maintain).
 - Use **systemd + virtualenv**: native, lightweight, suitable for long-running service on a dedicated server.
-- Use **Docker**: best for reproducibility and portability (single artifact, easy upgrades, use volumes for persistent data).
+- Use **Docker**: best for reproducibility and portability (single artifact, easy upgrades, use named volumes for persistent data).
+- Use **Makefile targets**: `make service-install` provides a guided setup and automated deployment.
 
 ---
 
@@ -215,13 +216,26 @@ docker build -t bookmarks:local .
 docker run -d --name bookmarks -p 5000:5000 -v "$(pwd)/data:/data" \
   -e BOOKMARKS_PORT=5000 -e BOOKMARKS_DATA_SOURCE=/data/bookmarks.js bookmarks:local
 
-# or use docker-compose
-docker compose up --build -d
+# or use the guided installation (recommended)
+make service-install
 ```
+
+### Guided Installation (`make service-install`)
+
+The project includes an interactive configuration wizard and a one-command installation target:
+
+1.  **Configure**: Run `make configure` (or let `service-install` call it for you) to generate a `.env` file with a secret key and your LLM API keys.
+2.  **Install**: Run `make service-install`. This will:
+    -   Run the configuration wizard if `.env` is missing.
+    -   Build the Docker image.
+    -   Start the containerized service with a **named volume** for persistent data.
+
+This approach ensures a standard, repeatable setup with minimal manual steps.
 
 ### Notes about volumes and persistence
 
-- The compose example maps `./data` on the host to `/data` in the container; set `BOOKMARKS_DATA_SOURCE` to a path inside the volume (e.g. `/data/bookmarks.js`) so data and backups persist on the host.
+-   **Named Volumes (Recommended)**: By default, `docker-compose.yml` uses a named volume `bookmarks_data`. This is more robust than bind mounts for production as it avoids host permission issues.
+-   **Data Location**: The service maps the volume to `/data` inside the container. Your `bookmarks.js` and `backup/` directory will persist here even if the container is removed.
 
 ### Development vs production
 
