@@ -40,6 +40,34 @@ uv run python tools/add_bookmarks_from_urls.py urls.txt --generate-descriptions 
 
 **Documentation:** See `QUICKSTART_LLM.md` and `docs/LLM_CONFIGURATION.md`
 
+### `static-bookmarks.html`
+
+Standalone HTML viewer for browsing bookmarks without any server dependencies.
+
+**Usage:**
+
+1. Open `tools/static-bookmarks.html` in any web browser
+2. The viewer automatically loads `bookmarks.js` from the project root
+3. Use the sidebar to filter by tags, favorites, or search
+4. Sort bookmarks by date, alphabetically, or favorites-first
+
+**Features:**
+
+- Zero dependencies (pure HTML/CSS/JavaScript)
+- Responsive design (mobile, tablet, desktop)
+- Real-time search and filtering
+- Multiple sort options
+- Accessibility features (ARIA labels, keyboard navigation)
+- Print-friendly styles
+- Works offline
+
+**Use Cases:**
+
+- Quick bookmark browsing without starting the server
+- Sharing bookmarks as a static file
+- Backup/archive viewing
+- Testing bookmark data structure
+
 ---
 
 ## Analysis Tools

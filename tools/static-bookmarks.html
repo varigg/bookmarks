@@ -1,0 +1,1762 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bookmarks</title>
+    <style>
+        /* CSS Custom Properties for Theming */
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg: #ffffff;
+            --surface: #f8fafc;
+            --border: #e2e8f0;
+            --text: #1e293b;
+            --text-secondary: #64748b;
+            --text-muted: #94a3b8;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --radius: 0.5rem;
+            --space-sm: 0.5rem;
+            --space-md: 1rem;
+            --space-lg: 1.5rem;
+            --space-xl: 2rem;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+
+        /* Reset and Base Styles */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 1rem;
+            line-height: 1.5;
+            color: var(--text);
+            background-color: var(--bg);
+        }
+
+        /* Mobile-First Layout */
+        .container {
+            min-height: 100vh;
+            display: grid;
+            grid-template-rows: auto 1fr;
+            grid-template-areas:
+                "sidebar"
+                "content";
+        }
+
+        .sidebar {
+            grid-area: sidebar;
+            background-color: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: var(--space-md);
+        }
+
+        .content {
+            grid-area: content;
+            padding: var(--space-md);
+            overflow-x: auto;
+        }
+
+        /* Tablet Layout (768px and up) */
+        @media (min-width: 768px) {
+            .container {
+                grid-template-columns: 280px 1fr;
+                grid-template-rows: 1fr;
+                grid-template-areas: "sidebar content";
+            }
+
+            .sidebar {
+                border-bottom: none;
+                border-right: 1px solid var(--border);
+                padding: var(--space-lg);
+            }
+
+            .content {
+                padding: var(--space-lg);
+            }
+        }
+
+        /* Desktop Layout (1024px and up) */
+        @media (min-width: 1024px) {
+            .container {
+                grid-template-columns: 320px 1fr;
+            }
+
+            .sidebar {
+                padding: var(--space-xl);
+            }
+
+            .content {
+                padding: var(--space-xl);
+                max-width: 1200px;
+            }
+        }
+
+        /* Header Styles */
+        .header {
+            margin-bottom: var(--space-lg);
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: var(--space-sm);
+        }
+
+        .bookmark-count {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        /* Filter Section Styles */
+        .filter-section {
+            margin-bottom: var(--space-lg);
+        }
+
+        .filter-section h2 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: var(--space-md);
+        }
+
+        .filter-section h3 {
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: var(--space-sm);
+        }
+
+        /* Search Input */
+        .search-input {
+            width: 100%;
+            padding: var(--space-sm) var(--space-md);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 1rem;
+            background-color: var(--bg);
+            color: var(--text);
+            margin-bottom: var(--space-md);
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgb(37 99 235 / 0.1);
+        }
+
+        /* Filter Lists */
+        .filter-list {
+            list-style: none;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .filter-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: var(--space-sm);
+            margin-bottom: 0.25rem;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .filter-item:hover {
+            background-color: var(--border);
+        }
+
+        .filter-item.active {
+            background-color: var(--primary);
+            color: var(--bg);
+        }
+
+        .filter-label {
+            font-size: var(--font-size-sm);
+            flex: 1;
+        }
+
+        .filter-count {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            background-color: var(--surface);
+            padding: 0.125rem 0.5rem;
+            border-radius: 1rem;
+            min-width: 24px;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+
+        .filter-item.active .filter-count {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: var(--bg);
+            border-color: transparent;
+        }
+
+        /* Sort Controls */
+        .sort-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            margin-bottom: var(--space-md);
+        }
+
+        .sort-button {
+            padding: var(--space-sm);
+            border: 1px solid var(--border);
+            border-radius: 0.25rem;
+            background-color: var(--bg);
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s ease;
+        }
+
+        .sort-button:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .sort-button.active {
+            background-color: var(--primary);
+            border-color: var(--primary);
+            color: var(--bg);
+        }
+
+        /* Clear Filters Button */
+        .clear-filters {
+            width: 100%;
+            padding: var(--space-sm);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background-color: var(--bg);
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .clear-filters:hover {
+            border-color: var(--error);
+            color: var(--error);
+        }
+
+        /* Bookmark List */
+        .bookmark-list {
+            display: grid;
+            gap: var(--space-md);
+            grid-template-columns: 1fr;
+        }
+
+        /* Tablet bookmark grid */
+        @media (min-width: 768px) {
+            .bookmark-list {
+                grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            }
+        }
+
+        /* Desktop bookmark grid */
+        @media (min-width: 1024px) {
+            .bookmark-list {
+                grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            }
+        }
+
+        /* Bookmark Card */
+        .bookmark-card {
+            background-color: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: var(--space-lg);
+            box-shadow: var(--shadow-sm);
+            transition: all 0.2s ease;
+        }
+
+        .bookmark-card:hover {
+            box-shadow: var(--shadow-md);
+            border-color: var(--primary);
+        }
+
+        .bookmark-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .bookmark-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--primary);
+            text-decoration: none;
+            line-height: 1.25;
+            flex: 1;
+            margin-right: var(--space-sm);
+        }
+
+        .bookmark-title:hover {
+            color: var(--primary-hover);
+            text-decoration: underline;
+        }
+
+        .bookmark-favorite {
+            font-size: 1.25rem;
+            color: var(--warning);
+            margin-left: var(--space-sm);
+        }
+
+        .bookmark-favorite.empty {
+            color: var(--text-muted);
+        }
+
+        .bookmark-description {
+            color: var(--text-secondary);
+            line-height: 1.625;
+            margin-bottom: var(--space-md);
+        }
+
+        .bookmark-meta {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--spacing-sm);
+            font-size: var(--font-size-sm);
+            color: var(--text-muted);
+        }
+
+        .bookmark-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-xs);
+        }
+
+        .bookmark-tag {
+            background-color: var(--surface);
+            color: var(--text-secondary);
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+            border: 1px solid var(--border);
+        }
+
+        .bookmark-date {
+            white-space: nowrap;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: var(--spacing-xl);
+            color: var(--text-muted);
+        }
+
+        .empty-state h3 {
+            font-size: var(--font-size-xl);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .empty-state p {
+            font-size: var(--font-size-base);
+            line-height: var(--line-height-relaxed);
+        }
+
+        /* Error State */
+        .error-state {
+            background-color: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            margin: var(--spacing-lg);
+            color: var(--error-color);
+        }
+
+        .error-state h3 {
+            font-size: var(--font-size-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        /* Loading State */
+        .loading-state {
+            text-align: center;
+            padding: var(--spacing-xl);
+            color: var(--text-muted);
+        }
+
+        /* Accessibility Improvements */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        /* Focus Styles */
+        .filter-item:focus,
+        .sort-button:focus,
+        .clear-filters:focus,
+        .bookmark-title:focus {
+            outline: 2px solid var(--primary-color);
+            outline-offset: 2px;
+        }
+
+        /* High Contrast Mode Support */
+        @media (prefers-contrast: high) {
+            :root {
+                --border-color: #000000;
+                --text-muted: #333333;
+            }
+        }
+
+        /* Reduced Motion Support */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* Print Styles */
+        @media print {
+            .sidebar {
+                display: none;
+            }
+
+            .container {
+                grid-template-columns: 1fr;
+                grid-template-areas: "content";
+            }
+
+            .bookmark-card {
+                break-inside: avoid;
+                box-shadow: none;
+                border: 1px solid #000;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Sidebar with filters and controls -->
+        <aside class="sidebar" role="complementary" aria-label="Bookmark filters and controls">
+            <div class="header">
+                <h1>Bookmarks</h1>
+                <div class="bookmark-count" id="bookmark-count" aria-live="polite">
+                    Loading bookmarks...
+                </div>
+            </div>
+
+            <!-- Search -->
+            <div class="filter-section">
+                <label for="search-input" class="sr-only">Search bookmarks</label>
+                <input type="search" id="search-input" class="search-input" placeholder="Search bookmarks..."
+                    aria-describedby="search-help">
+                <div id="search-help" class="sr-only">
+                    Search through bookmark titles and descriptions
+                </div>
+            </div>
+
+            <!-- Sort Controls -->
+            <div class="filter-section">
+                <h3>Sort By</h3>
+                <div class="sort-controls" role="radiogroup" aria-label="Sort bookmarks">
+                    <button class="sort-button active" data-sort="newest" role="radio" aria-checked="true">
+                        Newest
+                    </button>
+                    <button class="sort-button" data-sort="oldest" role="radio" aria-checked="false">
+                        Oldest
+                    </button>
+                    <button class="sort-button" data-sort="alphabetical" role="radio" aria-checked="false">
+                        A-Z
+                    </button>
+                    <button class="sort-button" data-sort="reverse-alphabetical" role="radio" aria-checked="false">
+                        Z-A
+                    </button>
+                    <button class="sort-button" data-sort="favorites-first" role="radio" aria-checked="false">
+                        Favorites First
+                    </button>
+                </div>
+            </div>
+
+            <!-- Favorites Filter -->
+            <div class="filter-section">
+                <h3>Favorites</h3>
+                <ul class="filter-list" role="group" aria-label="Favorites filter">
+                    <li class="filter-item" data-filter="favorites" role="button" tabindex="0" aria-pressed="false">
+                        <span class="filter-label">Show Favorites Only</span>
+                        <span class="filter-count" id="favorites-count">0</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Tags Filter -->
+            <div class="filter-section">
+                <h3>Tags</h3>
+                <ul class="filter-list" id="tags-list" role="group" aria-label="Tag filters">
+                    <!-- Tags will be populated by JavaScript -->
+                </ul>
+            </div>
+
+            <!-- Clear Filters -->
+            <button class="clear-filters" id="clear-filters" aria-describedby="clear-help">
+                Clear All Filters
+            </button>
+            <div id="clear-help" class="sr-only">
+                Remove all active filters and show all bookmarks
+            </div>
+        </aside>
+
+        <!-- Main content area -->
+        <main class="content" role="main" aria-label="Bookmark list">
+            <!-- Loading state (shown initially) -->
+            <div class="loading-state" id="loading-state">
+                <p>Loading bookmarks...</p>
+            </div>
+
+            <!-- Error state (shown when bookmarks.js fails to load) -->
+            <div class="error-state" id="error-state" style="display: none;" role="alert">
+                <h3>Unable to Load Bookmarks</h3>
+                <p>
+                    The bookmarks.js file could not be found or loaded.
+                    Please ensure the file exists in the same directory as this HTML file.
+                </p>
+            </div>
+
+            <!-- Empty state (shown when no bookmarks match filters) -->
+            <div class="empty-state" id="empty-state" style="display: none;">
+                <h3>No Bookmarks Found</h3>
+                <p>Try adjusting your filters or search terms to find bookmarks.</p>
+            </div>
+
+            <!-- Bookmark list (populated by JavaScript) -->
+            <div class="bookmark-list" id="bookmark-list" style="display: none;">
+                <!-- Bookmarks will be populated by JavaScript -->
+            </div>
+        </main>
+    </div>
+
+    <!-- Fallback content for when JavaScript is disabled -->
+    <noscript>
+        <div
+            style="padding: 2rem; text-align: center; background-color: #fef3c7; border: 1px solid #f59e0b; border-radius: 0.5rem; margin: 1rem;">
+            <h2>JavaScript Required</h2>
+            <p>This bookmark viewer requires JavaScript to function properly. Please enable JavaScript in your browser
+                to use the filtering and sorting features.</p>
+        </div>
+    </noscript>
+
+    <!-- Load bookmarks data -->
+    <script src="../bookmarks.js"></script>
+
+    <!-- Application JavaScript -->
+    <script>
+        /**
+         * BookmarkLoader class handles loading and validating bookmarks.js data
+         * Provides error handling for missing or invalid data files
+         */
+        class BookmarkLoader {
+            /**
+             * Load and validate bookmarks data from the global bookmarks variable
+             * @returns {Object} Object containing success status, data, and any error messages
+             */
+            static loadBookmarks() {
+                try {
+                    // Check if bookmarks.js loaded successfully
+                    if (typeof bookmarks === 'undefined') {
+                        return {
+                            success: false,
+                            error: 'MISSING_FILE',
+                            message: 'The bookmarks.js file could not be found or loaded. Please ensure the file exists in the same directory as this HTML file.',
+                            data: []
+                        };
+                    }
+
+                    // Check if bookmarks is an array
+                    if (!Array.isArray(bookmarks)) {
+                        return {
+                            success: false,
+                            error: 'INVALID_FORMAT',
+                            message: 'The bookmarks data is not in the expected array format. Please check the bookmarks.js file structure.',
+                            data: []
+                        };
+                    }
+
+                    // Validate and clean bookmark objects
+                    const validatedBookmarks = [];
+                    const errors = [];
+
+                    bookmarks.forEach((bookmark, index) => {
+                        const validation = BookmarkLoader.validateBookmark(bookmark, index);
+                        if (validation.isValid) {
+                            validatedBookmarks.push(validation.bookmark);
+                        } else {
+                            errors.push(validation.error);
+                        }
+                    });
+
+                    // If we have some valid bookmarks, return success with warnings
+                    if (validatedBookmarks.length > 0) {
+                        return {
+                            success: true,
+                            data: validatedBookmarks,
+                            warnings: errors.length > 0 ? errors : null,
+                            message: errors.length > 0 ?
+                                `Loaded ${validatedBookmarks.length} bookmarks successfully. ${errors.length} bookmarks were skipped due to validation errors.` :
+                                `Loaded ${validatedBookmarks.length} bookmarks successfully.`
+                        };
+                    }
+
+                    // No valid bookmarks found
+                    return {
+                        success: false,
+                        error: 'NO_VALID_BOOKMARKS',
+                        message: 'No valid bookmarks found in the data file. Please check the bookmark object structure.',
+                        data: [],
+                        warnings: errors
+                    };
+
+                } catch (error) {
+                    return {
+                        success: false,
+                        error: 'PARSE_ERROR',
+                        message: `Error parsing bookmarks data: ${error.message}`,
+                        data: []
+                    };
+                }
+            }
+
+            /**
+             * Validate a single bookmark object structure
+             * @param {Object} bookmark - The bookmark object to validate
+             * @param {number} index - The index of the bookmark in the array (for error reporting)
+             * @returns {Object} Validation result with isValid flag and cleaned bookmark or error
+             */
+            static validateBookmark(bookmark, index) {
+                if (!bookmark || typeof bookmark !== 'object') {
+                    return {
+                        isValid: false,
+                        error: `Bookmark at index ${index}: Not a valid object`
+                    };
+                }
+
+                // Required fields with their expected types
+                const requiredFields = {
+                    url: 'string',
+                    title: 'string',
+                    description: 'string',
+                    tags: 'array',
+                    dateAdded: 'string'
+                };
+
+                const cleanedBookmark = {};
+                const missingFields = [];
+                const invalidFields = [];
+
+                // Check required fields
+                for (const [field, expectedType] of Object.entries(requiredFields)) {
+                    if (!(field in bookmark)) {
+                        missingFields.push(field);
+                        continue;
+                    }
+
+                    const value = bookmark[field];
+
+                    if (expectedType === 'array' && !Array.isArray(value)) {
+                        invalidFields.push(`${field} (expected array, got ${typeof value})`);
+                        continue;
+                    }
+
+                    if (expectedType !== 'array' && typeof value !== expectedType) {
+                        invalidFields.push(`${field} (expected ${expectedType}, got ${typeof value})`);
+                        continue;
+                    }
+
+                    // Additional validation for specific fields
+                    if (field === 'url' && !BookmarkLoader.isValidUrl(value)) {
+                        invalidFields.push(`${field} (invalid URL format)`);
+                        continue;
+                    }
+
+                    if (field === 'tags' && !value.every(tag => typeof tag === 'string')) {
+                        invalidFields.push(`${field} (all tags must be strings)`);
+                        continue;
+                    }
+
+                    if (field === 'dateAdded' && !BookmarkLoader.isValidDate(value)) {
+                        invalidFields.push(`${field} (invalid date format)`);
+                        continue;
+                    }
+
+                    cleanedBookmark[field] = value;
+                }
+
+                // Handle optional favorite field
+                if ('favorite' in bookmark) {
+                    if (typeof bookmark.favorite === 'boolean') {
+                        cleanedBookmark.favorite = bookmark.favorite;
+                    } else {
+                        // Try to convert to boolean
+                        cleanedBookmark.favorite = Boolean(bookmark.favorite);
+                    }
+                } else {
+                    cleanedBookmark.favorite = false; // Default to false
+                }
+
+                // Report validation errors
+                if (missingFields.length > 0 || invalidFields.length > 0) {
+                    const errorParts = [];
+                    if (missingFields.length > 0) {
+                        errorParts.push(`Missing fields: ${missingFields.join(', ')}`);
+                    }
+                    if (invalidFields.length > 0) {
+                        errorParts.push(`Invalid fields: ${invalidFields.join(', ')}`);
+                    }
+
+                    return {
+                        isValid: false,
+                        error: `Bookmark at index ${index}: ${errorParts.join('; ')}`
+                    };
+                }
+
+                return {
+                    isValid: true,
+                    bookmark: cleanedBookmark
+                };
+            }
+
+            /**
+             * Basic URL validation
+             * @param {string} url - URL to validate
+             * @returns {boolean} True if URL appears valid
+             */
+            static isValidUrl(url) {
+                try {
+                    new URL(url);
+                    return true;
+                } catch {
+                    return false;
+                }
+            }
+
+            /**
+             * Basic date validation
+             * @param {string} dateString - Date string to validate
+             * @returns {boolean} True if date appears valid
+             */
+            static isValidDate(dateString) {
+                const date = new Date(dateString);
+                return !isNaN(date.getTime());
+            }
+
+            /**
+             * Display error message in the UI
+             * @param {string} message - Error message to display
+             * @param {Array} warnings - Optional array of warning messages
+             */
+            static handleLoadError(message, warnings = null) {
+                const loadingState = document.getElementById('loading-state');
+                const errorState = document.getElementById('error-state');
+
+                // Hide loading state
+                if (loadingState) {
+                    loadingState.style.display = 'none';
+                }
+
+                // Show error state with custom message
+                if (errorState) {
+                    const errorTitle = errorState.querySelector('h3');
+                    const errorMessage = errorState.querySelector('p');
+
+                    if (errorTitle) {
+                        errorTitle.textContent = 'Unable to Load Bookmarks';
+                    }
+
+                    if (errorMessage) {
+                        let fullMessage = message;
+                        if (warnings && warnings.length > 0) {
+                            fullMessage += '\n\nValidation warnings:\n' + warnings.join('\n');
+                        }
+                        errorMessage.textContent = fullMessage;
+                        errorMessage.style.whiteSpace = 'pre-line'; // Preserve line breaks
+                    }
+
+                    errorState.style.display = 'block';
+                }
+
+                // Update bookmark count
+                const bookmarkCount = document.getElementById('bookmark-count');
+                if (bookmarkCount) {
+                    bookmarkCount.textContent = 'Error loading bookmarks';
+                    bookmarkCount.setAttribute('aria-live', 'assertive');
+                }
+            }
+
+            /**
+             * Display success message and update UI
+             * @param {Array} bookmarks - Successfully loaded bookmarks
+             * @param {string} message - Success message
+             * @param {Array} warnings - Optional array of warning messages
+             */
+            static handleLoadSuccess(bookmarks, message, warnings = null) {
+                const loadingState = document.getElementById('loading-state');
+
+                // Hide loading state
+                if (loadingState) {
+                    loadingState.style.display = 'none';
+                }
+
+                // Update bookmark count
+                const bookmarkCount = document.getElementById('bookmark-count');
+                if (bookmarkCount) {
+                    const count = bookmarks.length;
+                    bookmarkCount.textContent = `${count} bookmark${count !== 1 ? 's' : ''}`;
+
+                    // Add warning indicator if there were validation issues
+                    if (warnings && warnings.length > 0) {
+                        bookmarkCount.textContent += ` (${warnings.length} skipped)`;
+                        bookmarkCount.title = 'Some bookmarks were skipped due to validation errors';
+                    }
+                }
+
+                // Log success message and warnings to console for debugging
+                console.log('BookmarkLoader:', message);
+                if (warnings && warnings.length > 0) {
+                    console.warn('BookmarkLoader warnings:', warnings);
+                }
+            }
+        }
+
+        /**
+         * UIController class handles DOM manipulation and bookmark rendering
+         * Manages the display of bookmarks, counts, and UI state updates
+         */
+        class UIController {
+            constructor() {
+                this.bookmarkListElement = document.getElementById('bookmark-list');
+                this.bookmarkCountElement = document.getElementById('bookmark-count');
+                this.loadingStateElement = document.getElementById('loading-state');
+                this.errorStateElement = document.getElementById('error-state');
+                this.emptyStateElement = document.getElementById('empty-state');
+            }
+
+            /**
+             * Render bookmarks to the DOM
+             * @param {Array} bookmarks - Array of bookmark objects to render
+             */
+            renderBookmarks(bookmarks) {
+                if (!this.bookmarkListElement) {
+                    console.error('UIController: bookmark-list element not found');
+                    return;
+                }
+
+                // Clear existing bookmarks
+                this.bookmarkListElement.innerHTML = '';
+
+                // Hide other states and show bookmark list
+                this.hideAllStates();
+                this.bookmarkListElement.style.display = 'grid';
+
+                // If no bookmarks, show empty state
+                if (!bookmarks || bookmarks.length === 0) {
+                    this.showNoResults();
+                    return;
+                }
+
+                // Render each bookmark
+                bookmarks.forEach(bookmark => {
+                    const bookmarkCard = this.createBookmarkCard(bookmark);
+                    this.bookmarkListElement.appendChild(bookmarkCard);
+                });
+
+                // Update bookmark count
+                this.updateCounts(bookmarks.length);
+            }
+
+            /**
+             * Create a bookmark card element
+             * @param {Object} bookmark - Bookmark object
+             * @returns {HTMLElement} Bookmark card element
+             */
+            createBookmarkCard(bookmark) {
+                const card = document.createElement('article');
+                card.className = 'bookmark-card';
+                card.setAttribute('role', 'article');
+                card.setAttribute('aria-label', `Bookmark: ${bookmark.title}`);
+
+                // Create bookmark header with title and favorite icon
+                const header = document.createElement('div');
+                header.className = 'bookmark-header';
+
+                const title = document.createElement('a');
+                title.className = 'bookmark-title';
+                title.href = bookmark.url;
+                title.target = '_blank';
+                title.rel = 'noopener noreferrer';
+                title.textContent = bookmark.title;
+                title.setAttribute('aria-label', `Open ${bookmark.title} in new tab`);
+
+                const favoriteIcon = document.createElement('span');
+                favoriteIcon.className = `bookmark-favorite ${bookmark.favorite ? '' : 'empty'}`;
+                favoriteIcon.textContent = bookmark.favorite ? '★' : '☆';
+                favoriteIcon.setAttribute('aria-label', bookmark.favorite ? 'Favorite bookmark' : 'Not a favorite');
+                favoriteIcon.setAttribute('role', 'img');
+
+                header.appendChild(title);
+                header.appendChild(favoriteIcon);
+
+                // Create description
+                const description = document.createElement('p');
+                description.className = 'bookmark-description';
+                description.textContent = bookmark.description;
+
+                // Create metadata section
+                const meta = document.createElement('div');
+                meta.className = 'bookmark-meta';
+
+                // Create tags
+                const tagsContainer = document.createElement('div');
+                tagsContainer.className = 'bookmark-tags';
+                tagsContainer.setAttribute('aria-label', 'Tags');
+
+                if (bookmark.tags && bookmark.tags.length > 0) {
+                    bookmark.tags.forEach(tag => {
+                        const tagElement = document.createElement('span');
+                        tagElement.className = 'bookmark-tag';
+                        tagElement.textContent = tag;
+                        tagElement.setAttribute('role', 'button');
+                        tagElement.setAttribute('tabindex', '0');
+                        tagElement.setAttribute('aria-label', `Filter by tag: ${tag}`);
+                        tagsContainer.appendChild(tagElement);
+                    });
+                }
+
+                // Create date
+                const dateElement = document.createElement('time');
+                dateElement.className = 'bookmark-date';
+                const formattedDate = this.formatDate(bookmark.dateAdded);
+                dateElement.textContent = formattedDate;
+                dateElement.setAttribute('datetime', bookmark.dateAdded);
+                dateElement.setAttribute('title', `Added on ${formattedDate}`);
+
+                meta.appendChild(tagsContainer);
+                meta.appendChild(dateElement);
+
+                // Assemble the card
+                card.appendChild(header);
+                card.appendChild(description);
+                card.appendChild(meta);
+
+                return card;
+            }
+
+            /**
+             * Format date for human-readable display
+             * @param {string} dateString - ISO date string
+             * @returns {string} Formatted date string
+             */
+            formatDate(dateString) {
+                try {
+                    const date = new Date(dateString);
+
+                    // Check if date is valid
+                    if (isNaN(date.getTime())) {
+                        return 'Invalid date';
+                    }
+
+                    const now = new Date();
+                    const diffTime = now - date;
+                    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+                    // Show relative dates for recent bookmarks
+                    if (diffDays === 0) {
+                        return 'Today';
+                    } else if (diffDays === 1) {
+                        return 'Yesterday';
+                    } else if (diffDays < 7) {
+                        return `${diffDays} days ago`;
+                    } else if (diffDays < 30) {
+                        const weeks = Math.floor(diffDays / 7);
+                        return `${weeks} week${weeks !== 1 ? 's' : ''} ago`;
+                    } else if (diffDays < 365) {
+                        const months = Math.floor(diffDays / 30);
+                        return `${months} month${months !== 1 ? 's' : ''} ago`;
+                    }
+
+                    // For older dates, show the actual date
+                    return date.toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                    });
+                } catch (error) {
+                    console.error('UIController: Error formatting date:', error);
+                    return 'Unknown date';
+                }
+            }
+
+            /**
+             * Update bookmark count display
+             * @param {number} count - Number of bookmarks to display
+             */
+            updateCounts(count) {
+                if (this.bookmarkCountElement) {
+                    const countText = `${count} bookmark${count !== 1 ? 's' : ''}`;
+                    this.bookmarkCountElement.textContent = countText;
+                    this.bookmarkCountElement.setAttribute('aria-live', 'polite');
+                }
+            }
+
+            /**
+             * Show no results message
+             */
+            showNoResults() {
+                this.hideAllStates();
+                if (this.emptyStateElement) {
+                    this.emptyStateElement.style.display = 'block';
+                }
+                this.updateCounts(0);
+            }
+
+            /**
+             * Show loading state
+             */
+            showLoading() {
+                this.hideAllStates();
+                if (this.loadingStateElement) {
+                    this.loadingStateElement.style.display = 'block';
+                }
+            }
+
+            /**
+             * Show error state
+             * @param {string} message - Error message to display
+             */
+            showError(message) {
+                this.hideAllStates();
+                if (this.errorStateElement) {
+                    const errorMessage = this.errorStateElement.querySelector('p');
+                    if (errorMessage && message) {
+                        errorMessage.textContent = message;
+                    }
+                    this.errorStateElement.style.display = 'block';
+                }
+            }
+
+            /**
+             * Hide all state elements (loading, error, empty, bookmark list)
+             */
+            hideAllStates() {
+                const states = [
+                    this.loadingStateElement,
+                    this.errorStateElement,
+                    this.emptyStateElement,
+                    this.bookmarkListElement
+                ];
+
+                states.forEach(element => {
+                    if (element) {
+                        element.style.display = 'none';
+                    }
+                });
+            }
+
+            /**
+             * Get the current bookmark list element for external access
+             * @returns {HTMLElement} The bookmark list element
+             */
+            getBookmarkListElement() {
+                return this.bookmarkListElement;
+            }
+
+            /**
+             * Clear all rendered bookmarks
+             */
+            clearBookmarks() {
+                if (this.bookmarkListElement) {
+                    this.bookmarkListElement.innerHTML = '';
+                }
+            }
+        }
+
+        /**
+         * FilterEngine class handles tag-based filtering with AND logic
+         * Provides methods for extracting tags, counting occurrences, and filtering bookmarks
+         */
+        class FilterEngine {
+            constructor(bookmarks) {
+                this.bookmarks = bookmarks || [];
+                this.tagCounts = this.extractTagCounts();
+            }
+
+            /**
+             * Extract all unique tags from bookmarks and count their occurrences
+             * @returns {Object} Object mapping tag names to their counts
+             */
+            extractTagCounts() {
+                const tagCounts = {};
+
+                this.bookmarks.forEach(bookmark => {
+                    if (bookmark.tags && Array.isArray(bookmark.tags)) {
+                        bookmark.tags.forEach(tag => {
+                            if (typeof tag === 'string' && tag.trim()) {
+                                const normalizedTag = tag.trim();
+                                tagCounts[normalizedTag] = (tagCounts[normalizedTag] || 0) + 1;
+                            }
+                        });
+                    }
+                });
+
+                return tagCounts;
+            }
+
+            /**
+             * Get all unique tags sorted alphabetically
+             * @returns {Array} Array of tag names
+             */
+            getAllTags() {
+                return Object.keys(this.tagCounts).sort((a, b) =>
+                    a.toLowerCase().localeCompare(b.toLowerCase())
+                );
+            }
+
+            /**
+             * Get tag counts object
+             * @returns {Object} Object mapping tag names to their counts
+             */
+            getTagCounts() {
+                return { ...this.tagCounts };
+            }
+
+            /**
+             * Filter bookmarks by selected tags using AND logic
+             * @param {Array} selectedTags - Array of tag names to filter by
+             * @returns {Array} Filtered array of bookmarks
+             */
+            filterByTags(selectedTags) {
+                if (!selectedTags || selectedTags.length === 0) {
+                    return [...this.bookmarks];
+                }
+
+                return this.bookmarks.filter(bookmark => {
+                    if (!bookmark.tags || !Array.isArray(bookmark.tags)) {
+                        return false;
+                    }
+
+                    // Check if bookmark has ALL selected tags (AND logic)
+                    return selectedTags.every(selectedTag =>
+                        bookmark.tags.some(bookmarkTag =>
+                            bookmarkTag.trim().toLowerCase() === selectedTag.toLowerCase()
+                        )
+                    );
+                });
+            }
+
+            /**
+             * Filter bookmarks by favorites status
+             * @param {boolean} favoritesOnly - If true, return only favorite bookmarks
+             * @returns {Array} Filtered array of bookmarks
+             */
+            filterByFavorites(favoritesOnly) {
+                if (!favoritesOnly) {
+                    return [...this.bookmarks];
+                }
+
+                return this.bookmarks.filter(bookmark => bookmark.favorite === true);
+            }
+
+            /**
+             * Filter bookmarks by search text (case-insensitive)
+             * @param {string} searchText - Text to search for in title and description
+             * @returns {Array} Filtered array of bookmarks
+             */
+            filterBySearch(searchText) {
+                if (!searchText || typeof searchText !== 'string' || !searchText.trim()) {
+                    return [...this.bookmarks];
+                }
+
+                const normalizedSearch = searchText.trim().toLowerCase();
+
+                return this.bookmarks.filter(bookmark => {
+                    const title = (bookmark.title || '').toLowerCase();
+                    const description = (bookmark.description || '').toLowerCase();
+
+                    return title.includes(normalizedSearch) || description.includes(normalizedSearch);
+                });
+            }
+
+            /**
+             * Apply multiple filters together (tags AND favorites AND search)
+             * @param {Object} filters - Object containing filter criteria
+             * @param {Array} filters.tags - Selected tag names
+             * @param {boolean} filters.favorites - Show only favorites
+             * @param {string} filters.search - Search text
+             * @returns {Array} Filtered array of bookmarks
+             */
+            combineFilters(filters) {
+                let result = [...this.bookmarks];
+
+                // Apply tag filter
+                if (filters.tags && filters.tags.length > 0) {
+                    result = result.filter(bookmark => {
+                        if (!bookmark.tags || !Array.isArray(bookmark.tags)) {
+                            return false;
+                        }
+                        return filters.tags.every(selectedTag =>
+                            bookmark.tags.some(bookmarkTag =>
+                                bookmarkTag.trim().toLowerCase() === selectedTag.toLowerCase()
+                            )
+                        );
+                    });
+                }
+
+                // Apply favorites filter
+                if (filters.favorites) {
+                    result = result.filter(bookmark => bookmark.favorite === true);
+                }
+
+                // Apply search filter
+                if (filters.search && typeof filters.search === 'string' && filters.search.trim()) {
+                    const normalizedSearch = filters.search.trim().toLowerCase();
+                    result = result.filter(bookmark => {
+                        const title = (bookmark.title || '').toLowerCase();
+                        const description = (bookmark.description || '').toLowerCase();
+                        return title.includes(normalizedSearch) || description.includes(normalizedSearch);
+                    });
+                }
+
+                return result;
+            }
+
+            /**
+             * Update the internal bookmarks data and recalculate tag counts
+             * @param {Array} newBookmarks - New array of bookmarks
+             */
+            updateBookmarks(newBookmarks) {
+                this.bookmarks = newBookmarks || [];
+                this.tagCounts = this.extractTagCounts();
+            }
+        }
+
+        /**
+         * SortEngine class handles all sorting operations for bookmarks
+         * Provides methods for different sorting criteria with proper date and string handling
+         */
+        class SortEngine {
+            /**
+             * Sort bookmarks by date added (newest first)
+             * @param {Array} bookmarks - Array of bookmark objects to sort
+             * @returns {Array} Sorted array of bookmarks (newest first)
+             */
+            static sortByNewest(bookmarks) {
+                return [...bookmarks].sort((a, b) => {
+                    const dateA = new Date(a.dateAdded);
+                    const dateB = new Date(b.dateAdded);
+
+                    // Handle invalid dates by putting them at the end
+                    if (isNaN(dateA.getTime()) && isNaN(dateB.getTime())) return 0;
+                    if (isNaN(dateA.getTime())) return 1;
+                    if (isNaN(dateB.getTime())) return -1;
+
+                    return dateB.getTime() - dateA.getTime(); // Newest first (descending)
+                });
+            }
+
+            /**
+             * Sort bookmarks by date added (oldest first)
+             * @param {Array} bookmarks - Array of bookmark objects to sort
+             * @returns {Array} Sorted array of bookmarks (oldest first)
+             */
+            static sortByOldest(bookmarks) {
+                return [...bookmarks].sort((a, b) => {
+                    const dateA = new Date(a.dateAdded);
+                    const dateB = new Date(b.dateAdded);
+
+                    // Handle invalid dates by putting them at the end
+                    if (isNaN(dateA.getTime()) && isNaN(dateB.getTime())) return 0;
+                    if (isNaN(dateA.getTime())) return 1;
+                    if (isNaN(dateB.getTime())) return -1;
+
+                    return dateA.getTime() - dateB.getTime(); // Oldest first (ascending)
+                });
+            }
+
+            /**
+             * Sort bookmarks alphabetically by title (A-Z)
+             * @param {Array} bookmarks - Array of bookmark objects to sort
+             * @returns {Array} Sorted array of bookmarks (A-Z)
+             */
+            static sortAlphabetical(bookmarks) {
+                return [...bookmarks].sort((a, b) => {
+                    const titleA = (a.title || '').toLowerCase();
+                    const titleB = (b.title || '').toLowerCase();
+                    return titleA.localeCompare(titleB);
+                });
+            }
+
+            /**
+             * Sort bookmarks reverse alphabetically by title (Z-A)
+             * @param {Array} bookmarks - Array of bookmark objects to sort
+             * @returns {Array} Sorted array of bookmarks (Z-A)
+             */
+            static sortReverseAlphabetical(bookmarks) {
+                return [...bookmarks].sort((a, b) => {
+                    const titleA = (a.title || '').toLowerCase();
+                    const titleB = (b.title || '').toLowerCase();
+                    return titleB.localeCompare(titleA);
+                });
+            }
+
+            /**
+             * Sort bookmarks with favorites first, then by date (newest first)
+             * @param {Array} bookmarks - Array of bookmark objects to sort
+             * @returns {Array} Sorted array of bookmarks (favorites first, then newest)
+             */
+            static sortFavoritesFirst(bookmarks) {
+                return [...bookmarks].sort((a, b) => {
+                    // First, sort by favorite status (favorites first)
+                    if (a.favorite && !b.favorite) return -1;
+                    if (!a.favorite && b.favorite) return 1;
+
+                    // If both have same favorite status, sort by date (newest first)
+                    const dateA = new Date(a.dateAdded);
+                    const dateB = new Date(b.dateAdded);
+
+                    // Handle invalid dates
+                    if (isNaN(dateA.getTime()) && isNaN(dateB.getTime())) return 0;
+                    if (isNaN(dateA.getTime())) return 1;
+                    if (isNaN(dateB.getTime())) return -1;
+
+                    return dateB.getTime() - dateA.getTime(); // Newest first within same favorite status
+                });
+            }
+
+            /**
+             * Apply sorting based on sort criteria string
+             * @param {Array} bookmarks - Array of bookmark objects to sort
+             * @param {string} sortCriteria - Sort criteria ('newest', 'oldest', 'alphabetical', 'reverse-alphabetical', 'favorites-first')
+             * @returns {Array} Sorted array of bookmarks
+             */
+            static applySorting(bookmarks, sortCriteria) {
+                if (!bookmarks || !Array.isArray(bookmarks)) {
+                    return [];
+                }
+
+                switch (sortCriteria) {
+                    case 'oldest':
+                        return SortEngine.sortByOldest(bookmarks);
+                    case 'alphabetical':
+                        return SortEngine.sortAlphabetical(bookmarks);
+                    case 'reverse-alphabetical':
+                        return SortEngine.sortReverseAlphabetical(bookmarks);
+                    case 'favorites-first':
+                        return SortEngine.sortFavoritesFirst(bookmarks);
+                    case 'newest':
+                    default:
+                        return SortEngine.sortByNewest(bookmarks);
+                }
+            }
+        }
+
+        /**
+         * TagFilterUI class handles the tag filter user interface
+         * Manages tag list rendering, selection state, and user interactions
+         */
+        class TagFilterUI {
+            constructor(filterEngine, onTagSelectionChange) {
+                this.filterEngine = filterEngine;
+                this.onTagSelectionChange = onTagSelectionChange || (() => { });
+                this.selectedTags = new Set();
+                this.tagListElement = document.getElementById('tags-list');
+
+                this.init();
+            }
+
+            /**
+             * Initialize the tag filter UI
+             */
+            init() {
+                this.renderTagFilters();
+                this.setupEventListeners();
+            }
+
+            /**
+             * Render tag filters in the sidebar
+             */
+            renderTagFilters() {
+                if (!this.tagListElement) {
+                    console.error('TagFilterUI: tags-list element not found');
+                    return;
+                }
+
+                // Clear existing tags
+                this.tagListElement.innerHTML = '';
+
+                const tags = this.filterEngine.getAllTags();
+                const tagCounts = this.filterEngine.getTagCounts();
+
+                if (tags.length === 0) {
+                    const emptyItem = document.createElement('li');
+                    emptyItem.className = 'filter-item';
+                    emptyItem.style.cursor = 'default';
+                    emptyItem.innerHTML = '<span class="filter-label" style="color: var(--text-muted);">No tags available</span>';
+                    this.tagListElement.appendChild(emptyItem);
+                    return;
+                }
+
+                // Create filter items for each tag
+                tags.forEach(tag => {
+                    const listItem = document.createElement('li');
+                    listItem.className = 'filter-item';
+                    listItem.setAttribute('data-tag', tag);
+                    listItem.setAttribute('role', 'button');
+                    listItem.setAttribute('tabindex', '0');
+                    listItem.setAttribute('aria-pressed', 'false');
+                    listItem.setAttribute('aria-label', `Filter by tag: ${tag}`);
+
+                    const label = document.createElement('span');
+                    label.className = 'filter-label';
+                    label.textContent = tag;
+
+                    const count = document.createElement('span');
+                    count.className = 'filter-count';
+                    count.textContent = tagCounts[tag] || 0;
+
+                    listItem.appendChild(label);
+                    listItem.appendChild(count);
+
+                    this.tagListElement.appendChild(listItem);
+                });
+            }
+
+            /**
+             * Setup event listeners for tag interactions
+             */
+            setupEventListeners() {
+                if (!this.tagListElement) return;
+
+                // Handle click events on tag filters
+                this.tagListElement.addEventListener('click', (event) => {
+                    const filterItem = event.target.closest('.filter-item');
+                    if (filterItem && filterItem.hasAttribute('data-tag')) {
+                        this.toggleTag(filterItem);
+                    }
+                });
+
+                // Handle keyboard events for accessibility
+                this.tagListElement.addEventListener('keydown', (event) => {
+                    const filterItem = event.target.closest('.filter-item');
+                    if (filterItem && filterItem.hasAttribute('data-tag')) {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            this.toggleTag(filterItem);
+                        }
+                    }
+                });
+            }
+
+            /**
+             * Toggle tag selection state
+             * @param {HTMLElement} filterItem - The filter item element
+             */
+            toggleTag(filterItem) {
+                const tag = filterItem.getAttribute('data-tag');
+                if (!tag) return;
+
+                const isSelected = this.selectedTags.has(tag);
+
+                if (isSelected) {
+                    this.selectedTags.delete(tag);
+                    filterItem.classList.remove('active');
+                    filterItem.setAttribute('aria-pressed', 'false');
+                } else {
+                    this.selectedTags.add(tag);
+                    filterItem.classList.add('active');
+                    filterItem.setAttribute('aria-pressed', 'true');
+                }
+
+                // Notify about selection change
+                this.onTagSelectionChange(Array.from(this.selectedTags));
+            }
+
+            /**
+             * Get currently selected tags
+             * @returns {Array} Array of selected tag names
+             */
+            getSelectedTags() {
+                return Array.from(this.selectedTags);
+            }
+
+            /**
+             * Clear all tag selections
+             */
+            clearSelection() {
+                this.selectedTags.clear();
+
+                // Update UI to reflect cleared selection
+                const activeItems = this.tagListElement.querySelectorAll('.filter-item.active');
+                activeItems.forEach(item => {
+                    item.classList.remove('active');
+                    item.setAttribute('aria-pressed', 'false');
+                });
+
+                // Notify about selection change
+                this.onTagSelectionChange([]);
+            }
+
+            /**
+             * Update tag filters when bookmarks change
+             * @param {FilterEngine} newFilterEngine - Updated filter engine
+             */
+            updateFilters(newFilterEngine) {
+                this.filterEngine = newFilterEngine;
+
+                // Clear current selection if tags no longer exist
+                const availableTags = new Set(this.filterEngine.getAllTags());
+                const selectedTagsArray = Array.from(this.selectedTags);
+                let selectionChanged = false;
+
+                selectedTagsArray.forEach(tag => {
+                    if (!availableTags.has(tag)) {
+                        this.selectedTags.delete(tag);
+                        selectionChanged = true;
+                    }
+                });
+
+                // Re-render the tag filters
+                this.renderTagFilters();
+
+                // Restore valid selections
+                this.selectedTags.forEach(tag => {
+                    const filterItem = this.tagListElement.querySelector(`[data-tag="${tag}"]`);
+                    if (filterItem) {
+                        filterItem.classList.add('active');
+                        filterItem.setAttribute('aria-pressed', 'true');
+                    }
+                });
+
+                // Notify if selection changed
+                if (selectionChanged) {
+                    this.onTagSelectionChange(Array.from(this.selectedTags));
+                }
+            }
+        }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function () {
+            // Initialize UI controller
+            const uiController = new UIController();
+
+            // Load bookmarks data
+            const result = BookmarkLoader.loadBookmarks();
+
+            if (result.success) {
+                // Store loaded bookmarks globally for other components
+                window.loadedBookmarks = result.data;
+
+                // Store UI controller globally for other components
+                window.uiController = uiController;
+
+                // Initialize filter engine with loaded bookmarks
+                const filterEngine = new FilterEngine(result.data);
+                window.filterEngine = filterEngine;
+
+                // Initialize current filter and sort state
+                let currentFilters = {
+                    tags: [],
+                    favorites: false,
+                    search: ''
+                };
+                let currentSort = 'newest'; // Default sort
+
+                // Function to apply all filters and sorting, then update display
+                function applyFiltersAndSort() {
+                    // First apply filters
+                    const filteredBookmarks = filterEngine.combineFilters(currentFilters);
+
+                    // Then apply sorting
+                    const sortedBookmarks = SortEngine.applySorting(filteredBookmarks, currentSort);
+
+                    // Render the final result
+                    uiController.renderBookmarks(sortedBookmarks);
+
+                    // Update favorites count
+                    const favoritesCount = document.getElementById('favorites-count');
+                    if (favoritesCount) {
+                        const favoriteBookmarks = filterEngine.filterByFavorites(true);
+                        favoritesCount.textContent = favoriteBookmarks.length;
+                    }
+                }
+
+                // Initialize tag filter UI
+                const tagFilterUI = new TagFilterUI(filterEngine, (selectedTags) => {
+                    currentFilters.tags = selectedTags;
+                    applyFiltersAndSort();
+                });
+
+                // Setup favorites filter
+                const favoritesFilter = document.querySelector('[data-filter="favorites"]');
+                if (favoritesFilter) {
+                    favoritesFilter.addEventListener('click', () => {
+                        currentFilters.favorites = !currentFilters.favorites;
+
+                        // Update UI state
+                        if (currentFilters.favorites) {
+                            favoritesFilter.classList.add('active');
+                            favoritesFilter.setAttribute('aria-pressed', 'true');
+                        } else {
+                            favoritesFilter.classList.remove('active');
+                            favoritesFilter.setAttribute('aria-pressed', 'false');
+                        }
+
+                        applyFiltersAndSort();
+                    });
+
+                    // Handle keyboard events for accessibility
+                    favoritesFilter.addEventListener('keydown', (event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            favoritesFilter.click();
+                        }
+                    });
+                }
+
+                // Setup search filter
+                const searchInput = document.getElementById('search-input');
+                if (searchInput) {
+                    // Debounce search input to avoid excessive filtering
+                    let searchTimeout;
+                    searchInput.addEventListener('input', (event) => {
+                        clearTimeout(searchTimeout);
+                        searchTimeout = setTimeout(() => {
+                            currentFilters.search = event.target.value;
+                            applyFiltersAndSort();
+                        }, 300); // 300ms debounce
+                    });
+                }
+
+                // Setup sort controls
+                const sortButtons = document.querySelectorAll('.sort-button');
+                sortButtons.forEach(button => {
+                    button.addEventListener('click', () => {
+                        const sortType = button.getAttribute('data-sort');
+                        if (sortType && sortType !== currentSort) {
+                            // Update current sort
+                            currentSort = sortType;
+
+                            // Update UI state - remove active class from all buttons
+                            sortButtons.forEach(btn => {
+                                btn.classList.remove('active');
+                                btn.setAttribute('aria-checked', 'false');
+                            });
+
+                            // Add active class to clicked button
+                            button.classList.add('active');
+                            button.setAttribute('aria-checked', 'true');
+
+                            // Apply new sorting
+                            applyFiltersAndSort();
+                        }
+                    });
+
+                    // Handle keyboard events for accessibility
+                    button.addEventListener('keydown', (event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            button.click();
+                        }
+                    });
+                });
+
+                // Setup clear filters button
+                const clearFiltersButton = document.getElementById('clear-filters');
+                if (clearFiltersButton) {
+                    clearFiltersButton.addEventListener('click', () => {
+                        // Reset all filters
+                        currentFilters = {
+                            tags: [],
+                            favorites: false,
+                            search: ''
+                        };
+
+                        // Reset sort to default
+                        currentSort = 'newest';
+
+                        // Clear tag selections
+                        tagFilterUI.clearSelection();
+
+                        // Clear favorites filter
+                        if (favoritesFilter) {
+                            favoritesFilter.classList.remove('active');
+                            favoritesFilter.setAttribute('aria-pressed', 'false');
+                        }
+
+                        // Clear search input
+                        if (searchInput) {
+                            searchInput.value = '';
+                        }
+
+                        // Reset sort buttons to default (newest)
+                        sortButtons.forEach(btn => {
+                            btn.classList.remove('active');
+                            btn.setAttribute('aria-checked', 'false');
+                        });
+                        const newestButton = document.querySelector('[data-sort="newest"]');
+                        if (newestButton) {
+                            newestButton.classList.add('active');
+                            newestButton.setAttribute('aria-checked', 'true');
+                        }
+
+                        // Apply cleared filters and reset sort
+                        applyFiltersAndSort();
+                    });
+                }
+
+                // Initial render with all bookmarks
+                applyFiltersAndSort();
+
+                // Log success message and warnings to console for debugging
+                console.log('BookmarkLoader:', result.message);
+                if (result.warnings && result.warnings.length > 0) {
+                    console.warn('BookmarkLoader warnings:', result.warnings);
+                }
+            } else {
+                // Use UI controller to show error state
+                uiController.showError(result.message);
+
+                // Also update bookmark count to show error
+                uiController.updateCounts(0);
+                const bookmarkCount = document.getElementById('bookmark-count');
+                if (bookmarkCount) {
+                    bookmarkCount.textContent = 'Error loading bookmarks';
+                    bookmarkCount.setAttribute('aria-live', 'assertive');
+                }
+            }
+        });
+
+        // Fallback for when bookmarks.js doesn't load at all
+        // This runs immediately, before DOMContentLoaded
+        if (typeof bookmarks === 'undefined') {
+            // Set a flag that DOMContentLoaded handler can check
+            window.bookmarksLoadFailed = true;
+        }
+    </script>
+</body>
+
+</html>
