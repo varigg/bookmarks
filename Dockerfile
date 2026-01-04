@@ -10,15 +10,19 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends build-essential curl ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy project files
-COPY pyproject.toml README.md ./
-COPY . .
+# Upgrade pip, setuptools, wheel (stable layer, rarely changes)
+RUN pip install --upgrade pip setuptools wheel
 
-# Install app (uses pyproject) and remove build deps
-RUN pip install --upgrade pip setuptools wheel \
-    && pip install --no-cache-dir . \
+# Copy dependency files only (for better layer caching)
+COPY pyproject.toml README.md ./
+
+# Install dependencies (rebuilds only when pyproject.toml or README.md changes)
+RUN pip install --no-cache-dir . \
     && apt-get purge -y --auto-remove build-essential \
     && rm -rf /root/.cache
+
+# Copy application code
+COPY . .
 
 # Use non-root user
 USER appuser
