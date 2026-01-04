@@ -158,13 +158,12 @@ class BookmarkService:
         logger.info(f"Toggled favorite for bookmark {bookmark_id}: {bookmark['favorite']}")
         return bookmark
 
-    def generate_metadata(self, url: str, use_mcp: bool = False) -> dict[str, str]:
+    def generate_metadata(self, url: str) -> dict[str, str]:
         """
         Generate title and description for a URL using LLM.
 
         Args:
             url: The URL to generate metadata for
-            use_mcp: Whether to use MCP client (default: False)
 
         Returns:
             Dictionary with 'title' and 'description' keys

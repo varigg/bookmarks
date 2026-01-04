@@ -14,7 +14,7 @@ class LLMClientFactory:
     """Factory for creating LLM clients from different providers."""
 
     # Supported providers
-    PROVIDERS = ["perplexity", "openai", "anthropic"]
+    PROVIDERS = ["perplexity", "perplexity-mcp", "openai", "anthropic"]
     # Supported content extraction formats
     CONTENT_FORMATS = ["html", "markdown"]
 

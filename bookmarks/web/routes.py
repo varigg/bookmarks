@@ -159,7 +159,7 @@ def autofill_bookmark():
     """
     try:
         # Validate input data
-        data = AutofillSchema(**request.form)  # type: ignore - pydantic dynamic typing0555555555555555555555555555555555555555555555555555555
+        data = AutofillSchema(**request.form)  # type: ignore - pydantic dynamic typing
         url = str(data.url)  # Convert HttpUrl to string
     except Exception:
         return "Missing or invalid URL", 400

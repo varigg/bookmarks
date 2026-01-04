@@ -25,7 +25,7 @@ from pathlib import Path
 from bookmarks.data.model import get_bookmarks, save_bookmark
 
 
-def test_llm_provider(provider="perplexity", content_format="html"):
+def test_llm_provider(provider="perplexity", content_format="markdown"):
     """
     Test LLM provider configuration by generating a description for a test URL.
 
@@ -169,7 +169,7 @@ def add_bookmarks(
     urls,
     generate_descriptions=False,
     provider="perplexity",
-    content_format="html",
+    content_format="markdown",
     dry_run=False,
 ):
     """

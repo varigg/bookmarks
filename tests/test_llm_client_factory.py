@@ -36,3 +36,12 @@ def test_get_client_type_name():
 
     name = LLMClientFactory.get_client_type_name("perplexity-mcp")
     assert "Perplexity Mcp" in name
+
+
+def test_create_client_perplexity_mcp():
+    client = LLMClientFactory.create_client(
+        provider="perplexity-mcp", content_format="markdown", api_key="dummy"
+    )
+    assert isinstance(client, LLMService)
+    assert client.provider_name == "perplexity-mcp"
+    assert client.content_extractor is None
