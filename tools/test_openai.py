@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Test script for OpenAI provider.
 
@@ -9,7 +8,7 @@ Usage:
 
 import sys
 
-from bookmarks.services.llm_factory import LLMFactory
+from bookmarks.services.llm_client_factory import LLMClientFactory
 
 
 def main():
@@ -26,7 +25,7 @@ def main():
 
     try:
         print("Initializing OpenAI client...")
-        client = LLMFactory.create_client(provider="openai", content_format="html")
+        client = LLMClientFactory.create_client(provider="openai", content_format="html")
         print("✓ Client initialized successfully")
         print()
 

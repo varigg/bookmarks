@@ -16,7 +16,7 @@ All configuration is done through environment variables:
 | `BOOKMARKS_BACKUP_DIR`         | `backup`         | Directory to store backup files                    |
 | `BOOKMARKS_BACKUP_COUNT`       | `5`              | Number of backups to keep (older ones are deleted) |
 | `BOOKMARKS_LLM_PROVIDER`       | `perplexity`     | LLM provider (perplexity/openai/anthropic)         |
-| `BOOKMARKS_LLM_CONTENT_FORMAT` | `html`           | Content extraction format (html/markdown)          |
+| `BOOKMARKS_LLM_CONTENT_FORMAT` | `markdown`       | Content extraction format (html/markdown)          |
 
 ## Usage Examples
 

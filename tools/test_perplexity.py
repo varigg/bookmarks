@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Test script to compare Direct API vs MCP approaches for Perplexity.
 

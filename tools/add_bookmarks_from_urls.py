@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Add new bookmarks from a list of URLs.
 
@@ -34,7 +33,7 @@ def test_llm_provider(provider="perplexity", content_format="html"):
         provider: LLM provider to test
         content_format: Content extraction format to use
     """
-    from bookmarks.services import LLMFactory
+    from bookmarks.services import LLMClientFactory
 
     test_url = "https://github.com/python/cpython"
     provider_name = provider  # Store for stats display
@@ -49,8 +48,8 @@ def test_llm_provider(provider="perplexity", content_format="html"):
 
     try:
         print("Initializing client...")
-        client = LLMFactory.create_client(provider=provider, content_format=content_format)
-        client_name = LLMFactory.get_client_type_name(
+        client = LLMClientFactory.create_client(provider=provider, content_format=content_format)
+        client_name = LLMClientFactory.get_client_type_name(
             provider=provider, content_format=content_format
         )
         print(f"✓ Initialized {client_name} client")
@@ -147,14 +146,14 @@ def generate_description_with_llm(url, provider="perplexity", content_format="ht
     Returns:
         dict with 'title' and 'description' keys
     """
-    from bookmarks.services import LLMFactory
+    from bookmarks.services import LLMClientFactory
 
     try:
-        client = LLMFactory.create_client(provider=provider, content_format=content_format)
+        client = LLMClientFactory.create_client(provider=provider, content_format=content_format)
         result = client.generate_description(url)
         return result
     except Exception as e:
-        provider_name = LLMFactory.get_client_type_name(
+        provider_name = LLMClientFactory.get_client_type_name(
             provider=provider, content_format=content_format
         )
         raise RuntimeError(f"{provider_name} error: {e}") from e
@@ -191,11 +190,13 @@ def add_bookmarks(
     # Initialize LLM client if needed
     llm_client = None
     if generate_descriptions:
-        from bookmarks.services import LLMFactory
+        from bookmarks.services import LLMClientFactory
 
         try:
-            llm_client = LLMFactory.create_client(provider=provider, content_format=content_format)
-            client_name = LLMFactory.get_client_type_name(
+            llm_client = LLMClientFactory.create_client(
+                provider=provider, content_format=content_format
+            )
+            client_name = LLMClientFactory.get_client_type_name(
                 provider=provider, content_format=content_format
             )
             print(f"✓ Initialized {client_name} client")
@@ -304,8 +305,8 @@ def main():
         "--content-format",
         type=str,
         choices=["html", "markdown"],
-        default="html",
-        help="Content extraction format (default: html)",
+        default="markdown",
+        help="Content extraction format (default: markdown)",
     )
     parser.add_argument(
         "--dry-run",
