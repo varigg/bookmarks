@@ -98,4 +98,19 @@ configure:
 	uv run python tools/configure.py
 
 service-install: configure
-	docker compose up -d
+	@echo "🔨 Building Docker image..."
+	@docker compose build || { \
+		echo ""; \
+		echo "❌ Docker build failed. Common issues:"; \
+		echo ""; \
+		echo "1. Docker permission denied:"; \
+		echo "   sudo usermod -aG docker $$USER"; \
+		echo "   newgrp docker"; \
+		echo ""; \
+		echo "2. Docker daemon not running:"; \
+		echo "   sudo systemctl start docker"; \
+		echo ""; \
+		exit 1; \
+	}
+	@echo "🚀 Starting services..."
+	@docker compose up -d
