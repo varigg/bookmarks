@@ -1,5 +1,5 @@
-# Minimal Dockerfile for local testing (binds to $BOOKMARKS_PORT or 5000)
-FROM python:3.14-slim
+# Minimal Dockerfile for local testing
+FROM python:3.12-slim
 
 # Create app user and workdir
 RUN useradd --create-home --shell /bin/false appuser
@@ -11,9 +11,8 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy project files
-COPY pyproject.toml pyproject.toml
-COPY README.md README.md
-COPY . /home/appuser/app
+COPY pyproject.toml README.md ./
+COPY . .
 
 # Install app (uses pyproject) and remove build deps
 RUN pip install --upgrade pip setuptools wheel \
@@ -25,9 +24,9 @@ RUN pip install --upgrade pip setuptools wheel \
 USER appuser
 
 # Expose the configured port (default 5000)
-ARG BOOKMARKS_PORT=5000
-ENV BOOKMARKS_PORT=${BOOKMARKS_PORT}
+ENV BOOKMARKS_PORT=5000
 EXPOSE ${BOOKMARKS_PORT}
 
-# Default command: run with Gunicorn (3 workers). The app reads BOOKMARKS_PORT.
-CMD ["gunicorn", "wsgi:app", "--bind", "0.0.0.0:5000", "--workers", "3", "--log-level", "info"]
+# Default command: run with Gunicorn.
+# Using 'sh -c' to expand the environment variable in the command.
+CMD ["sh", "-c", "gunicorn wsgi:app --bind 0.0.0.0:${BOOKMARKS_PORT} --workers 3 --log-level info"]
