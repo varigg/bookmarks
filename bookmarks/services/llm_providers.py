@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 LLM provider API clients.
 
@@ -26,6 +25,22 @@ class LLMProvider(Protocol):
         Returns:
             Dict with provider-specific response structure
         """
+        ...
+
+    def estimate_cost(self, tokens: int) -> float:
+        """
+        Estimate cost for a request based on token usage.
+
+        Args:
+            tokens: Number of tokens used.
+
+        Returns:
+            Estimated cost in USD.
+        """
+        ...
+
+    def get_default_model(self) -> str:
+        """Get the name of the default model used by this provider."""
         ...
 
 
@@ -88,6 +103,15 @@ class PerplexityProvider:
             "usage": data.get("usage", {}),
         }
 
+    def estimate_cost(self, tokens: int) -> float:
+        """Estimate cost for Perplexity sonar model."""
+        # Using a flat estimate as in original implementation
+        return 0.005 if tokens > 0 else 0.0
+
+    def get_default_model(self) -> str:
+        """Get default model name."""
+        return self.model
+
 
 class OpenAIProvider:
     """API client for OpenAI."""
@@ -145,6 +169,16 @@ class OpenAIProvider:
             "content": data["choices"][0]["message"]["content"],
             "usage": data.get("usage", {}),
         }
+
+    def estimate_cost(self, tokens: int) -> float:
+        """Estimate cost for OpenAI gpt-4o-mini."""
+        # gpt-4o-mini: $0.15 / 1M input, $0.60 / 1M output.
+        # Approximation: $0.30 per 1M tokens total.
+        return (tokens / 1_000_000) * 0.30
+
+    def get_default_model(self) -> str:
+        """Get default model name."""
+        return self.model
 
 
 class AnthropicProvider:
@@ -223,6 +257,16 @@ class AnthropicProvider:
             "content": content_text,
             "usage": data.get("usage", {}),
         }
+
+    def estimate_cost(self, tokens: int) -> float:
+        """Estimate cost for Anthropic claude-3-5-haiku."""
+        # claude-3-5-haiku: $0.25 / 1M input, $1.25 / 1M output.
+        # Approximation: $0.50 per 1M tokens total.
+        return (tokens / 1_000_000) * 0.50
+
+    def get_default_model(self) -> str:
+        """Get default model name."""
+        return self.model
 
 
 class PerplexityMCPProvider:
@@ -310,3 +354,11 @@ class PerplexityMCPProvider:
                 "content": content,
                 "usage": {},  # MCP doesn't provide token usage
             }
+
+    def estimate_cost(self, tokens: int) -> float:
+        """Estimate cost for Perplexity MCP (usually free/included)."""
+        return 0.0
+
+    def get_default_model(self) -> str:
+        """Get default model name."""
+        return "sonar (via MCP)"

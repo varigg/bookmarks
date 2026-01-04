@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 LLM Service - orchestrates content extraction, prompt building, and LLM API calls.
 
@@ -209,10 +208,9 @@ class LLMService:
             "description": description[:500] if description else "",
         }
 
-    @staticmethod
-    def _estimate_cost(tokens: int) -> float:
+    def _estimate_cost(self, tokens: int) -> float:
         """
-        Estimate cost based on token usage.
+        Estimate cost based on token usage and provider pricing.
 
         Args:
             tokens: Number of tokens used
@@ -220,5 +218,4 @@ class LLMService:
         Returns:
             Estimated cost in USD
         """
-        # Rough estimate for Perplexity sonar model
-        return 0.005 if tokens > 0 else 0.005
+        return self.provider.estimate_cost(tokens)

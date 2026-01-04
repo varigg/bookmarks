@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Usage tracker for LLM API calls.
 Tracks requests, tokens, and estimated cost by month and provider.
@@ -53,6 +52,9 @@ class UsageTracker:
             tokens: Number of tokens used.
             cost: Estimated cost in USD.
         """
+        # Reload to ensure we don't overwrite other providers' updates
+        self.stats = self._load_stats()
+
         month = datetime.now().strftime("%Y-%m")
 
         # Initialize month if needed
@@ -87,6 +89,9 @@ class UsageTracker:
         Returns:
             Dict containing usage stats.
         """
+        # Reload to get latest data from other instances
+        self.stats = self._load_stats()
+
         target_provider = provider or self.provider
 
         if month:
@@ -119,5 +124,8 @@ class UsageTracker:
         Returns:
             Dict mapping provider names to their stats.
         """
+        # Reload to ensure we have latest data
+        self.stats = self._load_stats()
+
         target_month = month or datetime.now().strftime("%Y-%m")
         return self.stats.get(target_month, {})

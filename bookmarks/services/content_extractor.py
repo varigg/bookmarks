@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Content extraction layer for converting web pages to structured content.
 
@@ -102,9 +101,15 @@ class HTMLExtractor:
 class MarkdownExtractor:
     """Extract markdown content from web pages using MarkItDown."""
 
-    def __init__(self):
-        """Initialize markdown extractor with MarkItDown converter."""
+    def __init__(self, max_chars: int = 8000):
+        """
+        Initialize markdown extractor.
+
+        Args:
+            max_chars: Maximum characters to send to LLM.
+        """
         self.md_converter = MarkItDown()
+        self.max_chars = max_chars
 
     def extract(self, url: str, timeout: int = 10) -> dict[str, str]:
         """
@@ -130,10 +135,9 @@ class MarkdownExtractor:
             # Extract title from markdown (first H1 or use domain)
             title = self._extract_title_from_markdown(markdown_text, url)
 
-            # Limit markdown length for API (markdown is more verbose than plain text)
-            max_chars = 3000
-            if len(markdown_text) > max_chars:
-                markdown_text = markdown_text[:max_chars] + "\n\n[Content truncated...]"
+            # Limit markdown length for API
+            if len(markdown_text) > self.max_chars:
+                markdown_text = markdown_text[: self.max_chars] + "\n\n[Content truncated...]"
 
             return {"title": title, "markdown": markdown_text, "url": url}
 
@@ -164,7 +168,10 @@ class MarkdownExtractor:
             line = line.strip()
             if line.startswith("# "):
                 # Found H1 heading
-                return line[2:].strip()
+                return line[2:].lstrip("#").strip()
+            if line.startswith("Title: "):
+                # Sometimes MarkItDown adds "Title: ..."
+                return line[7:].strip()
 
         # Fallback to domain
         return urlparse(url).netloc

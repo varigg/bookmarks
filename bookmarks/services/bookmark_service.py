@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Service layer for bookmark business logic."""
 
 import logging
@@ -7,7 +6,7 @@ from datetime import UTC, datetime
 from bookmarks import config
 from bookmarks.core.exceptions import BookmarkNotFoundError, LLMGenerationError
 from bookmarks.data.repository import BookmarkRepository
-from bookmarks.services.llm_factory import LLMFactory
+from bookmarks.services.llm_client_factory import LLMClientFactory
 
 logger = logging.getLogger(__name__)
 
@@ -175,7 +174,7 @@ class BookmarkService:
         """
         try:
             logger.info(f"Generating metadata for URL: {url}")
-            client = LLMFactory.create_client(
+            client = LLMClientFactory.create_client(
                 provider=config.LLM_PROVIDER, content_format=config.LLM_CONTENT_FORMAT
             )
             data = client.generate_description(url)

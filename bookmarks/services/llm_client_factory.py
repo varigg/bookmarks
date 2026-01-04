@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Factory for creating LLM services from different providers.
 
@@ -11,7 +10,7 @@ from .llm_providers import PerplexityProvider
 from .llm_service import LLMService
 
 
-class LLMFactory:
+class LLMClientFactory:
     """Factory for creating LLM clients from different providers."""
 
     # Supported providers
@@ -22,7 +21,7 @@ class LLMFactory:
     @staticmethod
     def create_client(
         provider: str = "perplexity",
-        content_format: str = "html",
+        content_format: str = "markdown",
         api_key: str | None = None,
     ) -> LLMService:
         """
@@ -43,15 +42,15 @@ class LLMFactory:
         provider = provider.lower()
         content_format = content_format.lower()
 
-        if provider not in LLMFactory.PROVIDERS:
+        if provider not in LLMClientFactory.PROVIDERS:
             raise ValueError(
-                f"Unsupported provider: {provider}. Choose from: {', '.join(LLMFactory.PROVIDERS)}"
+                f"Unsupported provider: {provider}. Choose from: {', '.join(LLMClientFactory.PROVIDERS)}"
             )
 
-        if content_format not in LLMFactory.CONTENT_FORMATS:
+        if content_format not in LLMClientFactory.CONTENT_FORMATS:
             raise ValueError(
                 f"Unsupported content format: {content_format}. "
-                f"Choose from: {', '.join(LLMFactory.CONTENT_FORMATS)}"
+                f"Choose from: {', '.join(LLMClientFactory.CONTENT_FORMATS)}"
             )
 
         # Select content extractor
@@ -107,7 +106,7 @@ class LLMFactory:
     @staticmethod
     def get_client_type_name(
         provider: str = "perplexity",
-        content_format: str = "html",
+        content_format: str = "markdown",
     ) -> str:
         """
         Get a human-readable name for the client configuration.
