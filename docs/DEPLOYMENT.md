@@ -232,7 +232,7 @@ The project includes an interactive configuration wizard and a one-command insta
     - Build the Docker image.
     - Start the containerized service with a **named volume** for persistent data.
 
-The wizard prompts for `BOOKMARKS_DATA_DIR` (default `/srv/bookmarks-data`), and `make service-install` makes sure that directory plus `backup/` exist before binding it into the container so you can manage `bookmarks.js` directly from the host.
+The wizard prompts for `BOOKMARKS_DATA_DIR` (default `/srv/bookmarks-data`), and `make service-install` uses `sudo` to create that directory (plus `backup/`) with proper permissions on the host before building the image and starting the container. This way you don't need to pre-configure Docker permissions or manually create directories—just run one command and you're done.
 
 This approach ensures a standard, repeatable setup with minimal manual steps.
 

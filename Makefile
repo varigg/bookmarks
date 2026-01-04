@@ -107,22 +107,16 @@ service-install: configure
 		set +a; \
 	fi; \
 	data_dir="$${BOOKMARKS_DATA_DIR:-$(DEFAULT_DATA_DIR)}"; \
-	mkdir -p "$$data_dir" "$$data_dir/backup"; \
-	chmod -R u+rwX "$$data_dir"; \
+	sudo mkdir -p "$$data_dir" "$$data_dir/backup"; \
+	sudo chmod -R u+rwX "$$data_dir"; \
 	echo "📁 Data directory ready: $$data_dir"; \
 	echo "🔨 Building Docker image..."; \
-	if ! docker compose build; then \
+	if ! sudo docker compose build; then \
 		echo ""; \
-		echo "❌ Docker build failed. Common issues:"; \
-		echo ""; \
-		echo "1. Docker permission denied:"; \
-		echo "   sudo usermod -aG docker $$USER"; \
-		echo "   newgrp docker"; \
-		echo ""; \
-		echo "2. Docker daemon not running:"; \
+		echo "❌ Docker build failed. Docker daemon may not be running:"; \
 		echo "   sudo systemctl start docker"; \
 		echo ""; \
 		exit 1; \
 	fi; \
 	echo "🚀 Starting services..."; \
-	docker compose up -d
+	sudo docker compose up -d
