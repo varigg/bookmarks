@@ -74,3 +74,6 @@ docs/dev/prompt.md
 
 # MkDocs build output
 site/
+
+# Kiro
+.kiro/
