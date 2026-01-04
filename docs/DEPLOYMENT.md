@@ -236,6 +236,40 @@ This approach ensures a standard, repeatable setup with minimal manual steps.
 
 -   **Named Volumes (Recommended)**: By default, `docker-compose.yml` uses a named volume `bookmarks_data`. This is more robust than bind mounts for production as it avoids host permission issues.
 -   **Data Location**: The service maps the volume to `/data` inside the container. Your `bookmarks.js` and `backup/` directory will persist here even if the container is removed.
+-   **Auto-Creation**: If `bookmarks.js` doesn't exist, the app automatically creates an empty one on first run.
+
+### Importing Existing Bookmarks
+
+If you have an existing `bookmarks.js` file, import it into the Docker volume:
+
+**Option 1: Use the import script (recommended)**
+```bash
+./scripts/import-bookmarks.sh path/to/bookmarks.js
+docker compose restart
+```
+
+**Option 2: Manual import**
+```bash
+# Copy into the running container
+docker cp bookmarks.js bookmarks-1:/data/bookmarks.js
+docker compose restart
+
+# Or use a temporary container
+docker run --rm \
+  -v bookmarks_bookmarks_data:/data \
+  -v $(pwd):/host \
+  alpine cp /host/bookmarks.js /data/bookmarks.js
+docker compose restart
+```
+
+**Option 3: Export from volume**
+```bash
+# Export current bookmarks from Docker volume
+docker run --rm \
+  -v bookmarks_bookmarks_data:/data \
+  -v $(pwd):/host \
+  alpine cp /data/bookmarks.js /host/bookmarks-backup.js
+```
 
 ### Development vs production
 
