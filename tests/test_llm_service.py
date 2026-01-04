@@ -12,6 +12,8 @@ def mock_provider():
         "content": '{"title": "Test Title", "description": "Test Description"}',
         "usage": {"total_tokens": 100},
     }
+    provider.estimate_cost.return_value = 0.05
+    provider.get_default_model.return_value = "test-model"
     return provider
 
 
@@ -48,7 +50,10 @@ def test_generate_description_retry_logic(mock_provider, mock_extractor):
         {"content": '{"title": "Success", "description": "Desc"}', "usage": {}},
     ]
 
-    with patch("time.sleep"):  # Special patch to avoid waiting
+    with (
+        patch("time.sleep"),
+        patch.object(service, "tracker"),
+    ):  # Special patch to avoid waiting and disk I/O
         result = service.generate_description("https://example.com")
 
     assert result["title"] == "Success"
@@ -61,7 +66,7 @@ def test_generate_description_fallback(mock_provider, mock_extractor):
     # Always fail
     mock_provider.call_api.side_effect = Exception("Permanent fail")
 
-    with patch("time.sleep"):
+    with patch("time.sleep"), patch.object(service, "tracker"):
         result = service.generate_description("https://example.com")
 
     # Should use fallback from extractor content
