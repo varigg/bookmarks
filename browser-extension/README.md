@@ -9,6 +9,13 @@ This extension adds a toolbar button to Firefox that allows you to quickly save 
 - ⚙️ Configurable server URL for self-hosting
 - 🚀 Fast and lightweight
 
+## Developer Resources
+
+- **Mozilla Add-ons Developer Page**: [https://addons.mozilla.org/developers/addon/2970205/versions](https://addons.mozilla.org/developers/addon/2970205/versions)
+  - View all signed versions
+  - Manage extension updates
+  - Access signing history
+
 ## Installation
 
 ### Step 1: Generate Icon Files
@@ -50,14 +57,19 @@ Firefox requires extensions to be signed for permanent installation. You have tw
 **Option B: Sign the extension (recommended for production)**
 
 1. Create an account at [addons.mozilla.org](https://addons.mozilla.org/developers/)
-2. Get API credentials
+2. Get API credentials from [addons.mozilla.org/developers/addon/api/key/](https://addons.mozilla.org/developers/addon/api/key/)
+   - You'll receive a **JWT Issuer** (looks like `user:12345:67`) and a **JWT Secret** (long alphanumeric string)
+   - **Note**: Mozilla calls these "JWT" credentials, but `web-ext` still uses the parameter names `--api-key` and `--api-secret`
 3. Use [web-ext](https://extensionworkshop.com/documentation/develop/getting-started-with-web-ext/) to sign:
    ```bash
    npm install -g web-ext
    cd browser-extension
-   web-ext sign --api-key=YOUR_API_KEY --api-secret=YOUR_API_SECRET
+   # Use JWT Issuer as --api-key and JWT Secret as --api-secret
+   # Use --channel=unlisted for personal use (faster, not listed publicly)
+   # Use --channel=listed if you want it on addons.mozilla.org (requires review)
+   web-ext sign --api-key=YOUR_JWT_ISSUER --api-secret=YOUR_JWT_SECRET --channel=unlisted
    ```
-4. Install the signed `.xpi` file
+4. Install the signed `.xpi` file (will be in `web-ext-artifacts/` directory)
 
 ### Step 3: Configure the Extension
 

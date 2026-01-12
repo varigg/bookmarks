@@ -108,8 +108,8 @@ service-install: configure
 	fi; \
 	data_dir="$${BOOKMARKS_DATA_DIR:-$(DEFAULT_DATA_DIR)}"; \
 	sudo mkdir -p "$$data_dir" "$$data_dir/backup"; \
-	sudo chmod -R u+rwX "$$data_dir"; \
-	echo "📁 Data directory ready: $$data_dir"; \
+	sudo chown -R 1000:1000 "$$data_dir"; \
+	echo "📁 Data directory ready: $$data_dir (owned by container user)"; \
 	echo "🔨 Building Docker image..."; \
 	if ! sudo docker compose build; then \
 		echo ""; \

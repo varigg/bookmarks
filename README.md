@@ -37,7 +37,7 @@ git clone https://github.com/varigg/bookmarks.git && cd bookmarks && uv sync && 
 git clone https://github.com/varigg/bookmarks.git && cd bookmarks && cp .env.example .env && echo "Edit .env with your API keys, then run: docker compose up --build -d"
 ```
 
-> **Data directory note:** `docker compose` now shares the `BOOKMARKS_DATA_DIR` path (default `/srv/bookmarks-data`) between the container and the host, so your `bookmarks.js` and `backup/` stay on the host. Create that directory (plus a `backup/` child) and set ownership before running Docker, or let `make service-install` handle it for you.
+> **Data directory note:** `docker compose` now shares the `BOOKMARKS_DATA_DIR` path (default `/srv/bookmarks-data`) between the container and the host, so your `bookmarks.js` and `backup/` stay on the host. The directory must be owned by UID 1000 (the container user). Use `make service-install` to handle this automatically, or create it manually with `sudo mkdir -p /srv/bookmarks-data/backup && sudo chown -R 1000:1000 /srv/bookmarks-data`.
 
 ### Step-by-Step Setup
 
@@ -191,7 +191,7 @@ Configuration is managed via environment variables for easy self-hosting. See **
 | `BOOKMARKS_LLM_PROVIDER`       | `perplexity`          | LLM provider (perplexity/perplexity-mcp/openai/anthropic)                                                                                    |
 | `BOOKMARKS_LLM_CONTENT_FORMAT` | `html`                | Content extraction (html/markdown)                                                                                                           |
 
-`BOOKMARKS_DATA_DIR` defaults to `/srv/bookmarks-data` when you run `make service-install`, which keeps `bookmarks.js` and `backup/` on the host. The target creates that directory pair for you; if you prefer to run Docker manually, create it yourself beforehand or override the variable to point elsewhere so your data stays outside of the repo tree.
+`BOOKMARKS_DATA_DIR` defaults to `/srv/bookmarks-data` when you run `make service-install`, which keeps `bookmarks.js` and `backup/` on the host. The target creates that directory and sets ownership to UID 1000 (the container user) for you; if you prefer to run Docker manually, create it yourself with `sudo mkdir -p /srv/bookmarks-data/backup && sudo chown -R 1000:1000 /srv/bookmarks-data` or override the variable to point elsewhere so your data stays outside of the repo tree.
 
 ### Environment Variables for LLM Features
 

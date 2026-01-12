@@ -220,7 +220,12 @@ docker run -d --name bookmarks -p 5000:5000 -v "/srv/bookmarks-data:/srv/bookmar
 make service-install
 ```
 
-Before running Docker manually, create `/srv/bookmarks-data/backup` on the host and make sure it is writable so that `bookmarks.js` and the app backups persist outside the repository.
+Before running Docker manually, create `/srv/bookmarks-data/backup` on the host and ensure it is owned by UID 1000 (the container user) so that `bookmarks.js` and the app backups persist outside the repository:
+
+```bash
+sudo mkdir -p /srv/bookmarks-data/backup
+sudo chown -R 1000:1000 /srv/bookmarks-data
+```
 
 ### Guided Installation (`make service-install`)
 
@@ -229,17 +234,19 @@ The project includes an interactive configuration wizard and a one-command insta
 1.  **Configure**: Run `make configure` (or let `service-install` call it for you) to generate a `.env` file with a secret key and your LLM API keys.
 2.  **Install**: Run `make service-install`. This will:
     - Run the configuration wizard if `.env` is missing.
+    - Create the data directory and set ownership to UID 1000 (the container user).
     - Build the Docker image.
-    - Start the containerized service with a **named volume** for persistent data.
+    - Start the containerized service with persistent data.
 
-The wizard prompts for `BOOKMARKS_DATA_DIR` (default `/srv/bookmarks-data`), and `make service-install` uses `sudo` to create that directory (plus `backup/`) with proper permissions on the host before building the image and starting the container. This way you don't need to pre-configure Docker permissions or manually create directories—just run one command and you're done.
+The wizard prompts for `BOOKMARKS_DATA_DIR` (default `/srv/bookmarks-data`), and `make service-install` uses `sudo` to create that directory (plus `backup/`) with proper ownership (UID 1000) on the host before building the image and starting the container. This way you don't need to pre-configure Docker permissions or manually create directories—just run one command and you're done.
 
 This approach ensures a standard, repeatable setup with minimal manual steps.
 
 ### Notes about volumes and persistence
 
 - **Host-shared directory (default)**: `docker compose` binds `${BOOKMARKS_DATA_DIR:-/srv/bookmarks-data}` from the host into the container so your `bookmarks.js` and `backup/` folders live on the host filesystem and survive container upgrades.
-- **Permissions**: The directory (and its `backup/` child) must be writable by the Docker runtime. `make service-install` creates these paths for you, or you can create them manually with `mkdir -p /srv/bookmarks-data/backup` + appropriate `chown`/`chmod` calls.
+- **Permissions**: The Docker container runs as a non-root user (`appuser` with UID 1000) for security. The data directory must be owned by UID 1000 so the container can write to it. `make service-install` handles this automatically with `sudo chown -R 1000:1000 /srv/bookmarks-data`.
+- **Manual setup**: If you're not using `make service-install`, create the directory and set ownership manually (see commands above).
 - **Alternative: named volumes**: If you prefer to hand off persistence to Docker, set `BOOKMARKS_DATA_DIR` to the mount point provided by a named volume (e.g., `/data`) and update the volume clause in the Compose file accordingly.
 - **Auto-creation**: If `bookmarks.js` doesn't exist, the app automatically creates an empty file on first run inside the shared directory.
 

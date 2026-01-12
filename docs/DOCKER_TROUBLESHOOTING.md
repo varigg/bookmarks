@@ -144,20 +144,26 @@ Bind for 0.0.0.0:5000 failed: port is already allocated
 **Error:**
 
 ```
-PermissionError: [Errno 13] Permission denied: '/srv/bookmarks-data/backup'
+Invalid input: Failed to save bookmark: [Errno 13] Permission denied: '/srv/bookmarks-data/bookmarks.*.js.tmp'
 ```
+
+**Cause:** The Docker container runs as a non-root user (`appuser` with UID 1000) for security. If the mounted data directory is owned by root or another user, the container cannot write to it.
 
 **Solution:**
 
-The guided install binds `${BOOKMARKS_DATA_DIR:-/srv/bookmarks-data}` from the host into the container. Make sure that directory (and its `backup/` child) exists and is writable:
+The data directory must be owned by UID 1000 (the container user). The `make service-install` target handles this automatically, but if you need to fix it manually:
 
 ```bash
+# Create the directory structure
 sudo mkdir -p /srv/bookmarks-data/backup
-sudo chown -R $USER:$USER /srv/bookmarks-data
-sudo chmod -R u+rwX /srv/bookmarks-data
+
+# Set ownership to match the container user (UID 1000)
+sudo chown -R 1000:1000 /srv/bookmarks-data
 ```
 
-If you prefer, let the `make service-install` target handle directory creation and permissions for you.
+**Why UID 1000?** The Dockerfile creates `appuser` with `useradd`, which assigns UID 1000 by default. This matches the first non-root user on most Linux systems.
+
+**Alternative:** If you prefer to use your own user, you can modify the Makefile to use `$USER:$USER` instead, but you'll need to ensure your host UID matches the container's UID (typically both are 1000).
 
 ---
 
