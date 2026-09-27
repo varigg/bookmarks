@@ -25,12 +25,30 @@ class BookmarkRepository:
         self._load_bookmarks()
 
     def _load_bookmarks(self) -> None:
-        """Load bookmarks from data source into memory."""
+        """
+        Load bookmarks from data source into memory.
+
+        IDs are stored in each bookmark's "id" field so they survive deletes.
+        Entries without one (legacy files, raw imports) are numbered after the
+        highest existing numeric ID, in file order; for a fully legacy file this
+        reproduces the old positional IDs, keeping existing URLs valid. The
+        assigned IDs are persisted by the next save.
+        """
         try:
             data = get_data()
-            self._bookmarks = {str(i): bookmark for i, bookmark in enumerate(data)}
         except Exception as e:
             raise DataStorageError(f"Failed to load bookmarks: {e}") from e
+
+        numeric_ids = [int(bm["id"]) for bm in data if str(bm.get("id", "")).isdigit()]
+        next_id = max(numeric_ids, default=-1) + 1
+
+        self._bookmarks = {}
+        for bookmark in data:
+            if "id" not in bookmark:
+                bookmark["id"] = str(next_id)
+                next_id += 1
+            bookmark["id"] = str(bookmark["id"])
+            self._bookmarks[bookmark["id"]] = bookmark
 
     def reload(self) -> None:
         """Reload bookmarks from data source (useful for testing)."""
@@ -116,6 +134,7 @@ class BookmarkRepository:
 
         # Convert Bookmark to dict if needed
         bookmark_dict = bookmark.to_dict() if isinstance(bookmark, Bookmark) else bookmark
+        bookmark_dict["id"] = bookmark_id
 
         # Update in-memory store
         self._bookmarks[bookmark_id] = bookmark_dict
