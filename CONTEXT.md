@@ -8,12 +8,16 @@ A personal semantic recall store: saving a URL keeps it, each item is summarised
 One saved URL and everything the store knows about it.
 _Avoid_: Bookmark (for the record), entry, link
 
+**Capture surface**:
+A way of saving an item: the Firefox extension, the iOS Shortcut, or the save tool on the MCP server. Each sends a URL, optionally with the rendered page and a note.
+_Avoid_: Capture client, client, integration
+
 **Type**:
 The single kind of thing an item points at. An open list: base types (article, repo, docs, product, discussion, media) plus any the summariser has adopted; the operator can merge two types into one.
 _Avoid_: Category, kind, link type
 
 **Source text**:
-The readable text obtained for an item at save time (fetched server-side or sent by the capture client); transient — used to write the summary, never kept.
+The readable text obtained for an item at save time (fetched server-side or sent by a capture surface as rendered HTML); transient — used to write the summary, never kept.
 _Avoid_: Content, body, extracted text
 
 **Summary**:
