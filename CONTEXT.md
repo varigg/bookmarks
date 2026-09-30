@@ -36,6 +36,10 @@ _Avoid_: State, processed flag
 Which CLI, model, and prompt version wrote an item's summary, and when.
 _Avoid_: Metadata, source
 
+**Stale**:
+Said of an item whose summary was written by a model or prompt other than the current one; a stale item is still summarised and searchable.
+_Avoid_: Outdated, old, expired
+
 **Note**:
 An optional line the user writes when saving an item, saying why it was kept; the user's own words, kept apart from the summary.
 _Avoid_: Comment, annotation, reason
