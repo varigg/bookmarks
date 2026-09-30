@@ -13,7 +13,7 @@ A way of saving an item: the Firefox extension, the iOS Shortcut, or the save to
 _Avoid_: Capture client, client, integration
 
 **Type**:
-The single kind of thing an item points at. An open list: base types (article, repo, docs, product, discussion, media) plus any the summariser has adopted; the operator can merge two types into one.
+The single kind of thing an item points at. An open list: base types (article, repo, docs, product, discussion, media) plus any the summariser has adopted; the operator can merge two types into one. A merged-away type becomes an alias of the type it was merged into, so it is never adopted again.
 _Avoid_: Category, kind, link type
 
 **Source text**:
