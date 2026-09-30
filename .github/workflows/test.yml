@@ -28,17 +28,10 @@ jobs:
         run: uv sync
 
       - name: Run tests
-        run: uv run pytest --cov=bookmarks --cov-report=xml --cov-report=term
+        run: uv run pytest
 
       - name: Run linter
         run: uv run ruff check .
 
       - name: Check formatting
         run: uv run ruff format --check .
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
-        if: matrix.python-version == '3.12'
-        with:
-          file: ./coverage.xml
-          fail_ci_if_error: false
