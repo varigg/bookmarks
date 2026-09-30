@@ -47,7 +47,11 @@ def _serve(settings: Settings, args: argparse.Namespace) -> None:
 def _drain(settings: Settings, args: argparse.Namespace) -> None:
     with _service_opener(settings)() as svc:
         report = svc.drain(limit=args.limit)
-    print(f"drain: {report.summarised} summarised, {report.failed} failed")
+    print(
+        f"drain: {report.summarised} summarised, {report.failed} failed, "
+        f"{report.retry} to retry"
+        + (f"; stopped: {report.stopped}" if report.stopped else "")
+    )
 
 
 def main(argv: list[str] | None = None) -> None:

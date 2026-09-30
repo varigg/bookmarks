@@ -19,7 +19,7 @@ from bookmarks.store import Item
 from bookmarks.summarise import Prompt, load_prompt
 from bookmarks.urls import domain_of, normalise_url
 
-SaveOutcome = Literal["saved", "already_saved"]
+SaveOutcome = Literal["saved", "already_saved", "requeued"]
 
 
 @dataclass(frozen=True)
@@ -65,6 +65,8 @@ class Bookmarks:
         url = normalise_url(url)
         note = _clean(note)
         existing = store.get_by_url(self.conn, url)
+        if existing is not None and existing.status == "failed":
+            return self._requeue(existing, html=html, title=title, note=note)
         if existing is not None:
             return self._already_saved(existing, note)
 
@@ -95,6 +97,34 @@ class Bookmarks:
         item = store.get_by_id(self.conn, item_id)
         assert item is not None
         return SaveResult("saved", item, note_added=note is not None, message="Saved")
+
+    def _requeue(
+        self, item: Item, *, html: str | None, title: str | None, note: str | None
+    ) -> SaveResult:
+        """A failed item gets another chance with whatever page is sent now;
+        its original note and saved time are kept."""
+        now = to_iso(self.clock.now())
+        self.conn.execute("BEGIN IMMEDIATE")
+        try:
+            self.conn.execute(
+                "UPDATE item SET status = 'pending', failure_reason = NULL "
+                "WHERE id = ?",
+                (item.id,),
+            )
+            self.conn.execute(
+                "INSERT OR REPLACE INTO queue "
+                "(item_id, html, capture_title, attempts, enqueued_at) "
+                "VALUES (?, ?, ?, 0, ?)",
+                (item.id, html or None, _clean(title), now),
+            )
+            self.conn.execute("COMMIT")
+        except BaseException:
+            self.conn.execute("ROLLBACK")
+            raise
+        message = "Re-queued" + ("; note not added" if note is not None else "")
+        requeued = store.get_by_id(self.conn, item.id)
+        assert requeued is not None
+        return SaveResult("requeued", requeued, note_added=False, message=message)
 
     def _already_saved(self, item: Item, note: str | None) -> SaveResult:
         message = f"Already saved on {item.saved_at[:10]}"

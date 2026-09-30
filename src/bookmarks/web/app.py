@@ -41,7 +41,7 @@ def create_app(open_service: OpenService) -> FastAPI:
         except InvalidUrl as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from None
         return JSONResponse(
-            status_code=201 if result.outcome == "saved" else 200,
+            status_code=200 if result.outcome == "already_saved" else 201,
             content={
                 "outcome": result.outcome,
                 "message": result.message,
