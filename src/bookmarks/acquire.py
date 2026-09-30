@@ -10,6 +10,7 @@ from dataclasses import dataclass
 
 from bookmarks.extract import Extracted, extract
 from bookmarks.fetch import Fetcher, FetchError, HttpResponse
+from bookmarks.github import GitHubFailure, fetch_readme, repo_of
 
 
 @dataclass(frozen=True)
@@ -125,3 +126,34 @@ def acquire_generic(fetcher: Fetcher, url: str, client_html: str | None) -> Acqu
         title=winner.title or other.title,
         description=winner.description or other.description,
     )
+
+
+def acquire_github(
+    fetcher: Fetcher, url: str, client_html: str | None, token: str | None
+) -> Acquired:
+    """The API README wins over any client html; a repo without a README
+    falls back to the generic route."""
+    repo = repo_of(url)
+    assert repo is not None
+    try:
+        readme = fetch_readme(fetcher, repo, token)
+    except GitHubFailure as failure:
+        raise Unacquirable(failure.reason, transient=failure.transient) from None
+    if not readme.text:
+        return acquire_generic(fetcher, url, client_html)
+    return Acquired(
+        text=readme.text, title=readme.full_name, description=readme.description
+    )
+
+
+def acquire(
+    fetcher: Fetcher,
+    url: str,
+    client_html: str | None,
+    *,
+    github_token: str | None = None,
+) -> Acquired:
+    """Pick the acquisition route by URL rule."""
+    if repo_of(url) is not None:
+        return acquire_github(fetcher, url, client_html, github_token)
+    return acquire_generic(fetcher, url, client_html)

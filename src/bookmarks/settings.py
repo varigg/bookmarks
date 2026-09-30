@@ -22,6 +22,8 @@ class Settings:
     # ~25K tokens at ~4 characters per token.
     source_cap_chars: int = 100_000
     fetch_timeout: float = 20.0
+    # Optional; unauthenticated GitHub API calls are limited to 60 an hour.
+    github_token: str | None = None
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> "Settings":
@@ -41,4 +43,5 @@ class Settings:
                 env.get("BOOKMARKS_SOURCE_CAP_CHARS", cls.source_cap_chars)
             ),
             fetch_timeout=float(env.get("BOOKMARKS_FETCH_TIMEOUT", cls.fetch_timeout)),
+            github_token=env.get("BOOKMARKS_GITHUB_TOKEN") or None,
         )

@@ -1,0 +1,12 @@
+{
+  "type": "file",
+  "encoding": "base64",
+  "size": 474,
+  "name": "README.md",
+  "path": "README.md",
+  "content": "IyBBdXRvbWVyZ2UKCkF1dG9tZXJnZSBpcyBhIGxpYnJhcnkgb2YgZGF0YSBz\ndHJ1Y3R1cmVzIGZvciBidWlsZGluZyBjb2xsYWJvcmF0aXZlCmFwcGxpY2F0\naW9ucy4gSXQgaXMgYSBDb25mbGljdC1GcmVlIFJlcGxpY2F0ZWQgRGF0YSBU\neXBlIChDUkRUKSB0aGF0IGxldHMgeW91Cm1ha2UgY2hhbmdlcyB0byBkYXRh\nIGxvY2FsbHkgYW5kIG1lcmdlIHRoZW0gd2l0aCBjaGFuZ2VzIGZyb20gb3Ro\nZXIgdXNlcnMKd2l0aG91dCBhIGNlbnRyYWwgc2VydmVyLgoKIyMgRmVhdHVy\nZXMKCi0gSlNPTi1saWtlIGRvY3VtZW50cyB3aXRoIG1hcHMsIGxpc3RzLCB0\nZXh0IGFuZCBjb3VudGVycwotIFN5bmMgcHJvdG9jb2wgZm9yIGVmZmljaWVu\ndCBuZXR3b3JrIHRyYW5zZmVyCi0gQ29tcGFjdCBiaW5hcnkgc3RvcmFnZSBm\nb3JtYXQKLSBCaW5kaW5ncyBmb3IgSmF2YVNjcmlwdCAodmlhIFdlYkFzc2Vt\nYmx5KSwgUnVzdCwgU3dpZnQgYW5kIEMK\n",
+  "sha": "3d21ec53a331a6f037a91c368710b99387d012c1",
+  "url": "https://api.github.com/repos/automerge/automerge/contents/README.md?ref=main",
+  "html_url": "https://github.com/automerge/automerge/blob/main/README.md",
+  "download_url": "https://raw.githubusercontent.com/automerge/automerge/main/README.md"
+}

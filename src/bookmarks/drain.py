@@ -10,7 +10,7 @@ import sqlite3
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from bookmarks.acquire import Acquired, Unacquirable, acquire_generic
+from bookmarks.acquire import Acquired, Unacquirable, acquire
 from bookmarks.clock import to_iso
 from bookmarks.llm.provider import PAUSE_CLASSES, ProviderFailure
 from bookmarks.summarise import (
@@ -191,7 +191,12 @@ def process(svc: "Bookmarks", claim: Claim) -> str:
     attempt counted.
     """
     try:
-        acquired = acquire_generic(svc.fetcher, claim.url, claim.html)
+        acquired = acquire(
+            svc.fetcher,
+            claim.url,
+            claim.html,
+            github_token=svc.settings.github_token,
+        )
     except Unacquirable as failure:
         if failure.transient:
             return _retry_or_fail(svc, claim, failure.reason)
