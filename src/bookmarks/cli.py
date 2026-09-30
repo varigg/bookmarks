@@ -6,6 +6,7 @@ from contextlib import contextmanager
 
 from bookmarks import db
 from bookmarks.clock import SystemClock
+from bookmarks.embed import OllamaEmbedder
 from bookmarks.fetch import HttpxFetcher
 from bookmarks.llm.claude_cli import ClaudeCodeCLIProvider
 from bookmarks.service import Bookmarks
@@ -26,6 +27,11 @@ def _service_opener(settings: Settings):
                     executable=settings.claude_executable,
                     model=settings.summariser_model,
                     timeout=settings.summariser_timeout,
+                ),
+                embedder=OllamaEmbedder(
+                    settings.embed_model,
+                    settings.ollama_url,
+                    timeout=settings.embed_timeout,
                 ),
             )
         finally:
@@ -54,6 +60,23 @@ def _drain(settings: Settings, args: argparse.Namespace) -> None:
     )
 
 
+def _embed(settings: Settings, args: argparse.Namespace) -> None:
+    with _service_opener(settings)() as svc:
+        report = svc.embed()
+    print(
+        f"embed: {report.embedded} embedded"
+        + (f"; stopped: {report.error}" if report.error else "")
+    )
+    if report.error:
+        raise SystemExit(1)
+
+
+def _mcp(settings: Settings, args: argparse.Namespace) -> None:
+    from bookmarks.mcp_server import build_server
+
+    build_server(_service_opener(settings)).run()
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="bookmarks")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -63,6 +86,12 @@ def main(argv: list[str] | None = None) -> None:
     drain = commands.add_parser("drain", help="summarise queued items")
     drain.add_argument("--limit", type=int, default=None)
     drain.set_defaults(handler=_drain)
+    commands.add_parser(
+        "embed", help="embed summarised items lacking a vector"
+    ).set_defaults(handler=_embed)
+    commands.add_parser("mcp", help="run the MCP server over stdio").set_defaults(
+        handler=_mcp
+    )
     args = parser.parse_args(argv)
     args.handler(Settings.from_env(), args)
 

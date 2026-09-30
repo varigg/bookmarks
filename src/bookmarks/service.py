@@ -12,8 +12,10 @@ from typing import Literal
 from bookmarks import drain as draining
 from bookmarks import store
 from bookmarks.clock import Clock, to_iso
+from bookmarks.embed import Embedder, EmbedReport, run_embed
 from bookmarks.fetch import Fetcher
 from bookmarks.llm.provider import LLMProvider
+from bookmarks.search import Filters, SearchResult, hybrid_search
 from bookmarks.settings import Settings
 from bookmarks.store import Item
 from bookmarks.summarise import Prompt, load_prompt
@@ -44,6 +46,7 @@ class Bookmarks:
         settings: Settings,
         fetcher: Fetcher,
         summariser: LLMProvider,
+        embedder: Embedder,
         prompt: Prompt | None = None,
     ) -> None:
         self.conn = conn
@@ -51,6 +54,7 @@ class Bookmarks:
         self.settings = settings
         self.fetcher = fetcher
         self.summariser = summariser
+        self.embedder = embedder
         self.prompt = prompt or load_prompt()
 
     def save(
@@ -141,3 +145,15 @@ class Bookmarks:
     def drain(self, *, limit: int | None = None) -> draining.DrainReport:
         """Summarise queued items, oldest first, one at a time."""
         return draining.run_drain(self, limit=limit)
+
+    def embed(self) -> EmbedReport:
+        """Embed summarised items lacking a vector for the current model."""
+        return run_embed(self.conn, self.embedder)
+
+    def search(
+        self, query: str, filters: Filters | None = None, limit: int | None = None
+    ) -> SearchResult:
+        """Hybrid keyword + semantic search; summarised items only by default."""
+        return hybrid_search(
+            self.conn, self.embedder, self.settings, query, filters, limit
+        )

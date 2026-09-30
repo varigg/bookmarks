@@ -1,8 +1,12 @@
 """Scripted fakes for the core's external edges."""
 
+import hashlib
 import json
+import math
+import re
 from datetime import UTC, datetime, timedelta
 
+from bookmarks.embed import EmbedError
 from bookmarks.fetch import FetchError, HttpResponse
 from bookmarks.llm.provider import LLMRequest, LLMResult
 
@@ -78,3 +82,58 @@ class FakeSummariser:
         if isinstance(reply, Exception):
             raise reply
         return LLMResult(text=reply, model=self.model, raw=reply)
+
+
+# Words that share a meaning share a dimension, so a paraphrase lands near the
+# text it paraphrases; every other word gets a weak hashed dimension.
+_CONCEPTS = [
+    {"collaborative", "collaboration", "collaborate", "collaborators", "merge",
+     "merged", "merging", "concurrent", "concurrently", "sync", "syncing",
+     "together", "multiplayer", "replicated", "editing", "edits"},
+    {"offline", "local", "device", "devices", "laptop", "phone", "own",
+     "ownership", "cloud", "server", "servers"},
+    {"recipe", "bread", "sourdough", "bake", "baking", "flour", "oven", "loaf"},
+    {"tax", "taxes", "budget", "money", "invest", "investing", "savings"},
+]  # fmt: skip
+_DIMS = 64
+_WORD = re.compile(r"[a-z]+")
+
+
+class FakeEmbedder:
+    """Deterministic vectors from a tiny concept table. Refuses prefixed text,
+    because callers must never add the embedder's prefixes."""
+
+    def __init__(self, model: str = "fake-embed") -> None:
+        self.model = model
+        self.documents: list[str] = []
+        self.queries: list[str] = []
+        self.failure: Exception | None = None
+
+    def _vector(self, text: str) -> list[float]:
+        assert not text.startswith("search_"), "caller added an embedding prefix"
+        vector = [0.0] * _DIMS
+        for word in _WORD.findall(text.lower()):
+            for index, concept in enumerate(_CONCEPTS):
+                if word in concept:
+                    vector[index] += 1.0
+                    break
+            else:
+                bucket = int(hashlib.md5(word.encode()).hexdigest(), 16)
+                vector[len(_CONCEPTS) + bucket % (_DIMS - len(_CONCEPTS))] += 0.2
+        norm = math.sqrt(sum(v * v for v in vector)) or 1.0
+        return [v / norm for v in vector]
+
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        if self.failure:
+            raise self.failure
+        self.documents += texts
+        return [self._vector(text) for text in texts]
+
+    def embed_query(self, text: str) -> list[float]:
+        if self.failure:
+            raise self.failure
+        self.queries.append(text)
+        return self._vector(text)
+
+    def fail(self, message: str = "ollama unreachable") -> None:
+        self.failure = EmbedError(message)

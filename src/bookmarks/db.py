@@ -54,6 +54,45 @@ MIGRATIONS: list[str] = [
         ('article', 1), ('repo', 1), ('docs', 1),
         ('product', 1), ('discussion', 1), ('media', 1);
     """,
+    """
+    -- One vector per item per embedding model (title + summary + note).
+    CREATE TABLE embedding (
+        item_id INTEGER NOT NULL REFERENCES item (id) ON DELETE CASCADE,
+        model TEXT NOT NULL,
+        dims INTEGER NOT NULL,
+        vector BLOB NOT NULL,
+        PRIMARY KEY (item_id, model)
+    );
+    -- A vector is stale once the text it was made from changes.
+    CREATE TRIGGER item_embedding_stale
+    AFTER UPDATE OF title, summary, note ON item
+    BEGIN
+        DELETE FROM embedding WHERE item_id = old.id;
+    END;
+
+    -- External-content FTS5 over the item, kept in sync by triggers.
+    -- Column order matters: bm25() weights are positional.
+    CREATE VIRTUAL TABLE item_fts USING fts5 (
+        title, summary, note, entities,
+        content = 'item', content_rowid = 'id'
+    );
+    CREATE TRIGGER item_fts_ai AFTER INSERT ON item BEGIN
+        INSERT INTO item_fts (rowid, title, summary, note, entities)
+        VALUES (new.id, new.title, new.summary, new.note, new.entities);
+    END;
+    CREATE TRIGGER item_fts_ad AFTER DELETE ON item BEGIN
+        INSERT INTO item_fts (item_fts, rowid, title, summary, note, entities)
+        VALUES ('delete', old.id, old.title, old.summary, old.note, old.entities);
+    END;
+    CREATE TRIGGER item_fts_au
+    AFTER UPDATE OF title, summary, note, entities ON item BEGIN
+        INSERT INTO item_fts (item_fts, rowid, title, summary, note, entities)
+        VALUES ('delete', old.id, old.title, old.summary, old.note, old.entities);
+        INSERT INTO item_fts (rowid, title, summary, note, entities)
+        VALUES (new.id, new.title, new.summary, new.note, new.entities);
+    END;
+    INSERT INTO item_fts (item_fts) VALUES ('rebuild');
+    """,
 ]
 
 

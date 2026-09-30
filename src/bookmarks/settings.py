@@ -24,6 +24,14 @@ class Settings:
     fetch_timeout: float = 20.0
     # Optional; unauthenticated GitHub API calls are limited to 60 an hour.
     github_token: str | None = None
+    embed_model: str = "nomic-embed-text"
+    ollama_url: str = "http://127.0.0.1:11434"
+    embed_timeout: float = 60.0
+    # bm25 column weights for the keyword leg.
+    bm25_entities: float = 3.0
+    bm25_title: float = 2.0
+    bm25_note: float = 2.0
+    bm25_summary: float = 1.0
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> "Settings":
@@ -44,4 +52,11 @@ class Settings:
             ),
             fetch_timeout=float(env.get("BOOKMARKS_FETCH_TIMEOUT", cls.fetch_timeout)),
             github_token=env.get("BOOKMARKS_GITHUB_TOKEN") or None,
+            embed_model=env.get("BOOKMARKS_EMBED_MODEL", cls.embed_model),
+            ollama_url=env.get("BOOKMARKS_OLLAMA_URL", cls.ollama_url),
+            embed_timeout=float(env.get("BOOKMARKS_EMBED_TIMEOUT", cls.embed_timeout)),
+            bm25_entities=float(env.get("BOOKMARKS_BM25_ENTITIES", cls.bm25_entities)),
+            bm25_title=float(env.get("BOOKMARKS_BM25_TITLE", cls.bm25_title)),
+            bm25_note=float(env.get("BOOKMARKS_BM25_NOTE", cls.bm25_note)),
+            bm25_summary=float(env.get("BOOKMARKS_BM25_SUMMARY", cls.bm25_summary)),
         )
