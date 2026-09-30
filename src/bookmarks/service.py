@@ -9,10 +9,14 @@ import sqlite3
 from dataclasses import dataclass
 from typing import Literal
 
+from bookmarks import drain as draining
 from bookmarks import store
 from bookmarks.clock import Clock, to_iso
+from bookmarks.fetch import Fetcher
+from bookmarks.llm.provider import LLMProvider
 from bookmarks.settings import Settings
 from bookmarks.store import Item
+from bookmarks.summarise import Prompt, load_prompt
 from bookmarks.urls import domain_of, normalise_url
 
 SaveOutcome = Literal["saved", "already_saved"]
@@ -33,11 +37,21 @@ def _clean(text: str | None) -> str | None:
 
 class Bookmarks:
     def __init__(
-        self, conn: sqlite3.Connection, *, clock: Clock, settings: Settings
+        self,
+        conn: sqlite3.Connection,
+        *,
+        clock: Clock,
+        settings: Settings,
+        fetcher: Fetcher,
+        summariser: LLMProvider,
+        prompt: Prompt | None = None,
     ) -> None:
         self.conn = conn
         self.clock = clock
         self.settings = settings
+        self.fetcher = fetcher
+        self.summariser = summariser
+        self.prompt = prompt or load_prompt()
 
     def save(
         self,
@@ -90,3 +104,10 @@ class Bookmarks:
 
     def get_item(self, item_id: int) -> Item | None:
         return store.get_by_id(self.conn, item_id)
+
+    def list_types(self) -> list[str]:
+        return draining.types_in_use(self.conn)
+
+    def drain(self, *, limit: int | None = None) -> draining.DrainReport:
+        """Summarise queued items, oldest first, one at a time."""
+        return draining.run_drain(self, limit=limit)

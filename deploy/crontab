@@ -1,0 +1,6 @@
+# bookmarks cron entries — written, not installed until cutover.
+# Install with `crontab -e` and paste the lines below.
+#
+# Cron never sources a login shell, so the entry sources ~/.secrets.zsh itself
+# for CLAUDE_CODE_OAUTH_TOKEN. flock keeps runs from overlapping.
+*/10 * * * * zsh -c 'source ~/.secrets.zsh && flock -n /tmp/bookmarks-drain.lock /snap/bin/uv --directory ~/code/bookmarks run --frozen --no-dev bookmarks drain' >> ~/.local/state/bookmarks/drain.log 2>&1

@@ -19,13 +19,15 @@ uv run ruff check . && uv run ruff format --check .
 
 ```sh
 uv run bookmarks serve        # capture API on $BOOKMARKS_HOST:$BOOKMARKS_PORT (0.0.0.0:5000)
+uv run bookmarks drain        # summarise queued items with `claude -p` (cron job)
 ```
 
 The store is one SQLite file at `$XDG_DATA_HOME/bookmarks/bookmarks.db`
 (override with `BOOKMARKS_DB`).
 
 Deployment files (not installed until cutover) are in `deploy/`:
-`bookmarks-web.service` is the systemd user unit for the web server.
+`bookmarks-web.service` is the systemd user unit for the web server;
+`crontab` holds the drain entry (every 10 minutes).
 
 ## Capture API
 

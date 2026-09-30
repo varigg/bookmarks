@@ -16,6 +16,12 @@ class Settings:
     db_path: Path
     host: str = "0.0.0.0"
     port: int = 5000
+    claude_executable: str = "claude"
+    summariser_model: str = "claude-sonnet-5-5"
+    summariser_timeout: int = 300
+    # ~25K tokens at ~4 characters per token.
+    source_cap_chars: int = 100_000
+    fetch_timeout: float = 20.0
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> "Settings":
@@ -24,4 +30,15 @@ class Settings:
             db_path=Path(env.get("BOOKMARKS_DB") or _default_db_path(env)),
             host=env.get("BOOKMARKS_HOST", cls.host),
             port=int(env.get("BOOKMARKS_PORT", cls.port)),
+            claude_executable=env.get("BOOKMARKS_CLAUDE", cls.claude_executable),
+            summariser_model=env.get(
+                "BOOKMARKS_SUMMARISER_MODEL", cls.summariser_model
+            ),
+            summariser_timeout=int(
+                env.get("BOOKMARKS_SUMMARISER_TIMEOUT", cls.summariser_timeout)
+            ),
+            source_cap_chars=int(
+                env.get("BOOKMARKS_SOURCE_CAP_CHARS", cls.source_cap_chars)
+            ),
+            fetch_timeout=float(env.get("BOOKMARKS_FETCH_TIMEOUT", cls.fetch_timeout)),
         )

@@ -44,6 +44,16 @@ MIGRATIONS: list[str] = [
         enqueued_at TEXT NOT NULL
     );
     """,
+    """
+    -- The open type list: base types plus any the summariser adopts.
+    CREATE TABLE type (
+        name TEXT PRIMARY KEY,
+        base INTEGER NOT NULL DEFAULT 0
+    );
+    INSERT INTO type (name, base) VALUES
+        ('article', 1), ('repo', 1), ('docs', 1),
+        ('product', 1), ('discussion', 1), ('media', 1);
+    """,
 ]
 
 

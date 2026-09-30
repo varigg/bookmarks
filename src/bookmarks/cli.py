@@ -6,6 +6,8 @@ from contextlib import contextmanager
 
 from bookmarks import db
 from bookmarks.clock import SystemClock
+from bookmarks.fetch import HttpxFetcher
+from bookmarks.llm.claude_cli import ClaudeCodeCLIProvider
 from bookmarks.service import Bookmarks
 from bookmarks.settings import Settings
 
@@ -15,7 +17,17 @@ def _service_opener(settings: Settings):
     def open_service() -> Iterator[Bookmarks]:
         conn = db.connect(settings.db_path)
         try:
-            yield Bookmarks(conn, clock=SystemClock(), settings=settings)
+            yield Bookmarks(
+                conn,
+                clock=SystemClock(),
+                settings=settings,
+                fetcher=HttpxFetcher(timeout=settings.fetch_timeout),
+                summariser=ClaudeCodeCLIProvider(
+                    executable=settings.claude_executable,
+                    model=settings.summariser_model,
+                    timeout=settings.summariser_timeout,
+                ),
+            )
         finally:
             conn.close()
 
@@ -32,12 +44,21 @@ def _serve(settings: Settings, args: argparse.Namespace) -> None:
     )
 
 
+def _drain(settings: Settings, args: argparse.Namespace) -> None:
+    with _service_opener(settings)() as svc:
+        report = svc.drain(limit=args.limit)
+    print(f"drain: {report.summarised} summarised, {report.failed} failed")
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="bookmarks")
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("serve", help="run the web server (capture API)").set_defaults(
         handler=_serve
     )
+    drain = commands.add_parser("drain", help="summarise queued items")
+    drain.add_argument("--limit", type=int, default=None)
+    drain.set_defaults(handler=_drain)
     args = parser.parse_args(argv)
     args.handler(Settings.from_env(), args)
 
