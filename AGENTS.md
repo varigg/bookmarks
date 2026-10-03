@@ -5,9 +5,9 @@ The hard invariants are the strict form. Adapted from Tomas Vykruta's AGENTS.md 
 
 ## Design principles (every file)
 
-- **Separation of concerns.** Domain rules in the core (`service.py` and the step modules: `drain`, `embed`,
-  `search`, `acquire`, `summarise`). Transport in the adapters (`web/app.py`, `mcp_server.py`, `cli.py`). Schema in
-  `db.py`. Name the one concern of the file you edit.
+- **Separation of concerns.** Domain rules in their owners (table below). Mechanisms, such as the drain, decide how
+  and when work runs, never what an outcome means. Transport in the adapters (`web/app.py`, `mcp_server.py`,
+  `cli.py`). Schema in `db.py`. Name the one concern of the file you edit.
 - **Encapsulation.** Read another module's tables through its functions, never with your own SQL.
 - **One rule change touches one module.**
 - **DRY means one home.** Grep before writing a rule, threshold, format string or schema fact; extend the home.
@@ -24,23 +24,23 @@ The hard invariants are the strict form. Adapted from Tomas Vykruta's AGENTS.md 
 
 ## Hard invariants
 
-1. **One owning module per domain.** Consolidate a scattered domain before adding to it. Add a row when you confirm
+1. **One owning module per domain.** Domains are the terms in `CONTEXT.md`. Consolidate a scattered domain before adding to it. Add a row when you confirm
    an owner; never add a second owner. A function-level import to dodge a cycle means the logic is in the wrong
    module.
 
    | Domain | Owner |
    |---|---|
-   | Schema, migrations, connection | `db.py` |
-   | Item identity (URL normalisation) | `urls.py` |
-   | Item records and reads | `store.py` |
-   | Queue, claim protocol, failure and retry | `drain.py` |
-   | Acquisition routes (which URL goes to which source) | `acquire.py`; `github.py` is one route |
-   | Readable-text extraction | `extract.py` |
-   | Summariser prompt and reply validation | `summarise.py` |
-   | LLM provider contract | `llm/provider.py` |
-   | Embeddings and the embed step | `embed.py` |
-   | Hybrid search and ranking | `search.py` |
-   | Configuration | `settings.py` |
+   | Item (identity, record, Note), Type | `store.py` (writes not there yet: #36) |
+   | Stage, Status (stage order, what an outcome means, retry budget, re-queue) | `lifecycle.py` **(not built)** |
+   | Source text (the retrieving stage) | `retrieve.py` **(not built; today `acquire.py`)** |
+   | Summary, Entities, Provenance (the summarising stage) | `summarise.py` |
+   | The embedding stage | `embed.py` |
+   | Saving (outcomes and messages) | `service.py` |
+   | Search (filters, ranking) | `search.py` |
+
+   Mechanisms own no domain rules: `drain.py` runs stages within the `claude -p` budget; schema in `db.py`,
+   settings in `settings.py`, the LLM adapter in `llm/`. Helpers (`urls.py`, `fetch.py`, `extract.py`, `github.py`)
+   are called only by their owner.
 
 2. **Never duplicate logic.** On the second use: (1) move it to the owner, (2) switch the original caller, tests
    green, no behaviour change, (3) then build the new use. Grep the expression and list every copy; the move
