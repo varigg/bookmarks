@@ -56,7 +56,7 @@ def build_server(open_service: OpenService) -> FastMCP:
         note, the fused `score` and `ranks` (its rank in each leg that found it).
 
         Filters narrow the candidates before ranking:
-        - types: item types, e.g. ["article", "repo"] (see list_types)
+        - types: item types, e.g. ["article", "repo"]
         - domain: e.g. "github.com" (subdomains match too)
         - saved_after / saved_before: ISO dates, e.g. "2026-01-01";
           after is inclusive, before exclusive
