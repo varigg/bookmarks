@@ -1,0 +1,17 @@
+# systemd user unit for the bookmarks web server (capture API + console).
+# Install: cp deploy/bookmarks-web.service ~/.config/systemd/user/ &&
+#          systemctl --user daemon-reload && systemctl --user enable --now bookmarks-web
+# Not installed before cutover: the old app holds port 5000 until then.
+[Unit]
+Description=bookmarks web server
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/code/bookmarks
+ExecStart=/snap/bin/uv run --frozen --no-dev bookmarks serve
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

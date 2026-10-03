@@ -1,220 +1,72 @@
-# Bookmark Management Application
+# bookmarks
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
+A personal semantic recall store. Saving a URL keeps it; the drain summarises
+each item with `claude -p`; an agent finds items again over MCP. The spec is
+[#19](https://github.com/varigg/bookmarks/issues/19); vocabulary lives in
+[`CONTEXT.md`](CONTEXT.md).
 
-A self-hosted Flask web application for managing bookmarks with LLM-powered auto-generation of titles and descriptions.
+The pre-rebuild Flask app lives at commit `5fddc16`.
 
-## Overview
+## Development
 
-This application is designed to run on your desktop or home server, providing a central hub for managing your bookmarks with automatic enrichment via LLMs.
-
-### Intended Workflow
-
-1. **Run the app** on your desktop or home network server
-2. **Add bookmarks seamlessly** using:
-   - 🦊 **Browser extension** (Firefox/Chrome) - One-click bookmarking from any webpage
-   - 📱 **iOS Shortcuts** - Share URLs directly from Safari or any iOS app
-   - 🌐 **Web interface** - Use the "Add" button directly in the app
-3. **Automatic enrichment** - The app automatically generates titles and descriptions using LLMs
-4. **Optional tagging** - Future enhancement to auto-suggest tags based on content
-
-The key advantage: You don't need to manually write descriptions. Just send URLs to your app, and it handles the rest.
-
-## Quick Start
-
-### Local Development (One-Command)
-
-```bash
-# Clone and setup (copy-paste ready)
-git clone https://github.com/varigg/bookmarks.git && cd bookmarks && uv sync && cp .env.example .env && echo "Setup complete! Edit .env with your API keys, then run: uv run flask --app wsgi run --debug"
-```
-
-### Docker (One-Command)
-
-```bash
-# Clone and run with Docker (copy-paste ready)
-git clone https://github.com/varigg/bookmarks.git && cd bookmarks && cp .env.example .env && echo "Edit .env with your API keys, then run: docker compose up --build -d"
-```
-
-> **Data directory note:** `docker compose` now shares the `BOOKMARKS_DATA_DIR` path (default `/srv/bookmarks-data`) between the container and the host, so your `bookmarks.js` and `backup/` stay on the host. The directory must be owned by UID 1000 (the container user). Use `make service-install` to handle this automatically, or create it manually with `sudo mkdir -p /srv/bookmarks-data/backup && sudo chown -R 1000:1000 /srv/bookmarks-data`.
-
-### Step-by-Step Setup
-
-**Local Development:**
-
-```bash
-# 1. Clone the repository
-git clone https://github.com/varigg/bookmarks.git
-cd bookmarks
-
-# 2. Install dependencies
+```sh
 uv sync
-
-# 3. Configure environment
-cp .env.example .env
-# Edit .env and add your LLM API keys
-
-# 4. Run the application (local machine)
-uv run flask --app wsgi run --debug
-
-# For network access (e.g., from phone or other devices):
-uv run flask --app wsgi run --host 0.0.0.0 --port 5000 --debug
-```
-
-> **Network Access Note**: Use `--host 0.0.0.0` to make the app accessible from other devices on your network. Without it, the app only accepts connections from localhost.
-
-**Docker:**
-
-```bash
-# 1. Clone the repository
-git clone https://github.com/varigg/bookmarks.git
-cd bookmarks
-
-# 2. Configure environment
-cp .env.example .env
-# Edit .env and add your LLM API keys
-
-# 3. Build and run with Docker Compose
-docker compose up --build -d
-
-# View logs
-docker compose logs -f
-
-# Stop services
-docker compose down
-```
-
-Visit `http://localhost:5000` to access the application.
-
-## Documentation
-
-All documentation has been organized in the `docs/` directory:
-
-### User Documentation
-
-- **[Browser Extension](docs/browser-extension/README.md)** - One-click bookmarking from Firefox/Chrome
-- **[iOS Shortcuts](docs/IOS_SHORTCUTS.md)** - Share URLs from Safari and iOS apps
-- **[Main Documentation](docs/README.md)** - Complete application documentation
-- **[LLM Configuration Guide](docs/LLM_CONFIGURATION.md)** - Complete guide to LLM service configuration
-- **[Deployment Guide](docs/DEPLOYMENT.md)** - Running on your home server
-- **[Adding Bookmarks](docs/ADDING_BOOKMARKS.md)** - Guide to adding bookmarks (including bulk import)
-- **[LLM Quickstart](docs/QUICKSTART_LLM.md)** - Quick start for LLM features
-- **[MCP Integration Guide](docs/MCP_GUIDE.md)** - Model Context Protocol setup
-
-### Development Documentation
-
-- **[Refactoring Progress](docs/dev/REFACTORING_PROGRESS.md)** - Current refactoring status
-- **[Reorganization Notes](docs/dev/REORGANIZATION.md)** - Project structure changes
-- **[Design Patterns](docs/dev/DESIGN_PATTERNS.md)** - Architecture patterns used
-- **[Future Enhancements](docs/dev/FUTURE_ENHANCEMENTS.md)** - Planned features
-
-## Features
-
-### Core Functionality
-
-- 📚 Bookmark management with tags and descriptions
-- 🔍 Multi-tag filtering with AND/OR logic
-- ⭐ Favorites support
-- 📊 Multiple sorting options (newest, oldest, alphabetical, favorites-first)
-- 🔄 Async URL validation
-
-### Integration Options
-
-- 🦊 **Browser Extension** - One-click bookmarking from Firefox/Chrome
-- 📱 **iOS Shortcuts** - Share from Safari or any iOS app
-- 🌐 **Web Interface** - Add and manage bookmarks directly
-- 🎯 **REST API** - For custom integrations
-
-### LLM-Powered Enrichment
-
-- 🤖 **Automatic title and description generation** - Just send URLs, the app does the rest
-- 🔌 **Multiple LLM providers** - Perplexity, OpenAI, Anthropic
-- 📄 **Flexible content extraction** - HTML or Markdown parsing
-- 🎯 **Future: Auto-tagging** - Planned enhancement for automatic tag suggestions
-
-## LLM Service Architecture
-
-The application uses a **composition-based architecture** for maximum flexibility:
-
-- **LLM Providers** - Pluggable API clients (Perplexity, OpenAI, Anthropic)
-- **Content Extractors** - Multiple strategies (HTML, Markdown, MCP)
-- **Single Orchestrator** - LLMService handles all common logic (retry, prompts, parsing)
-
-**See [LLM Configuration Guide](docs/LLM_CONFIGURATION.md) for complete details on configuration options.**
-
-## Project Structure
-
-```
-bookmarks/
-├── bookmarks/          # Main application package
-│   ├── __init__.py
-│   ├── routes.py       # HTTP routes
-│   ├── model.py        # Data access wrapper
-│   ├── repository.py   # Repository pattern for data access
-│   ├── datafile.py     # File storage operations
-│   ├── exceptions.py   # Custom exceptions
-│   ├── services/       # Service layer (LLM clients, etc.)
-│   └── templates/      # Jinja2 templates
-├── tools/              # Utility scripts
-├── tests/              # Test suite
-├── docs/               # Documentation
-│   └── dev/            # Development/transitory docs
-└── bookmarks.js        # Data file
-```
-
-## Testing
-
-```bash
-# Run all tests
 uv run pytest
+uv run ruff check . && uv run ruff format --check .
+```
 
-# Run with coverage
-uv run pytest --cov=bookmarks
+## Running
 
-# Run specific test file
-uv run pytest tests/test_app.py -v
+```sh
+uv run bookmarks serve        # capture API on $BOOKMARKS_HOST:$BOOKMARKS_PORT (0.0.0.0:5000)
+uv run bookmarks drain        # summarise queued items with `claude -p` (cron job)
+uv run bookmarks embed        # embed summarised items via local Ollama (cron job)
+uv run bookmarks mcp          # MCP server over stdio
+```
+
+The store is one SQLite file at `$XDG_DATA_HOME/bookmarks/bookmarks.db`
+(override with `BOOKMARKS_DB`).
+
+Deployment files (not installed until cutover) are in `deploy/`:
+`bookmarks-web.service` is the systemd user unit for the web server;
+`crontab` holds the drain + embed entry (every 10 minutes). The cron log
+directory `~/.local/state/bookmarks/` must exist.
+
+## Capture API
+
+`POST /api/items` with JSON `{"url": ..., "html"?: ..., "title"?: ..., "note"?: ...}`.
+Replies `201` with `{"outcome": "saved", "message": "Saved", ...}` for a new
+item, `200` with `"already_saved"` and `"Already saved on <date>"` for a
+duplicate (plus `"; note not added"` when a note was supplied), `422` for an
+invalid payload or a non-http(s) URL.
+
+## MCP server
+
+Tools: `search` (hybrid keyword + semantic; filters `types`, `domain`,
+`saved_after`, `saved_before`, `status`; `limit` default 10, max 50).
+
+Register it for every Claude Code session on thunderbird (user scope):
+
+```sh
+claude mcp add --scope user bookmarks -- \
+  /snap/bin/uv --directory /home/varigg/code/bookmarks run --frozen --no-dev bookmarks mcp
+```
+
+From another machine, wrap the same command in SSH (stdio passes through):
+
+```sh
+claude mcp add --scope user bookmarks -- \
+  ssh thunderbird /snap/bin/uv --directory /home/varigg/code/bookmarks run --frozen --no-dev bookmarks mcp
 ```
 
 ## Configuration
 
-Configuration is managed via environment variables for easy self-hosting. See **[CONFIGURATION.md](CONFIGURATION.md)** for detailed options.
-
-### Quick Configuration
-
-| Variable                       | Default               | Description                                                                                                                                  |
-| ------------------------------ | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `BOOKMARKS_DATA_DIR`           | `/srv/bookmarks-data` | Base directory for `bookmarks.js` and backups (the guided install binds it to the host; override it to point somewhere else on your system). |
-| `BOOKMARKS_DATA_SOURCE`        | `bookmarks.js`        | Path to the bookmarks data file                                                                                                              |
-| `BOOKMARKS_BACKUP_ENABLED`     | `true`                | Enable automatic backups on startup                                                                                                          |
-| `BOOKMARKS_BACKUP_COUNT`       | `5`                   | Number of backups to keep                                                                                                                    |
-| `BOOKMARKS_LLM_PROVIDER`       | `perplexity`          | LLM provider (perplexity/perplexity-mcp/openai/anthropic)                                                                                    |
-| `BOOKMARKS_LLM_CONTENT_FORMAT` | `html`                | Content extraction (html/markdown)                                                                                                           |
-
-`BOOKMARKS_DATA_DIR` defaults to `/srv/bookmarks-data` when you run `make service-install`, which keeps `bookmarks.js` and `backup/` on the host. The target creates that directory and sets ownership to UID 1000 (the container user) for you; if you prefer to run Docker manually, create it yourself with `sudo mkdir -p /srv/bookmarks-data/backup && sudo chown -R 1000:1000 /srv/bookmarks-data` or override the variable to point elsewhere so your data stays outside of the repo tree.
-
-### Environment Variables for LLM Features
-
-```bash
-# API Keys
-export PERPLEXITY_API_KEY="your-api-key"
-export OPENAI_API_KEY="your-openai-key"      # When using OpenAI
-export ANTHROPIC_API_KEY="your-anthropic-key" # When using Anthropic
-
-# Optional: Configure provider and content format
-export BOOKMARKS_LLM_PROVIDER="perplexity"          # Default: perplexity, perplexity-mcp, openai, anthropic
-export BOOKMARKS_LLM_CONTENT_FORMAT="html"          # Default: html or markdown
-
-# Example: Use Perplexity MCP instead of direct API
-export BOOKMARKS_LLM_PROVIDER="perplexity-mcp"
-```
-
-**See [LLM Configuration Guide](docs/LLM_CONFIGURATION.md) for complete configuration options.**
-
-No configuration file needed! Just set environment variables and run the application.
-
-Note: example commands and docs sometimes show port `5001`; the actual port used by the server is controlled by the `BOOKMARKS_PORT` environment variable (or other runtime overrides). If you run the server on port `5000`, use that port in URLs instead.
-
-## License
-
-This project is licensed under the MIT License.
+Environment variables, all optional: `BOOKMARKS_DB`, `BOOKMARKS_HOST`,
+`BOOKMARKS_PORT`, `BOOKMARKS_CLAUDE` (CLI path), `BOOKMARKS_SUMMARISER_MODEL`
+(default `claude-sonnet-5-5`), `BOOKMARKS_SUMMARISER_TIMEOUT`,
+`BOOKMARKS_SOURCE_CAP_CHARS` (~25K tokens), `BOOKMARKS_FETCH_TIMEOUT`,
+`BOOKMARKS_GITHUB_TOKEN`, `BOOKMARKS_EMBED_MODEL` (default
+`nomic-embed-text`; changing it re-embeds everything on the next embed run),
+`BOOKMARKS_OLLAMA_URL` (default `http://127.0.0.1:11434`),
+`BOOKMARKS_EMBED_TIMEOUT`, and the bm25 column weights
+`BOOKMARKS_BM25_ENTITIES` / `_TITLE` / `_NOTE` / `_SUMMARY` (3 / 2 / 2 / 1).

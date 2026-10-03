@@ -1,0 +1,8 @@
+# bookmarks cron entries — written, not installed until cutover.
+# Install with `crontab -e` and paste the lines below.
+#
+# Every 10 minutes: drain (summarise queued items), then embed (vectors for
+# summarised items). Embed runs even when the drain stops early.
+# Cron never sources a login shell, so the entry sources ~/.secrets.zsh itself
+# for CLAUDE_CODE_OAUTH_TOKEN. flock keeps runs from overlapping.
+*/10 * * * * flock -n /tmp/bookmarks-drain.lock zsh -c 'source ~/.secrets.zsh; cd ~/code/bookmarks && /snap/bin/uv run --frozen --no-dev bookmarks drain; /snap/bin/uv run --frozen --no-dev bookmarks embed' >> ~/.local/state/bookmarks/drain.log 2>&1

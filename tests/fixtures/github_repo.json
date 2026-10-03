@@ -1,0 +1,23 @@
+{
+  "id": 78006880,
+  "node_id": "MDEwOlJlcG9zaXRvcnk3ODAwNjg4MA==",
+  "name": "automerge",
+  "full_name": "automerge/automerge",
+  "private": false,
+  "owner": {
+    "login": "automerge",
+    "id": 25312713,
+    "type": "Organization"
+  },
+  "html_url": "https://github.com/automerge/automerge",
+  "description": "A JSON-like data structure (a CRDT) that can be modified concurrently by different users, and merged again automatically.",
+  "fork": false,
+  "homepage": "https://automerge.org/",
+  "language": "Rust",
+  "stargazers_count": 5000,
+  "topics": [
+    "crdt",
+    "local-first"
+  ],
+  "default_branch": "main"
+}
