@@ -10,7 +10,7 @@ from contextlib import AbstractContextManager
 
 from mcp.server.fastmcp import FastMCP
 
-from bookmarks.search import MAX_LIMIT, Filters, Hit
+from bookmarks.search import Filters, Hit
 from bookmarks.service import Bookmarks
 
 OpenService = Callable[[], AbstractContextManager[Bookmarks]]
@@ -74,8 +74,6 @@ def build_server(open_service: OpenService) -> FastMCP:
             saved_before=saved_before,
             statuses=status or ("summarised",),
         )
-        if limit > MAX_LIMIT:
-            limit = MAX_LIMIT
         with open_service() as svc:
             result = svc.search(query, filters, limit)
         return {

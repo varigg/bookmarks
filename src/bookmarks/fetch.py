@@ -1,6 +1,6 @@
 """HTTP fetch edge. The core sees `HttpResponse` or `FetchError`, never httpx."""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Protocol
 
 import httpx
@@ -12,15 +12,19 @@ _USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64; rv:140.0) Gecko/20100101 Firefox/
 class HttpResponse:
     status: int
     text: str
-    headers: dict[str, str] = field(default_factory=dict)
 
 
 class FetchError(Exception):
     """No HTTP response at all: timeout, DNS, connection refused, TLS."""
 
-    def __init__(self, kind: str, message: str) -> None:
-        super().__init__(message)
-        self.kind = kind
+
+class Unacquirable(Exception):
+    """No source text; `transient` says whether a later drain may succeed."""
+
+    def __init__(self, reason: str, *, transient: bool) -> None:
+        super().__init__(reason)
+        self.reason = reason
+        self.transient = transient
 
 
 class Fetcher(Protocol):
@@ -43,11 +47,7 @@ class HttpxFetcher:
                 follow_redirects=True,
             )
         except httpx.TimeoutException as exc:
-            raise FetchError("timeout", f"timed out fetching {url}: {exc}") from None
+            raise FetchError(f"timed out fetching {url}: {exc}") from None
         except httpx.HTTPError as exc:
-            raise FetchError("network", f"could not fetch {url}: {exc}") from None
-        return HttpResponse(
-            status=response.status_code,
-            text=response.text,
-            headers=dict(response.headers),
-        )
+            raise FetchError(f"could not fetch {url}: {exc}") from None
+        return HttpResponse(status=response.status_code, text=response.text)

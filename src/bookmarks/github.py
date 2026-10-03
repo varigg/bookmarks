@@ -7,7 +7,7 @@ import re
 from dataclasses import dataclass
 from urllib.parse import urlsplit
 
-from bookmarks.fetch import Fetcher, FetchError, HttpResponse
+from bookmarks.fetch import Fetcher, FetchError, HttpResponse, Unacquirable
 
 API = "https://api.github.com"
 
@@ -44,13 +44,6 @@ def repo_of(url: str) -> Repo | None:
     return Repo(owner=owner, name=name)
 
 
-class GitHubFailure(Exception):
-    def __init__(self, reason: str, *, transient: bool) -> None:
-        super().__init__(reason)
-        self.reason = reason
-        self.transient = transient
-
-
 @dataclass(frozen=True)
 class Readme:
     full_name: str
@@ -68,28 +61,26 @@ def _get(fetcher: Fetcher, url: str, token: str | None) -> HttpResponse:
     try:
         return fetcher.get(url, headers=headers)
     except FetchError as exc:
-        raise GitHubFailure(str(exc), transient=True) from None
+        raise Unacquirable(str(exc), transient=True) from None
 
 
 def _raise_for(response: HttpResponse, what: str) -> None:
     if response.status in (404, 410, 451):
-        raise GitHubFailure(f"GitHub {what} not found", transient=False)
+        raise Unacquirable(f"GitHub {what} not found", transient=False)
     if response.status in (403, 429):
-        raise GitHubFailure("GitHub API rate limit", transient=True)
+        raise Unacquirable("GitHub API rate limit", transient=True)
     if response.status >= 500:
-        raise GitHubFailure(
-            f"GitHub API error (HTTP {response.status})", transient=True
-        )
-    raise GitHubFailure(f"GitHub API HTTP {response.status}", transient=False)
+        raise Unacquirable(f"GitHub API error (HTTP {response.status})", transient=True)
+    raise Unacquirable(f"GitHub API HTTP {response.status}", transient=False)
 
 
 def _json(response: HttpResponse) -> dict:
     try:
         data = json.loads(response.text)
     except json.JSONDecodeError:
-        raise GitHubFailure("GitHub API returned non-JSON", transient=True) from None
+        raise Unacquirable("GitHub API returned non-JSON", transient=True) from None
     if not isinstance(data, dict):
-        raise GitHubFailure("GitHub API returned non-object JSON", transient=True)
+        raise Unacquirable("GitHub API returned non-object JSON", transient=True)
     return data
 
 
@@ -111,5 +102,5 @@ def fetch_readme(fetcher: Fetcher, repo: Repo, token: str | None = None) -> Read
     try:
         text = base64.b64decode(readme.get("content") or "").decode("utf-8", "replace")
     except (binascii.Error, ValueError):
-        raise GitHubFailure("GitHub README not decodable", transient=True) from None
+        raise Unacquirable("GitHub README not decodable", transient=True) from None
     return Readme(full_name=full_name, description=description, text=text.strip())

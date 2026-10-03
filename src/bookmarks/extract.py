@@ -15,12 +15,8 @@ class Extracted:
     description: str | None
     text: str
 
-    @property
-    def length(self) -> int:
-        return len(self.text)
 
-
-def _clean(text: str | None) -> str | None:
+def clean(text: str | None) -> str | None:
     return (text or "").strip() or None
 
 
@@ -35,6 +31,6 @@ def extract(html: str | None, url: str | None = None) -> Extracted:
         favor_recall=True,
     )
     metadata = trafilatura.extract_metadata(html, default_url=url)
-    title = _clean(metadata.title) if metadata else None
-    description = _clean(metadata.description) if metadata else None
+    title = clean(metadata.title) if metadata else None
+    description = clean(metadata.description) if metadata else None
     return Extracted(title=title, description=description, text=(text or "").strip())

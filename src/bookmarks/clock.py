@@ -16,7 +16,3 @@ class SystemClock:
 def to_iso(moment: datetime) -> str:
     """Stored timestamp form: UTC, second precision, trailing Z."""
     return moment.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
-
-
-def from_iso(text: str) -> datetime:
-    return datetime.strptime(text, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=UTC)

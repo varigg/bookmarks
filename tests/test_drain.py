@@ -74,7 +74,6 @@ def test_request_is_single_turn_with_the_configured_model(service, fetcher, summ
     service.drain()
 
     request = summariser.requests[0]
-    assert request.single_turn is True
     assert request.model == "claude-sonnet-5-5"
     assert request.system_prompt == service.prompt.text
 

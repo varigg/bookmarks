@@ -5,12 +5,11 @@ text or raises `Unacquirable`, saying whether the failure is transient
 (retry on a later drain) or permanent (fail the item now).
 """
 
-import re
 from dataclasses import dataclass
 
 from bookmarks.extract import Extracted, extract
-from bookmarks.fetch import Fetcher, FetchError, HttpResponse
-from bookmarks.github import GitHubFailure, fetch_readme, repo_of
+from bookmarks.fetch import Fetcher, FetchError, HttpResponse, Unacquirable
+from bookmarks.github import fetch_readme, repo_of
 
 
 @dataclass(frozen=True)
@@ -18,13 +17,6 @@ class Acquired:
     text: str
     title: str | None
     description: str | None
-
-
-class Unacquirable(Exception):
-    def __init__(self, reason: str, *, transient: bool) -> None:
-        super().__init__(reason)
-        self.reason = reason
-        self.transient = transient
 
 
 def classify_status(status: int) -> tuple[str, bool] | None:
@@ -36,44 +28,6 @@ def classify_status(status: int) -> tuple[str, bool] | None:
     if status == 429 or status >= 500:
         return f"server error (HTTP {status})", True
     return f"HTTP {status}", False
-
-
-# A short page whose text is mostly one of these is a wall, not content.
-_WALL_TEXT_LIMIT = 1500
-_WALLS = (
-    (
-        "JavaScript required",
-        re.compile(
-            r"(enable|turn on|requires?) javascript|javascript (is )?(disabled|required)",
-            re.IGNORECASE,
-        ),
-    ),
-    (
-        "login wall",
-        re.compile(
-            r"(log|sign) ?in to (continue|view|see|read)|please (log|sign) ?in"
-            r"|you must be (logged|signed) in",
-            re.IGNORECASE,
-        ),
-    ),
-    (
-        "cookie wall",
-        re.compile(
-            r"(accept|consent to) (all )?cookies to (continue|view|access)"
-            r"|before you continue",
-            re.IGNORECASE,
-        ),
-    ),
-)
-
-
-def detect_wall(text: str) -> str | None:
-    if len(text) > _WALL_TEXT_LIMIT:
-        return None
-    for name, pattern in _WALLS:
-        if pattern.search(text):
-            return name
-    return None
 
 
 def _source_text(extracted: Extracted) -> str:
@@ -114,13 +68,6 @@ def acquire_generic(fetcher: Fetcher, url: str, client_html: str | None) -> Acqu
     text = _source_text(winner)
     if not text.strip():
         raise _no_text_failure(server)
-    wall = detect_wall(text)
-    if wall is not None:
-        server_failure = _no_text_failure(server)
-        if server_failure.transient:
-            # The server may yet answer with the real page on a later drain.
-            raise server_failure
-        raise Unacquirable(wall, transient=False)
     return Acquired(
         text=text,
         title=winner.title or other.title,
@@ -135,10 +82,7 @@ def acquire_github(
     falls back to the generic route."""
     repo = repo_of(url)
     assert repo is not None
-    try:
-        readme = fetch_readme(fetcher, repo, token)
-    except GitHubFailure as failure:
-        raise Unacquirable(failure.reason, transient=failure.transient) from None
+    readme = fetch_readme(fetcher, repo, token)
     if not readme.text:
         return acquire_generic(fetcher, url, client_html)
     return Acquired(

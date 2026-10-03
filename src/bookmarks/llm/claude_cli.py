@@ -75,18 +75,12 @@ class ClaudeCodeCLIProvider:
             str(request.max_turns),
             "--system-prompt",
             request.system_prompt,
-        ]
-        if request.single_turn:
             # An explicit empty string is Claude CLI's documented sentinel for
             # disabling every built-in tool. Omitting --tools leaves the
             # default tool set reachable.
-            cmd += ["--tools", ""]
-        elif request.tools:
-            # --tools restricts the built-in toolset; --allowedTools only
-            # auto-approves and leaves every other tool reachable.
-            cmd += ["--tools", *request.tools]
-        for directory in request.add_dirs:
-            cmd += ["--add-dir", directory]
+            "--tools",
+            "",
+        ]
         # --strict-mcp-config alone (with no --mcp-config) loads zero MCP
         # servers, on every call the provider builds (#140) — a bare
         # `claude -p` otherwise loads whatever MCP servers the caller's
@@ -101,26 +95,25 @@ class ClaudeCodeCLIProvider:
         timeout = request.timeout if request.timeout is not None else self.timeout
         run_dir = Path(tempfile.mkdtemp(prefix="bookmarks-claude-"))
         try:
+            env = os.environ.copy()
+            env.pop("CLAUDECODE", None)
             try:
-                run_kwargs = {
-                    "input": request.user_prompt,
-                    "capture_output": True,
-                    "text": True,
-                    "timeout": timeout,
-                    "cwd": run_dir,
-                }
-                if request.single_turn:
-                    env = os.environ.copy()
-                    env.pop("CLAUDECODE", None)
-                    run_kwargs["env"] = env
-                proc = subprocess.run(cmd, **run_kwargs)
+                proc = subprocess.run(
+                    cmd,
+                    input=request.user_prompt,
+                    capture_output=True,
+                    text=True,
+                    timeout=timeout,
+                    cwd=run_dir,
+                    env=env,
+                )
             except subprocess.TimeoutExpired:
                 raise ProviderFailure(
-                    "timeout", f"claude -p exceeded {timeout}s", retryable=True
+                    "timeout", f"claude -p exceeded {timeout}s"
                 ) from None
             except FileNotFoundError:
                 raise ProviderFailure(
-                    "unavailable", f"{self.executable} not installed", retryable=False
+                    "unavailable", f"{self.executable} not installed"
                 ) from None
             if proc.returncode != 0:
                 # The CLI reports errors on either stream (--output-format json
@@ -134,25 +127,11 @@ class ClaudeCodeCLIProvider:
                     if envelope is not None
                     else _excerpt(proc.stdout)
                 )
-                # Deliberately retain this path's broader retry rule: unlike
-                # _normalize's zero-exit is_error path, non-zero exits retry
-                # invalid_output as well.
                 raise ProviderFailure(
                     failure_class,
                     f"claude -p exit {proc.returncode}; "
                     f"stderr: {_excerpt(proc.stderr)}; "
                     f"stdout: {stdout_message}",
-                    retryable=failure_class in ("transient", "invalid_output"),
-                    raw=json.dumps(
-                        {
-                            "returncode": proc.returncode,
-                            "stdout": proc.stdout,
-                            "stderr": proc.stderr,
-                        }
-                    ),
-                    num_turns=envelope.get("num_turns")
-                    if envelope is not None
-                    else None,
                 )
             return self._normalize(proc.stdout)
         finally:
@@ -165,15 +144,11 @@ class ClaudeCodeCLIProvider:
             raise ProviderFailure(
                 "invalid_output",
                 f"unparseable CLI output: {_excerpt(stdout, 200)}",
-                retryable=True,
-                raw=stdout,
             ) from None
         if not isinstance(envelope, dict):
             raise ProviderFailure(
                 "invalid_output",
                 f"expected JSON object envelope, got: {_excerpt(stdout, 200)}",
-                retryable=True,
-                raw=stdout,
             )
         result_text = str(envelope.get("result", ""))
         if envelope.get("subtype") == "error_max_turns":
@@ -181,22 +156,12 @@ class ClaudeCodeCLIProvider:
                 "invalid_output",
                 result_text[:_EXCERPT_LIMIT]
                 or "claude exhausted the maximum number of turns",
-                retryable=True,
-                raw=stdout,
-                num_turns=envelope.get("num_turns"),
             )
         if envelope.get("is_error"):
             # Classify the whole envelope, not just result: an empty result
             # field must not blind the rate-limit/auth pause detection, and
             # the message must name the subtype the CLI reported.
-            failure_class = self._classify(stdout)
-            raise ProviderFailure(
-                failure_class,
-                _summarize_envelope(envelope),
-                retryable=failure_class == "transient",
-                raw=stdout,
-                num_turns=envelope.get("num_turns"),
-            )
+            raise ProviderFailure(self._classify(stdout), _summarize_envelope(envelope))
         return LLMResult(
             text=result_text,
             model=envelope.get("model") or self.model or "unknown",

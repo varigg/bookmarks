@@ -4,7 +4,9 @@
 `src/adventure_library/db.py` at commit b264b17.
 """
 
+import contextlib
 import sqlite3
+from collections.abc import Iterator
 from pathlib import Path
 
 # Each entry moves the schema up one `PRAGMA user_version`; never edit a
@@ -108,10 +110,20 @@ def _load_sqlite_vec(conn: sqlite3.Connection) -> None:
             "and use a Python SQLite build that supports extension loading"
         ) from exc
     finally:
-        try:
+        with contextlib.suppress(sqlite3.Error):
             conn.enable_load_extension(False)
-        except sqlite3.Error:
-            pass
+
+
+@contextlib.contextmanager
+def transaction(conn: sqlite3.Connection) -> Iterator[None]:
+    """BEGIN IMMEDIATE ... COMMIT, rolled back on any exception."""
+    conn.execute("BEGIN IMMEDIATE")
+    try:
+        yield
+        conn.execute("COMMIT")
+    except BaseException:
+        conn.execute("ROLLBACK")
+        raise
 
 
 def migrate(conn: sqlite3.Connection) -> None:

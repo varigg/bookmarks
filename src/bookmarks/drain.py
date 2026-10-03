@@ -10,8 +10,10 @@ import sqlite3
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from bookmarks.acquire import Acquired, Unacquirable, acquire
+from bookmarks.acquire import Acquired, acquire
 from bookmarks.clock import to_iso
+from bookmarks.db import transaction
+from bookmarks.fetch import Unacquirable
 from bookmarks.llm.provider import PAUSE_CLASSES, ProviderFailure
 from bookmarks.summarise import (
     InvalidReply,
@@ -90,8 +92,7 @@ def _store_summary(
     svc: "Bookmarks", claim: Claim, summary: Summary, *, model: str, truncated: bool
 ) -> None:
     conn = svc.conn
-    conn.execute("BEGIN IMMEDIATE")
-    try:
+    with transaction(conn):
         conn.execute("INSERT OR IGNORE INTO type (name) VALUES (?)", (summary.type,))
         conn.execute(
             "UPDATE item SET title = ?, type = ?, summary = ?, entities = ?, "
@@ -112,24 +113,15 @@ def _store_summary(
             ),
         )
         conn.execute("DELETE FROM queue WHERE item_id = ?", (claim.item_id,))
-        conn.execute("COMMIT")
-    except BaseException:
-        conn.execute("ROLLBACK")
-        raise
 
 
 def mark_failed(conn: sqlite3.Connection, item_id: int, reason: str) -> None:
-    conn.execute("BEGIN IMMEDIATE")
-    try:
+    with transaction(conn):
         conn.execute(
             "UPDATE item SET status = 'failed', failure_reason = ? WHERE id = ?",
             (reason, item_id),
         )
         conn.execute("DELETE FROM queue WHERE item_id = ?", (item_id,))
-        conn.execute("COMMIT")
-    except BaseException:
-        conn.execute("ROLLBACK")
-        raise
 
 
 class _Stop(Exception):

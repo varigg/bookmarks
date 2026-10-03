@@ -53,22 +53,12 @@ def rrf(
     """Fuse named ordered id lists and return scores plus per-leg ranks."""
     scores: dict[int, float] = {}
     leg_ranks: dict[int, dict[str, int]] = {}
-    first_seen: dict[int, int] = {}
-    next_seen = 0
     for leg_name, ranking in rankings:
-        seen_in_ranking: set[int] = set()
         for rank, target_id in enumerate(ranking, start=1):
-            if target_id in seen_in_ranking:
-                continue
-            seen_in_ranking.add(target_id)
             scores[target_id] = scores.get(target_id, 0.0) + 1 / (60 + rank)
             leg_ranks.setdefault(target_id, {})[leg_name] = rank
-            if target_id not in first_seen:
-                first_seen[target_id] = next_seen
-                next_seen += 1
-    ordered = sorted(
-        scores, key=lambda target_id: (-scores[target_id], first_seen[target_id])
-    )
+    # Ties keep first-seen order: dicts keep insertion order and sorted is stable.
+    ordered = sorted(scores, key=lambda target_id: -scores[target_id])
     return ordered, scores, leg_ranks
 
 

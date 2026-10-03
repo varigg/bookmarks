@@ -15,11 +15,8 @@ PAUSE_CLASSES = ("auth", "rate_limit", "unavailable")
 class LLMRequest:
     system_prompt: str
     user_prompt: str
-    tools: tuple[str, ...] = ()
     max_turns: int = 1
     timeout: int | None = None
-    add_dirs: tuple[str, ...] = ()
-    single_turn: bool = False
     model: str | None = None
 
 
@@ -32,22 +29,9 @@ class LLMResult:
 
 
 class ProviderFailure(Exception):
-    def __init__(
-        self,
-        failure_class: str,
-        message: str,
-        *,
-        retryable: bool,
-        raw: str | None = None,
-        num_turns: int | None = None,
-    ):
+    def __init__(self, failure_class: str, message: str):
         super().__init__(message)
         self.failure_class = failure_class
-        self.retryable = retryable
-        # Unabridged provider output for post-mortem persistence; the message
-        # is truncated for the log line, so this is the only complete record.
-        self.raw = raw
-        self.num_turns = num_turns
 
 
 class LLMProvider(Protocol):

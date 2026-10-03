@@ -12,12 +12,6 @@ from tests.fakes import summary_json
 URL = "https://example.com/post"
 ARTICLE = fixture_text("article.html")
 JS_SHELL = fixture_text("js_shell.html")
-LOGIN_WALL = """<html><head><title>Members</title></head><body>
-<main><h1>Members only</h1><p>Please log in to continue reading this story.</p>
-</main></body></html>"""
-COOKIE_WALL = """<html><head><title>Consent</title></head><body>
-<main><p>Before you continue to our site, you must accept cookies to continue.</p>
-</main></body></html>"""
 
 
 def _drain_attempts(service, clock, n):
@@ -29,7 +23,7 @@ def _drain_attempts(service, clock, n):
 @pytest.mark.parametrize(
     "server",
     [
-        FetchError("timeout", "timed out"),
+        FetchError("timed out"),
         HttpResponse(status=503, text="unavailable"),
     ],
 )
@@ -67,7 +61,7 @@ def test_malformed_reply_counts_an_attempt(service, fetcher, summariser, clock):
 def test_transient_failure_then_success_summarises(service, fetcher, summariser):
     fetcher.page(URL, ARTICLE)
     summariser.script(
-        ProviderFailure("timeout", "claude -p exceeded 300s", retryable=True),
+        ProviderFailure("timeout", "claude -p exceeded 300s"),
         summary_json(),
     )
     saved = service.save(URL)
@@ -79,7 +73,7 @@ def test_transient_failure_then_success_summarises(service, fetcher, summariser)
 
 
 def test_a_retried_item_waits_for_the_next_drain(service, fetcher, summariser):
-    fetcher.script(URL, FetchError("timeout", "timed out"))
+    fetcher.script(URL, FetchError("timed out"))
     service.save(URL)
 
     report = service.drain()
@@ -100,26 +94,6 @@ def test_404_fails_immediately_with_a_reason(service, fetcher, summariser):
     assert summariser.requests == []
 
 
-@pytest.mark.parametrize(
-    "html,reason",
-    [
-        (JS_SHELL, "JavaScript required"),
-        (LOGIN_WALL, "login wall"),
-        (COOKIE_WALL, "cookie wall"),
-    ],
-)
-def test_detected_walls_fail_immediately(service, fetcher, summariser, html, reason):
-    fetcher.page(URL, html)
-    saved = service.save(URL)
-
-    service.drain()
-
-    item = service.get_item(saved.item.id)
-    assert item.status == "failed"
-    assert item.failure_reason == reason
-    assert summariser.requests == []
-
-
 def test_page_with_no_readable_text_fails_immediately(service, fetcher):
     fetcher.page(URL, "<html><body><div id='app'></div></body></html>")
     saved = service.save(URL)
@@ -129,7 +103,7 @@ def test_page_with_no_readable_text_fails_immediately(service, fetcher):
     assert service.get_item(saved.item.id).failure_reason == "no readable content"
 
 
-def test_a_wall_from_the_server_loses_to_real_client_html(service, fetcher, summariser):
+def test_real_client_html_beats_a_thin_server_page(service, fetcher, summariser):
     fetcher.page(URL, JS_SHELL)
     saved = service.save(URL, html=ARTICLE)
 
@@ -141,8 +115,8 @@ def test_a_wall_from_the_server_loses_to_real_client_html(service, fetcher, summ
 @pytest.mark.parametrize(
     "failure",
     [
-        ProviderFailure("rate_limit", "Claude AI usage limit reached", retryable=False),
-        ProviderFailure("auth", "Error: not logged in. Run /login", retryable=False),
+        ProviderFailure("rate_limit", "Claude AI usage limit reached"),
+        ProviderFailure("auth", "Error: not logged in. Run /login"),
     ],
 )
 def test_systemic_failure_stops_the_run_and_counts_nothing(
@@ -173,7 +147,7 @@ def test_circuit_breaker_stops_after_consecutive_transient_failures(
     for n in range(7):
         fetcher.page(f"{URL}/{n}", ARTICLE)
         service.save(f"{URL}/{n}")
-    summariser.script(ProviderFailure("transient", "segfault", retryable=True))
+    summariser.script(ProviderFailure("transient", "segfault"))
 
     report = service.drain()
 
@@ -182,7 +156,7 @@ def test_circuit_breaker_stops_after_consecutive_transient_failures(
 
 
 def test_resaving_a_failed_item_requeues_it(service, fetcher, summariser, clock):
-    fetcher.page(URL, JS_SHELL)
+    fetcher.script(URL, HttpResponse(status=404, text="not found"))
     first = service.save(URL, note="the original note")
     service.drain()
     assert service.get_item(first.item.id).status == "failed"
@@ -204,7 +178,7 @@ def test_resaving_a_failed_item_requeues_it(service, fetcher, summariser, clock)
 
 
 def test_requeue_resets_attempts(service, fetcher, summariser, clock):
-    fetcher.script(URL, FetchError("timeout", "timed out"))
+    fetcher.script(URL, FetchError("timed out"))
     saved = service.save(URL)
     _drain_attempts(service, clock, 3)
     assert service.get_item(saved.item.id).status == "failed"

@@ -71,7 +71,7 @@ def test_submit_success_without_num_turns_field_is_none(monkeypatch):
     assert result.num_turns is None
 
 
-def test_submit_assembles_tool_request_flags_and_overrides(monkeypatch, tmp_path):
+def test_submit_applies_per_request_turns_and_timeout(monkeypatch):
     envelope = json.dumps(
         {
             "type": "result",
@@ -84,10 +84,8 @@ def test_submit_assembles_tool_request_flags_and_overrides(monkeypatch, tmp_path
     request = LLMRequest(
         system_prompt="Return only JSON.",
         user_prompt="Read the artifact.",
-        tools=("Read", "Grep"),
         max_turns=60,
         timeout=900,
-        add_dirs=(str(tmp_path),),
     )
     captured = {}
 
@@ -101,14 +99,7 @@ def test_submit_assembles_tool_request_flags_and_overrides(monkeypatch, tmp_path
 
     cmd = captured["cmd"]
     assert cmd[cmd.index("--max-turns") + 1] == "60"
-    assert cmd[cmd.index("--tools") + 1 : cmd.index("--add-dir")] == [
-        "Read",
-        "Grep",
-    ]
-    assert cmd[cmd.index("--add-dir") + 1] == str(tmp_path)
     assert captured["timeout"] == 900
-    assert captured["cwd"] != str(tmp_path)
-    assert not str(captured["cwd"]).startswith(str(tmp_path))
 
 
 def test_submit_timeout(monkeypatch):
@@ -119,30 +110,26 @@ def test_submit_timeout(monkeypatch):
     with pytest.raises(ProviderFailure) as excinfo:
         ClaudeCodeCLIProvider(timeout=1).submit(REQUEST)
     assert excinfo.value.failure_class == "timeout"
-    assert excinfo.value.retryable
-    # a hard timeout produces no envelope, so no turn count is available
-    assert excinfo.value.num_turns is None
 
 
 @pytest.mark.parametrize(
-    "stderr,expected,retryable",
+    "stderr,expected",
     [
-        ("Error: not logged in. Run /login", "auth", False),
-        ("API rate limit exceeded", "rate_limit", False),
-        ("Opus limit reached", "rate_limit", False),
-        ("5-hour session limit reached", "rate_limit", False),
-        ("weekly limit reached", "rate_limit", False),
-        ("segfault or whatever", "transient", True),
+        ("Error: not logged in. Run /login", "auth"),
+        ("API rate limit exceeded", "rate_limit"),
+        ("Opus limit reached", "rate_limit"),
+        ("5-hour session limit reached", "rate_limit"),
+        ("weekly limit reached", "rate_limit"),
+        ("segfault or whatever", "transient"),
     ],
 )
-def test_submit_classifies_cli_errors(monkeypatch, stderr, expected, retryable):
+def test_submit_classifies_cli_errors(monkeypatch, stderr, expected):
     monkeypatch.setattr(
         subprocess, "run", lambda cmd, **kw: _completed(returncode=1, stderr=stderr)
     )
     with pytest.raises(ProviderFailure) as excinfo:
         ClaudeCodeCLIProvider().submit(REQUEST)
     assert excinfo.value.failure_class == expected
-    assert excinfo.value.retryable is retryable
 
 
 def test_submit_nonzero_exit_reports_both_streams_and_exit_code(monkeypatch):
@@ -162,9 +149,6 @@ def test_submit_nonzero_exit_reports_both_streams_and_exit_code(monkeypatch):
     message = str(excinfo.value)
     assert "exit 1" in message
     assert "usage limit reached" in message
-    raw = json.loads(excinfo.value.raw)
-    assert raw["returncode"] == 1
-    assert "usage limit reached" in raw["stdout"]
 
 
 def test_submit_nonzero_exit_empty_streams_says_so(monkeypatch):
@@ -172,7 +156,6 @@ def test_submit_nonzero_exit_empty_streams_says_so(monkeypatch):
     with pytest.raises(ProviderFailure) as excinfo:
         ClaudeCodeCLIProvider().submit(REQUEST)
     assert excinfo.value.failure_class == "transient"
-    assert excinfo.value.retryable
     message = str(excinfo.value)
     assert "exit 143" in message
     assert "stderr: (empty)" in message
@@ -195,7 +178,7 @@ def test_submit_rejects_non_object_json_envelope(monkeypatch):
     assert excinfo.value.failure_class == "invalid_output"
 
 
-def test_submit_classifies_max_turns_as_retryable_invalid_output(monkeypatch):
+def test_submit_classifies_max_turns_as_invalid_output(monkeypatch):
     envelope = json.dumps(
         {
             "type": "result",
@@ -211,9 +194,6 @@ def test_submit_classifies_max_turns_as_retryable_invalid_output(monkeypatch):
     with pytest.raises(ProviderFailure) as excinfo:
         ClaudeCodeCLIProvider().submit(REQUEST)
     assert excinfo.value.failure_class == "invalid_output"
-    assert excinfo.value.retryable
-    # an exhausted-turns failure is exactly the case a turn count matters most
-    assert excinfo.value.num_turns == 60
 
 
 def test_submit_missing_binary(monkeypatch):
@@ -224,9 +204,7 @@ def test_submit_missing_binary(monkeypatch):
     with pytest.raises(ProviderFailure) as excinfo:
         ClaudeCodeCLIProvider().submit(REQUEST)
     assert excinfo.value.failure_class == "unavailable"
-    assert excinfo.value.retryable is False
     assert "not installed" in str(excinfo.value)
-    assert excinfo.value.num_turns is None
 
 
 def test_submit_error_envelope(monkeypatch):
@@ -244,7 +222,6 @@ def test_submit_error_envelope(monkeypatch):
     with pytest.raises(ProviderFailure) as excinfo:
         ClaudeCodeCLIProvider().submit(REQUEST)
     assert excinfo.value.failure_class == "rate_limit"
-    assert excinfo.value.num_turns == 3
 
 
 def test_submit_error_envelope_with_empty_result_names_subtype(monkeypatch):
@@ -265,7 +242,6 @@ def test_submit_error_envelope_with_empty_result_names_subtype(monkeypatch):
     message = str(excinfo.value)
     assert "error_during_execution" in message
     assert "result: (empty)" in message
-    assert excinfo.value.raw == envelope
 
 
 def test_submit_error_envelope_classifies_from_whole_envelope(monkeypatch):
@@ -355,11 +331,6 @@ def test_submit_nonzero_exit_with_envelope_reports_subtype_and_result(monkeypatc
     assert explanation in message
     assert "error_during_execution" in message
     assert "exit 1" in message
-    raw = json.loads(excinfo.value.raw)
-    assert raw == {"returncode": 1, "stdout": envelope, "stderr": ""}
-    # a non-zero exit that still carried a parseable envelope keeps its
-    # turn count, matching _nonzero_envelope's num_turns fixture value
-    assert excinfo.value.num_turns == 1
 
 
 def test_submit_nonzero_exit_envelope_empty_result_still_says_empty(monkeypatch):
@@ -394,24 +365,17 @@ def test_submit_nonzero_exit_non_object_json_falls_back(monkeypatch, stdout):
     message = str(excinfo.value)
     assert "exit 1" in message
     assert f"stdout: {stdout}" in message
-    # valid-but-non-object JSON carries no envelope, so no turn count either
-    assert excinfo.value.num_turns is None
 
 
-def test_submit_nonzero_exit_envelope_keeps_invalid_output_retryable(monkeypatch):
-    """Cost guard. This path retries on `transient` OR `invalid_output`, while
-    _normalize's is_error path retries only on `transient`. That divergence is
-    deliberate (v0.14.2 plan decision); parsing the envelope must not silently
-    adopt the stricter rule and shrink the retry budget."""
+def test_submit_nonzero_exit_max_turns_envelope_is_invalid_output(monkeypatch):
     with pytest.raises(ProviderFailure) as excinfo:
         _submit_nonzero(
             monkeypatch, _nonzero_envelope("ran out", subtype="error_max_turns")
         )
     assert excinfo.value.failure_class == "invalid_output"
-    assert excinfo.value.retryable is True
 
 
-# --- the single-turn provider mode ------------------------------------------
+# --- the call shape -----------------------------------------------------------
 #
 # The summariser call is bounded, tool-free and isolated: it reads untrusted
 # page text. This pins the exact CLI invocation shape and env handling.
@@ -431,7 +395,7 @@ def _envelope(result: str = "{}", num_turns: int = 1) -> str:
 
 
 def test_single_turn_mode_isolates_the_call(monkeypatch):
-    """single_turn=True must: restrict to zero tools (`--tools ""`, per `claude
+    """Every call must: restrict to zero tools (`--tools ""`, per `claude
     --help`'s documented sentinel — a bare omitted --tools leaves every default
     tool reachable, which is wrong for an unattended, untrusted-input call),
     isolate MCP (`--strict-mcp-config` alone, no `--mcp-config` — an empty
@@ -459,9 +423,7 @@ def test_single_turn_mode_isolates_the_call(monkeypatch):
     request = LLMRequest(
         system_prompt="Summarise the page as JSON.",
         user_prompt="summarise this page",
-        tools=(),
         max_turns=1,
-        single_turn=True,
         model="sonnet",
     )
 
@@ -481,68 +443,6 @@ def test_single_turn_mode_isolates_the_call(monkeypatch):
     assert captured["input"] == "summarise this page"
 
     env = captured["env"]
-    assert env is not None, "single_turn must pass an explicit env, not inherit"
+    assert env is not None, "the call must pass an explicit env, not inherit"
     assert "CLAUDECODE" not in env
     assert env.get("SOME_OTHER_VAR") == "keep-me"
-
-
-def test_non_single_turn_calls_still_get_mcp_isolation(monkeypatch):
-    """Every existing metadata/reuse-index call path must keep working, with
-    one deliberate change (#140): every call the provider builds now carries
-    `--strict-mcp-config`, not just single_turn's — a bare `claude -p` loads
-    whatever MCP servers the worker user's `~/.claude.json` registers, at a
-    measured ~30K cached-input tokens per call. No forced empty --tools
-    (metadata/reuse-index need their real, restricted toolset), still no
-    --mcp-config (an empty `--mcp-config "{}"` is rejected as invalid by
-    newer CLI versions), no env surgery, provider's own constructor model
-    wins absent a per-request override."""
-    monkeypatch.setenv("CLAUDECODE", "1")
-    captured = {}
-
-    def fake_run(cmd, **kwargs):
-        captured["cmd"] = cmd
-        captured["env"] = kwargs.get("env")
-        return _completed(stdout=_envelope())
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
-    provider = ClaudeCodeCLIProvider(model="opus")
-    provider.submit(
-        LLMRequest(
-            system_prompt="s",
-            user_prompt="u",
-            tools=("Read", "Grep"),
-            max_turns=60,
-        )
-    )
-
-    cmd = captured["cmd"]
-    assert "--strict-mcp-config" in cmd
-    assert "--mcp-config" not in cmd
-    assert cmd[cmd.index("--tools") + 1] == "Read"
-    assert cmd[cmd.index("--model") + 1] == "opus"
-    # unaffected calls may keep inheriting the real environment wholesale
-    assert captured["env"] is None or captured["env"].get("CLAUDECODE") == "1"
-
-
-def test_a_request_with_no_tools_and_not_single_turn_still_gets_mcp_isolation(
-    monkeypatch,
-):
-    """No current caller builds this shape (tools=(), single_turn=False), but
-    the ticket's fix is every call the provider builds, not every call a
-    caller happens to make today — so it must not be an escape hatch back to
-    the ~30K-token bare `claude -p` default. No --tools flag at all: an empty
-    tools tuple here isn't single_turn's explicit zero-tools sentinel."""
-    captured = {}
-
-    def fake_run(cmd, **kwargs):
-        captured["cmd"] = cmd
-        return _completed(stdout=_envelope())
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
-    provider = ClaudeCodeCLIProvider()
-    provider.submit(LLMRequest(system_prompt="s", user_prompt="u"))
-
-    cmd = captured["cmd"]
-    assert "--strict-mcp-config" in cmd
-    assert "--mcp-config" not in cmd
-    assert "--tools" not in cmd

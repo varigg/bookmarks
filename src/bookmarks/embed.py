@@ -11,6 +11,8 @@ from typing import Protocol
 import httpx
 import sqlite_vec
 
+from bookmarks.db import transaction
+
 # nomic-embed-text is trained with task prefixes; they are applied here and
 # nowhere else.
 DOCUMENT_PREFIX = "search_document: "
@@ -112,8 +114,7 @@ def run_embed(
         except EmbedError as exc:
             report.error = str(exc)
             return report
-        conn.execute("BEGIN IMMEDIATE")
-        try:
+        with transaction(conn):
             conn.executemany(
                 "INSERT OR REPLACE INTO embedding (item_id, model, dims, vector) "
                 "VALUES (?, ?, ?, ?)",
@@ -122,8 +123,4 @@ def run_embed(
                     for row, vector in zip(rows, vectors, strict=True)
                 ],
             )
-            conn.execute("COMMIT")
-        except BaseException:
-            conn.execute("ROLLBACK")
-            raise
         report.embedded += len(rows)

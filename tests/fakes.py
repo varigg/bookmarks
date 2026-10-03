@@ -40,7 +40,7 @@ class FakeFetcher:
         self.requests.append((url, headers or {}))
         responses = self.routes.get(url)
         if not responses:
-            raise FetchError("network", f"unscripted URL {url}")
+            raise FetchError(f"unscripted URL {url}")
         response = responses.pop(0) if len(responses) > 1 else responses[0]
         if isinstance(response, Exception):
             raise response

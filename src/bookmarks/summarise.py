@@ -61,7 +61,6 @@ def build_request(
     return LLMRequest(
         system_prompt=prompt.text,
         user_prompt="\n".join(lines),
-        single_turn=True,
         max_turns=1,
         model=model,
         timeout=timeout,

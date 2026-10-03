@@ -12,7 +12,9 @@ from typing import Literal
 from bookmarks import drain as draining
 from bookmarks import store
 from bookmarks.clock import Clock, to_iso
+from bookmarks.db import transaction
 from bookmarks.embed import Embedder, EmbedReport, run_embed
+from bookmarks.extract import clean
 from bookmarks.fetch import Fetcher
 from bookmarks.llm.provider import LLMProvider
 from bookmarks.search import Filters, SearchResult, hybrid_search
@@ -30,11 +32,6 @@ class SaveResult:
     item: Item
     note_added: bool
     message: str
-
-
-def _clean(text: str | None) -> str | None:
-    text = (text or "").strip()
-    return text or None
 
 
 class Bookmarks:
@@ -67,7 +64,7 @@ class Bookmarks:
     ) -> SaveResult:
         """Keep a URL. Raises `InvalidUrl` for anything but http(s)."""
         url = normalise_url(url)
-        note = _clean(note)
+        note = clean(note)
         existing = store.get_by_url(self.conn, url)
         if existing is not None and existing.status == "failed":
             return self._requeue(existing, html=html, title=title, note=note)
@@ -75,29 +72,24 @@ class Bookmarks:
             return self._already_saved(existing, note)
 
         now = to_iso(self.clock.now())
-        self.conn.execute("BEGIN IMMEDIATE")
         try:
-            item_id = self.conn.execute(
-                "INSERT INTO item (url, domain, title, note, saved_at) "
-                "VALUES (?, ?, ?, ?, ?) RETURNING id",
-                (url, domain_of(url), _clean(title), note, now),
-            ).fetchone()[0]
-            self.conn.execute(
-                "INSERT INTO queue (item_id, html, capture_title, enqueued_at) "
-                "VALUES (?, ?, ?, ?)",
-                (item_id, html or None, _clean(title), now),
-            )
-            self.conn.execute("COMMIT")
+            with transaction(self.conn):
+                item_id = self.conn.execute(
+                    "INSERT INTO item (url, domain, title, note, saved_at) "
+                    "VALUES (?, ?, ?, ?, ?) RETURNING id",
+                    (url, domain_of(url), clean(title), note, now),
+                ).fetchone()[0]
+                self.conn.execute(
+                    "INSERT INTO queue (item_id, html, capture_title, enqueued_at) "
+                    "VALUES (?, ?, ?, ?)",
+                    (item_id, html or None, clean(title), now),
+                )
         except sqlite3.IntegrityError:
             # A concurrent save of the same URL won the insert.
-            self.conn.execute("ROLLBACK")
             existing = store.get_by_url(self.conn, url)
             if existing is None:
                 raise
             return self._already_saved(existing, note)
-        except BaseException:
-            self.conn.execute("ROLLBACK")
-            raise
         item = store.get_by_id(self.conn, item_id)
         assert item is not None
         return SaveResult("saved", item, note_added=note is not None, message="Saved")
@@ -108,8 +100,7 @@ class Bookmarks:
         """A failed item gets another chance with whatever page is sent now;
         its original note and saved time are kept."""
         now = to_iso(self.clock.now())
-        self.conn.execute("BEGIN IMMEDIATE")
-        try:
+        with transaction(self.conn):
             self.conn.execute(
                 "UPDATE item SET status = 'pending', failure_reason = NULL "
                 "WHERE id = ?",
@@ -119,12 +110,8 @@ class Bookmarks:
                 "INSERT OR REPLACE INTO queue "
                 "(item_id, html, capture_title, attempts, enqueued_at) "
                 "VALUES (?, ?, ?, 0, ?)",
-                (item.id, html or None, _clean(title), now),
+                (item.id, html or None, clean(title), now),
             )
-            self.conn.execute("COMMIT")
-        except BaseException:
-            self.conn.execute("ROLLBACK")
-            raise
         message = "Re-queued" + ("; note not added" if note is not None else "")
         requeued = store.get_by_id(self.conn, item.id)
         assert requeued is not None
