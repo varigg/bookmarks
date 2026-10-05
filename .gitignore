@@ -79,3 +79,8 @@ site/
 
 # Kiro
 .kiro/
+
+# Claude Code local state
+.claude/HANDOFF.md
+.claude/settings.local.json
+.claude/worktrees/
