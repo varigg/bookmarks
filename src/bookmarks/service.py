@@ -9,18 +9,18 @@ import sqlite3
 from dataclasses import dataclass
 from typing import Literal
 
-from bookmarks import drain as draining
 from bookmarks import store
 from bookmarks.clock import Clock, to_iso
 from bookmarks.db import transaction
 from bookmarks.embed import Embedder, EmbedReport, run_embed
-from bookmarks.extract import clean
-from bookmarks.fetch import Fetcher
-from bookmarks.llm.provider import LLMProvider
+from bookmarks.ingest import drain as draining
+from bookmarks.ingest.extract import clean
+from bookmarks.ingest.fetch import Fetcher
+from bookmarks.ingest.llm.provider import LLMProvider
+from bookmarks.ingest.summarise import Prompt, load_prompt
 from bookmarks.search import Filters, SearchResult, hybrid_search
 from bookmarks.settings import Settings
 from bookmarks.store import Item
-from bookmarks.summarise import Prompt, load_prompt
 from bookmarks.urls import domain_of, normalise_url
 
 SaveOutcome = Literal["saved", "already_saved", "requeued"]

@@ -4,8 +4,8 @@ from dataclasses import replace
 
 import pytest
 
-from bookmarks.fetch import HttpResponse
-from bookmarks.github import repo_of
+from bookmarks.ingest.fetch import HttpResponse
+from bookmarks.ingest.github import repo_of
 from tests.factories import fixture_text
 
 REPO_URL = "https://github.com/automerge/automerge"

@@ -8,7 +8,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, ValidationError, field_validator
 
-from bookmarks.llm.provider import LLMRequest
+from bookmarks.ingest.llm.provider import LLMRequest
 
 PROMPT_PATH = Path(__file__).parent / "prompts" / "summarise.md"
 

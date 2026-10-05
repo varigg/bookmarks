@@ -10,7 +10,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from bookmarks.llm.provider import LLMRequest, LLMResult, ProviderFailure
+from bookmarks.ingest.llm.provider import LLMRequest, LLMResult, ProviderFailure
 
 _AUTH_MARKERS = ("not logged in", "authentication", "/login", "unauthorized")
 _EXCERPT_LIMIT = 500

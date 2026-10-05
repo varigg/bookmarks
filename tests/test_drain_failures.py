@@ -4,8 +4,8 @@ import json
 
 import pytest
 
-from bookmarks.fetch import FetchError, HttpResponse
-from bookmarks.llm.provider import ProviderFailure
+from bookmarks.ingest.fetch import FetchError, HttpResponse
+from bookmarks.ingest.llm.provider import ProviderFailure
 from tests.factories import fixture_text
 from tests.fakes import summary_json
 
