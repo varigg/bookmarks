@@ -9,10 +9,7 @@ import sqlite3
 from collections.abc import Iterator
 from pathlib import Path
 
-# Each entry moves the schema up one `PRAGMA user_version`; never edit a
-# shipped entry, append a new one.
-MIGRATIONS: list[str] = [
-    """
+SCHEMA = """
     CREATE TABLE item (
         id INTEGER PRIMARY KEY,
         url TEXT NOT NULL UNIQUE,
@@ -45,8 +42,6 @@ MIGRATIONS: list[str] = [
         claimed_at TEXT,
         enqueued_at TEXT NOT NULL
     );
-    """,
-    """
     -- The open type list: base types plus any the summariser adopts.
     CREATE TABLE type (
         name TEXT PRIMARY KEY,
@@ -55,8 +50,6 @@ MIGRATIONS: list[str] = [
     INSERT INTO type (name, base) VALUES
         ('article', 1), ('repo', 1), ('docs', 1),
         ('product', 1), ('discussion', 1), ('media', 1);
-    """,
-    """
     -- One vector per item per embedding model (title + summary + note).
     CREATE TABLE embedding (
         item_id INTEGER NOT NULL REFERENCES item (id) ON DELETE CASCADE,
@@ -93,9 +86,7 @@ MIGRATIONS: list[str] = [
         INSERT INTO item_fts (rowid, title, summary, note, entities)
         VALUES (new.id, new.title, new.summary, new.note, new.entities);
     END;
-    INSERT INTO item_fts (item_fts) VALUES ('rebuild');
-    """,
-]
+"""
 
 
 def _load_sqlite_vec(conn: sqlite3.Connection) -> None:
@@ -126,12 +117,9 @@ def transaction(conn: sqlite3.Connection) -> Iterator[None]:
         raise
 
 
-def migrate(conn: sqlite3.Connection) -> None:
-    version = conn.execute("PRAGMA user_version").fetchone()[0]
-    for number, script in enumerate(MIGRATIONS[version:], start=version + 1):
-        # executescript commits any open transaction first, so each script
-        # carries its own BEGIN/COMMIT around the version bump.
-        conn.executescript(f"BEGIN; {script}; PRAGMA user_version = {number}; COMMIT;")
+def create_schema(conn: sqlite3.Connection) -> None:
+    if conn.execute("PRAGMA user_version").fetchone()[0] == 0:
+        conn.executescript(f"BEGIN; {SCHEMA}; PRAGMA user_version = 1; COMMIT;")
 
 
 def connect(db_path: Path | str) -> sqlite3.Connection:
@@ -145,7 +133,7 @@ def connect(db_path: Path | str) -> sqlite3.Connection:
         conn.execute("PRAGMA journal_mode = WAL")
         conn.execute("PRAGMA busy_timeout = 5000")
         _load_sqlite_vec(conn)
-        migrate(conn)
+        create_schema(conn)
     except Exception:
         conn.close()
         raise

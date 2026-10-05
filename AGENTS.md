@@ -28,19 +28,23 @@ The hard invariants are the strict form. Adapted from Tomas Vykruta's AGENTS.md 
    an owner; never add a second owner. A function-level import to dodge a cycle means the logic is in the wrong
    module.
 
-   | Domain | Owner |
-   |---|---|
-   | Item (identity, record, Note), Type | `store.py` (writes not there yet: #36) |
-   | Stage, Status (stage order, what an outcome means, retry budget, re-queue) | `lifecycle.py` **(not built)** |
-   | Source text (the retrieving stage) | `retrieve.py` **(not built; today `acquire.py`)** |
-   | Summary, Entities, Provenance (the summarising stage) | `summarise.py` |
-   | The embedding stage | `embed.py` |
-   | Saving (outcomes and messages) | `service.py` |
-   | Search (filters, ranking) | `search.py` |
+   Two systems (ADR 0002): the **store** and **ingestion**, which lives in `bookmarks.ingest` **(not built; today
+   flat in `bookmarks`)**. Ingestion reaches the store only through its public functions; the store never imports
+   `bookmarks.ingest`.
 
-   Mechanisms own no domain rules: `drain.py` runs stages within the `claude -p` budget; schema in `db.py`,
-   settings in `settings.py`, the LLM adapter in `llm/`. Helpers (`urls.py`, `fetch.py`, `extract.py`, `github.py`)
-   are called only by their owner.
+   | System | Domain | Owner |
+   |---|---|---|
+   | Store | Item (identity, record, Note), Type | `store.py` (insert and replace not there yet: #36) |
+   | Store | Search (filters, ranking) | `search.py` |
+   | Store | Embedding | `embed.py` |
+   | Ingestion | Submission, Stage, Status (stage order, what an outcome means, retry budget, re-saving a failed URL) | `ingest/lifecycle.py` **(not built)** |
+   | Ingestion | Source text (the retrieving stage) | `ingest/retrieve.py` **(not built; today `acquire.py`)** |
+   | Ingestion | Summary, Entities, Provenance (the summarising stage) | `ingest/summarise.py` **(today `summarise.py`)** |
+   | Ingestion | Saving (outcomes and messages) | `service.py` **(moves into `ingest/`)** |
+
+   Mechanisms own no domain rules: `ingest/drain.py` runs stages within the `claude -p` budget; schema in `db.py`,
+   settings in `settings.py`, the LLM adapter in `ingest/llm/`. Helpers are called only by their owner: `urls.py`
+   by `store.py`; `fetch.py`, `extract.py`, `github.py` by `ingest/retrieve.py`.
 
 2. **Never duplicate logic.** On the second use: (1) move it to the owner, (2) switch the original caller, tests
    green, no behaviour change, (3) then build the new use. Grep the expression and list every copy; the move
