@@ -7,8 +7,8 @@ from contextlib import contextmanager
 from bookmarks import db
 from bookmarks.clock import SystemClock
 from bookmarks.embed import OllamaEmbedder
-from bookmarks.fetch import HttpxFetcher
-from bookmarks.llm.claude_cli import ClaudeCodeCLIProvider
+from bookmarks.ingest.fetch import HttpxFetcher
+from bookmarks.ingest.llm.claude_cli import ClaudeCodeCLIProvider
 from bookmarks.service import Bookmarks
 from bookmarks.settings import Settings
 

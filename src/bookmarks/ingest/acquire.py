@@ -7,9 +7,9 @@ text or raises `Unacquirable`, saying whether the failure is transient
 
 from dataclasses import dataclass
 
-from bookmarks.extract import Extracted, extract
-from bookmarks.fetch import Fetcher, FetchError, HttpResponse, Unacquirable
-from bookmarks.github import fetch_readme, repo_of
+from bookmarks.ingest.extract import Extracted, extract
+from bookmarks.ingest.fetch import Fetcher, FetchError, HttpResponse, Unacquirable
+from bookmarks.ingest.github import fetch_readme, repo_of
 
 
 @dataclass(frozen=True)

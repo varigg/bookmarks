@@ -7,8 +7,8 @@ import re
 from datetime import UTC, datetime, timedelta
 
 from bookmarks.embed import EmbedError
-from bookmarks.fetch import FetchError, HttpResponse
-from bookmarks.llm.provider import LLMRequest, LLMResult
+from bookmarks.ingest.fetch import FetchError, HttpResponse
+from bookmarks.ingest.llm.provider import LLMRequest, LLMResult
 
 
 class FakeClock:

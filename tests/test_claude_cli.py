@@ -8,8 +8,8 @@ import subprocess
 
 import pytest
 
-from bookmarks.llm.claude_cli import _EXCERPT_LIMIT, ClaudeCodeCLIProvider
-from bookmarks.llm.provider import LLMRequest, ProviderFailure
+from bookmarks.ingest.llm.claude_cli import _EXCERPT_LIMIT, ClaudeCodeCLIProvider
+from bookmarks.ingest.llm.provider import LLMRequest, ProviderFailure
 
 REQUEST = LLMRequest(
     system_prompt="Return only JSON.",

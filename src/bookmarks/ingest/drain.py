@@ -10,12 +10,12 @@ import sqlite3
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from bookmarks.acquire import Acquired, acquire
 from bookmarks.clock import to_iso
 from bookmarks.db import transaction
-from bookmarks.fetch import Unacquirable
-from bookmarks.llm.provider import PAUSE_CLASSES, ProviderFailure
-from bookmarks.summarise import (
+from bookmarks.ingest.acquire import Acquired, acquire
+from bookmarks.ingest.fetch import Unacquirable
+from bookmarks.ingest.llm.provider import PAUSE_CLASSES, ProviderFailure
+from bookmarks.ingest.summarise import (
     InvalidReply,
     Summary,
     Unreadable,

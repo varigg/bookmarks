@@ -7,7 +7,7 @@ import re
 from dataclasses import dataclass
 from urllib.parse import urlsplit
 
-from bookmarks.fetch import Fetcher, FetchError, HttpResponse, Unacquirable
+from bookmarks.ingest.fetch import Fetcher, FetchError, HttpResponse, Unacquirable
 
 API = "https://api.github.com"
 
