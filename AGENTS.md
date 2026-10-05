@@ -28,9 +28,8 @@ The hard invariants are the strict form. Adapted from Tomas Vykruta's AGENTS.md 
    an owner; never add a second owner. A function-level import to dodge a cycle means the logic is in the wrong
    module.
 
-   Two systems (ADR 0002): the **store** and **ingestion**, which lives in `bookmarks.ingest` **(not built; today
-   flat in `bookmarks`)**. Ingestion reaches the store only through its public functions; the store never imports
-   `bookmarks.ingest`.
+   Two systems (ADR 0002): the **store** and **ingestion**, which lives in `bookmarks.ingest`. Ingestion reaches the
+   store only through its public functions; the store never imports `bookmarks.ingest` (enforced by `tests/test_import_direction.py`).
 
    | System | Domain | Owner |
    |---|---|---|
@@ -38,8 +37,8 @@ The hard invariants are the strict form. Adapted from Tomas Vykruta's AGENTS.md 
    | Store | Search (filters, ranking) | `search.py` |
    | Store | Embedding | `embed.py` |
    | Ingestion | Submission, Stage, Status (stage order, what an outcome means, retry budget, re-saving a failed URL) | `ingest/lifecycle.py` **(not built)** |
-   | Ingestion | Source text (the retrieving stage) | `ingest/retrieve.py` **(not built; today `acquire.py`)** |
-   | Ingestion | Summary, Entities, Provenance (the summarising stage) | `ingest/summarise.py` **(today `summarise.py`)** |
+   | Ingestion | Source text (the retrieving stage) | `ingest/retrieve.py` **(not built; today `ingest/acquire.py`)** |
+   | Ingestion | Summary, Entities, Provenance (the summarising stage) | `ingest/summarise.py` |
    | Ingestion | Saving (outcomes and messages) | `service.py` **(moves into `ingest/`)** |
 
    Mechanisms own no domain rules: `ingest/drain.py` runs stages within the `claude -p` budget; schema in `db.py`,
