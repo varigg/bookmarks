@@ -4,9 +4,11 @@ import argparse
 import sys
 from collections.abc import Iterator
 from contextlib import contextmanager
+from pathlib import Path
 
 from bookmarks import db
 from bookmarks.embed import OllamaEmbedder
+from bookmarks.ingest import legacy
 from bookmarks.ingest.fetch import HttpxFetcher, Unretrievable
 from bookmarks.ingest.llm.claude_cli import ClaudeCodeCLIProvider
 from bookmarks.ingest.retrieve import retrieve
@@ -85,6 +87,17 @@ def _retrieve(settings: Settings, args: argparse.Namespace) -> None:
     print(found.text)
 
 
+def _import_legacy(settings: Settings, args: argparse.Namespace) -> None:
+    bookmarks = legacy.parse(args.path.read_text(encoding="utf-8"))
+    with _service_opener(settings)() as svc:
+        outcomes = legacy.import_legacy(svc, bookmarks)
+    print(
+        f"import: {len(bookmarks)} read, {outcomes['saved']} saved, "
+        f"{outcomes['already_saved']} already saved, "
+        f"{outcomes['requeued']} re-queued"
+    )
+
+
 def _mcp(settings: Settings, args: argparse.Namespace) -> None:
     from bookmarks.mcp_server import build_server
 
@@ -108,6 +121,12 @@ def main(argv: list[str] | None = None) -> None:
     )
     retrieve_cmd.add_argument("url")
     retrieve_cmd.set_defaults(handler=_retrieve)
+    import_cmd = commands.add_parser(
+        "import-legacy",
+        help="save the old app's bookmarks (bookmarks.js) at their original dates",
+    )
+    import_cmd.add_argument("path", type=Path)
+    import_cmd.set_defaults(handler=_import_legacy)
     commands.add_parser("mcp", help="run the MCP server over stdio").set_defaults(
         handler=_mcp
     )
