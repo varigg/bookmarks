@@ -6,6 +6,8 @@ and hand them in, tests hand in fakes.
 """
 
 import sqlite3
+from collections.abc import Callable
+from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from typing import Literal
 
@@ -144,3 +146,6 @@ class Bookmarks:
     ) -> SearchResult:
         """Hybrid keyword + semantic search over items."""
         return hybrid_search(self.conn, self.embedder, query, filters, limit)
+
+
+OpenService = Callable[[], AbstractContextManager[Bookmarks]]
