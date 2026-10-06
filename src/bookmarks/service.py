@@ -159,6 +159,11 @@ class Bookmarks:
         """Submissions not yet items, newest saved first."""
         return lifecycle.newest_submissions(self.conn, status, clamp_limit(limit))
 
+    def merge_types(self, source: str, into: str) -> int:
+        """Merge (or rename) a type; see `store.merge_types`."""
+        with transaction(self.conn):
+            return store.merge_types(self.conn, source, into)
+
     def list_types(self) -> dict[str, int]:
         """Every type with its item count."""
         return store.type_counts(self.conn)

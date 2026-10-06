@@ -67,6 +67,12 @@ SCHEMA = """
     INSERT INTO type (name, base) VALUES
         ('article', 1), ('repo', 1), ('docs', 1),
         ('product', 1), ('discussion', 1), ('media', 1);
+    -- A merged-away type name and the type it now means; it is never
+    -- adopted again. Merges re-point older aliases, so there are no chains.
+    CREATE TABLE type_alias (
+        name TEXT PRIMARY KEY,
+        target TEXT NOT NULL REFERENCES type (name)
+    );
     -- One vector per item per embedding model (title + summary + note).
     CREATE TABLE embedding (
         item_id INTEGER NOT NULL REFERENCES item (id) ON DELETE CASCADE,

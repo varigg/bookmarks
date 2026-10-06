@@ -186,6 +186,19 @@ def build_server(open_service: OpenService) -> FastMCP:
         return {"types": [{"name": n, "count": c} for n, c in counts.items()]}
 
     @mcp.tool()
+    def merge_types(source: str, into: str) -> dict:
+        """Merge the type `source` into the type `into`: every item of `source`
+        moves to `into`, and `source` is retired for good (a later summary
+        naming it is stored as `into`). If `into` is not an existing type,
+        this renames `source`. Names are case-insensitive.
+
+        Errors if `source` is not a type, is the same as `into`, or `into` is
+        itself a merged-away name. Returns how many items moved."""
+        with open_service() as svc:
+            moved = svc.merge_types(source, into)
+        return {"moved": moved}
+
+    @mcp.tool()
     def list_submissions(
         status: Literal["pending", "failed"] | None = None, limit: int = 10
     ) -> dict:

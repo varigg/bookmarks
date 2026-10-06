@@ -138,10 +138,12 @@ def insert_item(
     saved_at: str,
     provenance: Provenance,
 ) -> int:
-    """Add a complete item and adopt its Type if unseen. Raises `ItemExists`.
+    """Add a complete item and adopt its Type if unseen; a merged-away type
+    name is stored as the type it was merged into. Raises `ItemExists`.
 
     Runs inside the caller's transaction, if any."""
     url = identity(url)
+    type = resolve_type(conn, type)
     try:
         item_id = conn.execute(
             "INSERT INTO item (url, domain, title, type, summary, entities, note, "
@@ -205,3 +207,41 @@ _SENTENCE_END = re.compile(r"(?<=[.!?])\s")
 def lede(summary: str) -> str:
     """A summary is written lede-first: its first sentence stands alone."""
     return _SENTENCE_END.split(summary.strip(), maxsplit=1)[0]
+
+
+def resolve_type(conn: sqlite3.Connection, name: str) -> str:
+    """The type a name means now: its merge target if it was merged away."""
+    row = conn.execute(
+        "SELECT target FROM type_alias WHERE name = ?", (name,)
+    ).fetchone()
+    return row["target"] if row is not None else name
+
+
+def merge_types(conn: sqlite3.Connection, source: str, into: str) -> int:
+    """Move every item of `source` to `into` and make `source` an alias of it;
+    an unseen `into` is a rename. Returns how many items moved.
+
+    Raises `ValueError` for an unknown `source`, for `into` being `source` or
+    a merged-away name. Runs inside the caller's transaction, if any."""
+    source, into = type_name(source), type_name(into)
+    if source == into:
+        raise ValueError("cannot merge a type into itself")
+    if conn.execute("SELECT 1 FROM type WHERE name = ?", (source,)).fetchone() is None:
+        raise ValueError(f"no type named {source!r}")
+    if resolve_type(conn, into) != into:
+        raise ValueError(
+            f"{into!r} was merged into {resolve_type(conn, into)!r}; merge into that"
+        )
+    # A rename keeps the base flag: the type is the same, only its name changes.
+    conn.execute(
+        "INSERT OR IGNORE INTO type (name, base) "
+        "SELECT ?, base FROM type WHERE name = ?",
+        (into, source),
+    )
+    moved = conn.execute(
+        "UPDATE item SET type = ? WHERE type = ?", (into, source)
+    ).rowcount
+    conn.execute("UPDATE type_alias SET target = ? WHERE target = ?", (into, source))
+    conn.execute("INSERT INTO type_alias (name, target) VALUES (?, ?)", (source, into))
+    conn.execute("DELETE FROM type WHERE name = ?", (source,))
+    return moved
