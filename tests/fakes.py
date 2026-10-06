@@ -69,7 +69,7 @@ class FakeSummariser:
         reply = self.replies.pop(0) if len(self.replies) > 1 else self.replies[0]
         if isinstance(reply, Exception):
             raise reply
-        return LLMResult(text=reply, model=self.model, raw=reply)
+        return LLMResult(text=reply, model=self.model)
 
 
 # Words that share a meaning share a dimension, so a paraphrase lands near the

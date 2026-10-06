@@ -31,7 +31,6 @@ def test_submit_success(monkeypatch):
             "is_error": False,
             "result": '{"title": "X"}',
             "model": "claude-sonnet-5",
-            "num_turns": 7,
         }
     )
     captured = {}
@@ -47,14 +46,13 @@ def test_submit_success(monkeypatch):
     result = provider.submit(REQUEST)
     assert result.text == '{"title": "X"}'
     assert result.model == "claude-sonnet-5"
-    assert result.num_turns == 7
     assert captured["input"] == "extract stuff"
     assert "-p" in captured["cmd"] and "--max-turns" in captured["cmd"]
     assert captured["cmd"][captured["cmd"].index("--max-turns") + 1] == "1"
     assert captured["cwd"]
 
 
-def test_submit_success_without_num_turns_field_is_none(monkeypatch):
+def test_submit_uses_the_providers_model_and_timeout(monkeypatch):
     envelope = json.dumps(
         {
             "type": "result",
@@ -63,29 +61,6 @@ def test_submit_success_without_num_turns_field_is_none(monkeypatch):
             "result": "{}",
             "model": "claude-sonnet-5",
         }
-    )
-    monkeypatch.setattr(
-        subprocess, "run", lambda cmd, **kw: _completed(stdout=envelope)
-    )
-    result = ClaudeCodeCLIProvider().submit(REQUEST)
-    assert result.num_turns is None
-
-
-def test_submit_applies_per_request_turns_and_timeout(monkeypatch):
-    envelope = json.dumps(
-        {
-            "type": "result",
-            "subtype": "success",
-            "is_error": False,
-            "result": "{}",
-            "model": "claude-sonnet-5",
-        }
-    )
-    request = LLMRequest(
-        system_prompt="Return only JSON.",
-        user_prompt="Read the artifact.",
-        max_turns=60,
-        timeout=900,
     )
     captured = {}
 
@@ -95,11 +70,25 @@ def test_submit_applies_per_request_turns_and_timeout(monkeypatch):
         return _completed(stdout=envelope)
 
     monkeypatch.setattr(subprocess, "run", fake_run)
-    ClaudeCodeCLIProvider(timeout=300).submit(request)
+    ClaudeCodeCLIProvider(model="claude-haiku-4-5", timeout=900).submit(REQUEST)
 
     cmd = captured["cmd"]
-    assert cmd[cmd.index("--max-turns") + 1] == "60"
+    assert cmd[cmd.index("--model") + 1] == "claude-haiku-4-5"
+    assert cmd[cmd.index("--max-turns") + 1] == "1"
     assert captured["timeout"] == 900
+
+
+def test_submit_without_a_model_passes_no_model_flag(monkeypatch):
+    captured = {}
+
+    def fake_run(cmd, **kwargs):
+        captured["cmd"] = cmd
+        return _completed(stdout=_envelope())
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    ClaudeCodeCLIProvider().submit(REQUEST)
+
+    assert "--model" not in captured["cmd"]
 
 
 def test_submit_timeout(monkeypatch):
@@ -169,6 +158,20 @@ def test_submit_rejects_garbled_stdout(monkeypatch):
     with pytest.raises(ProviderFailure) as excinfo:
         ClaudeCodeCLIProvider().submit(REQUEST)
     assert excinfo.value.failure_class == "invalid_output"
+
+
+@pytest.mark.parametrize(
+    "stdout,message",
+    [
+        ("not json at all", "unparseable CLI output: not json at all"),
+        ("null", "expected JSON object envelope, got: null"),
+    ],
+)
+def test_submit_invalid_output_message_says_which(monkeypatch, stdout, message):
+    monkeypatch.setattr(subprocess, "run", lambda cmd, **kw: _completed(stdout=stdout))
+    with pytest.raises(ProviderFailure) as excinfo:
+        ClaudeCodeCLIProvider().submit(REQUEST)
+    assert str(excinfo.value) == message
 
 
 def test_submit_rejects_non_object_json_envelope(monkeypatch):
@@ -381,7 +384,7 @@ def test_submit_nonzero_exit_max_turns_envelope_is_invalid_output(monkeypatch):
 # page text. This pins the exact CLI invocation shape and env handling.
 
 
-def _envelope(result: str = "{}", num_turns: int = 1) -> str:
+def _envelope(result: str = "{}") -> str:
     return json.dumps(
         {
             "type": "result",
@@ -389,7 +392,6 @@ def _envelope(result: str = "{}", num_turns: int = 1) -> str:
             "is_error": False,
             "result": result,
             "model": "claude-sonnet-5",
-            "num_turns": num_turns,
         }
     )
 
@@ -400,8 +402,7 @@ def test_single_turn_mode_isolates_the_call(monkeypatch):
     tool reachable, which is wrong for an unattended, untrusted-input call),
     isolate MCP (`--strict-mcp-config` alone, no `--mcp-config` — an empty
     `--mcp-config {}` is rejected as invalid by newer CLI versions), cap at one turn,
-    take its model from the per-request override (not the provider's own
-    constructor default), send the prompt on stdin, and unset CLAUDECODE (the
+    take its model from the provider, send the prompt on stdin, and unset CLAUDECODE (the
     nested-session marker) from the child's environment so a `claude -p`
     shelled out from *inside* a Claude Code session — this worker's own
     intended deployment — does not see itself as nested. Every other inherited
@@ -419,12 +420,10 @@ def test_single_turn_mode_isolates_the_call(monkeypatch):
         return _completed(stdout=_envelope())
 
     monkeypatch.setattr(subprocess, "run", fake_run)
-    provider = ClaudeCodeCLIProvider(model="opus")  # provider default must lose
+    provider = ClaudeCodeCLIProvider(model="sonnet")
     request = LLMRequest(
         system_prompt="Summarise the page as JSON.",
         user_prompt="summarise this page",
-        max_turns=1,
-        model="sonnet",
     )
 
     result = provider.submit(request)
@@ -439,7 +438,7 @@ def test_single_turn_mode_isolates_the_call(monkeypatch):
     assert "--strict-mcp-config" in cmd
     assert "--mcp-config" not in cmd
     assert _arg_after("--max-turns") == "1"
-    assert _arg_after("--model") == "sonnet"  # per-request override wins
+    assert _arg_after("--model") == "sonnet"
     assert captured["input"] == "summarise this page"
 
     env = captured["env"]
