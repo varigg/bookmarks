@@ -143,6 +143,4 @@ class Bookmarks:
         self, query: str, filters: Filters | None = None, limit: int | None = None
     ) -> SearchResult:
         """Hybrid keyword + semantic search over items."""
-        return hybrid_search(
-            self.conn, self.embedder, self.settings, query, filters, limit
-        )
+        return hybrid_search(self.conn, self.embedder, query, filters, limit)
