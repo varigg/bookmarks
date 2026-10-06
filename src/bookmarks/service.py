@@ -21,15 +21,18 @@ from bookmarks.ingest.summarise import Prompt, load_prompt
 from bookmarks.search import Filters, SearchResult, hybrid_search
 from bookmarks.settings import Settings
 from bookmarks.store import Item
-from bookmarks.urls import domain_of, normalise_url
+from bookmarks.urls import normalise_url
 
 SaveOutcome = Literal["saved", "already_saved", "requeued"]
+Status = Literal["pending", "failed", "summarised"]
 
 
 @dataclass(frozen=True)
 class SaveResult:
     outcome: SaveOutcome
-    item: Item
+    url: str
+    status: Status
+    saved_at: str
     note_added: bool
     message: str
 
@@ -65,63 +68,63 @@ class Bookmarks:
         """Keep a URL. Raises `InvalidUrl` for anything but http(s)."""
         url = normalise_url(url)
         note = clean(note)
-        existing = store.get_by_url(self.conn, url)
-        if existing is not None and existing.status == "failed":
-            return self._requeue(existing, html=html, title=title, note=note)
-        if existing is not None:
-            return self._already_saved(existing, note)
-
-        now = to_iso(self.clock.now())
-        try:
-            with transaction(self.conn):
-                item_id = self.conn.execute(
-                    "INSERT INTO item (url, domain, title, note, saved_at) "
-                    "VALUES (?, ?, ?, ?, ?) RETURNING id",
-                    (url, domain_of(url), clean(title), note, now),
-                ).fetchone()[0]
-                self.conn.execute(
-                    "INSERT INTO queue (item_id, html, capture_title, enqueued_at) "
-                    "VALUES (?, ?, ?, ?)",
-                    (item_id, html or None, clean(title), now),
-                )
-        except sqlite3.IntegrityError:
-            # A concurrent save of the same URL won the insert.
-            existing = store.get_by_url(self.conn, url)
-            if existing is None:
-                raise
-            return self._already_saved(existing, note)
-        item = store.get_by_id(self.conn, item_id)
-        assert item is not None
-        return SaveResult("saved", item, note_added=note is not None, message="Saved")
+        # One write lock across the lookups and the write, so a drain cannot
+        # turn the URL into an item in between.
+        with transaction(self.conn):
+            item = store.get_by_url(self.conn, url)
+            if item is not None:
+                return self._already_saved(url, "summarised", item.saved_at, note)
+            submission = draining.get_submission(self.conn, url)
+            if submission is not None and submission.status == "failed":
+                return self._requeue(submission, html=html, title=title, note=note)
+            if submission is not None:
+                return self._already_saved(url, "pending", submission.saved_at, note)
+            now = to_iso(self.clock.now())
+            self.conn.execute(
+                "INSERT INTO submission "
+                "(url, note, saved_at, html, capture_title, enqueued_at) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                (url, note, now, html or None, clean(title), now),
+            )
+        return SaveResult(
+            "saved", url, "pending", now, note_added=note is not None, message="Saved"
+        )
 
     def _requeue(
-        self, item: Item, *, html: str | None, title: str | None, note: str | None
+        self,
+        submission: draining.Submission,
+        *,
+        html: str | None,
+        title: str | None,
+        note: str | None,
     ) -> SaveResult:
-        """A failed item gets another chance with whatever page is sent now;
-        its original note and saved time are kept."""
-        now = to_iso(self.clock.now())
-        with transaction(self.conn):
-            self.conn.execute(
-                "UPDATE item SET status = 'pending', failure_reason = NULL "
-                "WHERE id = ?",
-                (item.id,),
-            )
-            self.conn.execute(
-                "INSERT OR REPLACE INTO queue "
-                "(item_id, html, capture_title, attempts, enqueued_at) "
-                "VALUES (?, ?, ?, 0, ?)",
-                (item.id, html or None, clean(title), now),
-            )
+        """A failed submission gets another chance with whatever page is sent
+        now; its original note and saved time are kept."""
+        self.conn.execute(
+            "UPDATE submission SET status = 'pending', failure_reason = NULL, "
+            "html = ?, capture_title = ?, attempts = 0, claimed_at = NULL, "
+            "enqueued_at = ? WHERE url = ?",
+            (html or None, clean(title), to_iso(self.clock.now()), submission.url),
+        )
         message = "Re-queued" + ("; note not added" if note is not None else "")
-        requeued = store.get_by_id(self.conn, item.id)
-        assert requeued is not None
-        return SaveResult("requeued", requeued, note_added=False, message=message)
+        return SaveResult(
+            "requeued",
+            submission.url,
+            "pending",
+            submission.saved_at,
+            note_added=False,
+            message=message,
+        )
 
-    def _already_saved(self, item: Item, note: str | None) -> SaveResult:
-        message = f"Already saved on {item.saved_at[:10]}"
+    def _already_saved(
+        self, url: str, status: Status, saved_at: str, note: str | None
+    ) -> SaveResult:
+        message = f"Already saved on {saved_at[:10]}"
         if note is not None:
             message += "; note not added"
-        return SaveResult("already_saved", item, note_added=False, message=message)
+        return SaveResult(
+            "already_saved", url, status, saved_at, note_added=False, message=message
+        )
 
     def get_item(self, item_id: int) -> Item | None:
         return store.get_by_id(self.conn, item_id)
@@ -130,17 +133,17 @@ class Bookmarks:
         return draining.types_in_use(self.conn)
 
     def drain(self, *, limit: int | None = None) -> draining.DrainReport:
-        """Summarise queued items, oldest first, one at a time."""
+        """Summarise pending submissions, oldest first, one at a time."""
         return draining.run_drain(self, limit=limit)
 
     def embed(self) -> EmbedReport:
-        """Embed summarised items lacking a vector for the current model."""
+        """Embed items lacking a vector for the current model."""
         return run_embed(self.conn, self.embedder)
 
     def search(
         self, query: str, filters: Filters | None = None, limit: int | None = None
     ) -> SearchResult:
-        """Hybrid keyword + semantic search; summarised items only by default."""
+        """Hybrid keyword + semantic search over items."""
         return hybrid_search(
             self.conn, self.embedder, self.settings, query, filters, limit
         )

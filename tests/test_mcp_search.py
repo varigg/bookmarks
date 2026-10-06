@@ -50,7 +50,6 @@ def test_search_passes_through_to_the_core(server, service):
         {"query": ""},
         {"query": "x", "limit": 0},
         {"query": "x", "limit": "many"},
-        {"query": "x", "status": ["archived"]},
     ],
 )
 def test_search_rejects_invalid_input(server, arguments):

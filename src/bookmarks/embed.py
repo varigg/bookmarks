@@ -91,7 +91,7 @@ class EmbedReport:
 def run_embed(
     conn: sqlite3.Connection, embedder: Embedder, *, batch_size: int = 32
 ) -> EmbedReport:
-    """Embed every summarised item lacking a vector for the current model.
+    """Embed every item lacking a vector for the current model.
 
     Vectors of any other model are dropped, so changing the configured model
     re-embeds everything.
@@ -101,7 +101,7 @@ def run_embed(
     while True:
         rows = conn.execute(
             "SELECT id, title, summary, note FROM item "
-            "WHERE status = 'summarised' AND NOT EXISTS ("
+            "WHERE NOT EXISTS ("
             "  SELECT 1 FROM embedding e WHERE e.item_id = item.id AND e.model = ?"
             ") ORDER BY id LIMIT ?",
             (embedder.model, batch_size),

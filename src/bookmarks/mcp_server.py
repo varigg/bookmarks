@@ -25,7 +25,6 @@ def _hit(hit: Hit) -> dict:
         "type": item.type,
         "domain": item.domain,
         "saved_at": item.saved_at,
-        "status": item.status,
         "summary": item.summary,
         "entities": item.entities,
         "note": item.note,
@@ -44,7 +43,6 @@ def build_server(open_service: OpenService) -> FastMCP:
         domain: str | None = None,
         saved_after: str | None = None,
         saved_before: str | None = None,
-        status: list[str] | None = None,
         limit: int = 10,
     ) -> dict:
         """Find saved items by describing them loosely or naming an exact term.
@@ -60,8 +58,6 @@ def build_server(open_service: OpenService) -> FastMCP:
         - domain: e.g. "github.com" (subdomains match too)
         - saved_after / saved_before: ISO dates, e.g. "2026-01-01";
           after is inclusive, before exclusive
-        - status: any of "pending", "summarised", "failed"; default summarised
-          only (pending and failed items have no summary)
         - limit: default 10, at most 50
 
         Returns {legs, results, notes}; `legs` names the ranking legs that ran
@@ -72,7 +68,6 @@ def build_server(open_service: OpenService) -> FastMCP:
             domain=domain,
             saved_after=saved_after,
             saved_before=saved_before,
-            statuses=status or ("summarised",),
         )
         with open_service() as svc:
             result = svc.search(query, filters, limit)

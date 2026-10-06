@@ -1,18 +1,19 @@
-"""Record factories: put items into the store through the core."""
+"""Record factories: put submissions and items into the store through the core."""
 
 from pathlib import Path
 
+from bookmarks import store
+from bookmarks.ingest.drain import Submission, get_submission
 from bookmarks.service import Bookmarks
 from bookmarks.store import Item
 
-_counter = 0
+
+def item_at(service: Bookmarks, url: str) -> Item | None:
+    return store.get_by_url(service.conn, url)
 
 
-def saved_item(service: Bookmarks, url: str | None = None, **fields) -> Item:
-    global _counter
-    _counter += 1
-    url = url or f"https://example.com/article-{_counter}"
-    return service.save(url, **fields).item
+def submission_at(service: Bookmarks, url: str) -> Submission | None:
+    return get_submission(service.conn, url)
 
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -39,6 +40,6 @@ def summarised_item(
     service.summariser.script(
         summary_json(title=title, type=type, summary=summary, entities=entities or [])
     )
-    item = service.save(url, note=note).item
+    saved = service.save(url, note=note)
     service.drain()
-    return service.get_item(item.id)
+    return item_at(service, saved.url)

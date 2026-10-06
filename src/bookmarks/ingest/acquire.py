@@ -1,4 +1,4 @@
-"""Acquisition: turn a queued item into source text at drain time.
+"""Acquisition: turn a submission into source text at drain time.
 
 Routes are chosen by URL rule, never by type. A route either returns source
 text or raises `Unacquirable`, saying whether the failure is transient

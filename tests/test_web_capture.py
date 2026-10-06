@@ -11,7 +11,7 @@ def client(open_service):
     return TestClient(create_app(open_service))
 
 
-def test_post_url_saves_a_pending_item(client, service):
+def test_post_url_answers_url_status_and_saved_time(client):
     response = client.post(
         "/api/items",
         json={"url": "https://example.com/a?utm_source=x", "html": "<p>hi</p>"},
@@ -20,8 +20,11 @@ def test_post_url_saves_a_pending_item(client, service):
     assert response.status_code == 201
     body = response.json()
     assert body["message"] == "Saved"
-    assert body["item"]["status"] == "pending"
-    assert service.get_item(body["item"]["id"]).url == "https://example.com/a"
+    assert body["item"] == {
+        "url": "https://example.com/a",
+        "status": "pending",
+        "saved_at": "2026-09-30T12:00:00Z",
+    }
 
 
 def test_duplicate_post_reports_already_saved(client):
