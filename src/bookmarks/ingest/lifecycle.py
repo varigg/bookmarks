@@ -43,6 +43,10 @@ class Submission:
     attempts: int
 
 
+# The columns a Submission is read from: its fields, in order.
+_SUBMISSION_COLUMNS = ", ".join(f.name for f in dataclasses.fields(Submission))
+
+
 # Per stage: a stage that succeeds resets the count for the next one.
 MAX_ATTEMPTS = 3
 
@@ -53,8 +57,7 @@ def stage_of(claim: Claim) -> Literal["retrieving", "summarising"]:
 
 def get_submission(conn: sqlite3.Connection, url: str) -> Submission | None:
     row = conn.execute(
-        "SELECT url, note, saved_at, status, failure_reason, attempts "
-        "FROM submission WHERE url = ?",
+        f"SELECT {_SUBMISSION_COLUMNS} FROM submission WHERE url = ?",
         (url,),
     ).fetchone()
     return Submission(**row) if row is not None else None
@@ -212,8 +215,7 @@ def newest_submissions(
 ) -> list[Submission]:
     """Pending and failed submissions, newest saved first; `status` narrows."""
     rows = conn.execute(
-        "SELECT url, note, saved_at, status, failure_reason, attempts "
-        "FROM submission WHERE ? IS NULL OR status = ? "
+        f"SELECT {_SUBMISSION_COLUMNS} FROM submission WHERE ? IS NULL OR status = ? "
         "ORDER BY saved_at DESC, id DESC LIMIT ?",
         (status, status, limit),
     )
