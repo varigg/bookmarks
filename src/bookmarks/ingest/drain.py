@@ -10,8 +10,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from bookmarks import store
-from bookmarks.clock import now_iso
-from bookmarks.db import transaction
+from bookmarks.db import now_iso, transaction
 from bookmarks.ingest.acquire import Acquired, acquire
 from bookmarks.ingest.fetch import Unacquirable
 from bookmarks.ingest.llm.provider import PAUSE_CLASSES, ProviderFailure

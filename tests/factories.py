@@ -3,7 +3,7 @@
 from datetime import UTC, datetime
 from pathlib import Path
 
-from bookmarks import store
+from bookmarks import db, store
 from bookmarks.ingest.drain import Submission, get_submission
 from bookmarks.service import Bookmarks
 from bookmarks.store import Item
@@ -19,7 +19,7 @@ def submission_at(service: Bookmarks, url: str) -> Submission | None:
 
 def is_recent(stamp: str) -> bool:
     """A stored timestamp in the stored form, taken within the last minute."""
-    moment = datetime.strptime(stamp, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=UTC)
+    moment = datetime.strptime(stamp, db.TIMESTAMP_FORMAT).replace(tzinfo=UTC)
     return 0 <= (datetime.now(UTC) - moment).total_seconds() < 60
 
 

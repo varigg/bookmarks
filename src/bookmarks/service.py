@@ -10,8 +10,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 from bookmarks import store
-from bookmarks.clock import now_iso
-from bookmarks.db import transaction
+from bookmarks.db import now_iso, transaction
 from bookmarks.embed import Embedder, EmbedReport, run_embed
 from bookmarks.ingest import drain as draining
 from bookmarks.ingest.extract import clean
