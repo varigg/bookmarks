@@ -5,7 +5,6 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 
 from bookmarks import db
-from bookmarks.clock import SystemClock
 from bookmarks.embed import OllamaEmbedder
 from bookmarks.ingest.fetch import HttpxFetcher
 from bookmarks.ingest.llm.claude_cli import ClaudeCodeCLIProvider
@@ -20,7 +19,6 @@ def _service_opener(settings: Settings):
         try:
             yield Bookmarks(
                 conn,
-                clock=SystemClock(),
                 settings=settings,
                 fetcher=HttpxFetcher(timeout=settings.fetch_timeout),
                 summariser=ClaudeCodeCLIProvider(

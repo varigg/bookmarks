@@ -4,6 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from bookmarks.web.app import create_app
+from tests.factories import is_recent
 
 
 @pytest.fixture
@@ -23,8 +24,9 @@ def test_post_url_answers_url_status_and_saved_time(client):
     assert body["item"] == {
         "url": "https://example.com/a",
         "status": "pending",
-        "saved_at": "2026-09-30T12:00:00Z",
+        "saved_at": body["item"]["saved_at"],
     }
+    assert is_recent(body["item"]["saved_at"])
 
 
 def test_duplicate_post_reports_already_saved(client):

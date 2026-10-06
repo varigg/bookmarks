@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from bookmarks import store
-from bookmarks.clock import to_iso
+from bookmarks.clock import now_iso
 from bookmarks.db import transaction
 from bookmarks.ingest.acquire import Acquired, acquire
 from bookmarks.ingest.fetch import Unacquirable
@@ -123,7 +123,7 @@ def _store_summary(
                 cli=svc.summariser.name,
                 model=model,
                 prompt_hash=svc.prompt.hash,
-                at=to_iso(svc.clock.now()),
+                at=now_iso(),
                 truncated=truncated,
             ),
         )
@@ -223,7 +223,7 @@ def run_drain(svc: "Bookmarks", *, limit: int | None = None) -> DrainReport:
     tried: set[int] = set()
     consecutive_retries = 0
     while limit is None or len(tried) < limit:
-        claim = claim_next(svc.conn, to_iso(svc.clock.now()), exclude=tried)
+        claim = claim_next(svc.conn, now_iso(), exclude=tried)
         if claim is None:
             break
         tried.add(claim.submission_id)

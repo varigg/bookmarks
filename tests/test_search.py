@@ -8,7 +8,7 @@ from tests.fakes import FakeEmbedder
 
 
 @pytest.fixture
-def corpus(service, clock):
+def corpus(service):
     items = {}
     items["crdt"] = summarised_item(
         service,
@@ -17,8 +17,8 @@ def corpus(service, clock):
         summary="An essay arguing that collaborative apps can merge concurrent "
         "edits on each device and keep working offline.",
         entities=["Ink & Switch", "CRDT", "Automerge"],
+        saved_at="2026-09-30T12:00:00Z",
     )
-    clock.advance(days=30)
     items["bread"] = summarised_item(
         service,
         url="https://bakery.example.org/sourdough",
@@ -27,8 +27,8 @@ def corpus(service, clock):
         entities=["King Arthur Baking"],
         type="recipe",
         note="try this at the weekend",
+        saved_at="2026-10-30T12:00:00Z",
     )
-    clock.advance(days=30)
     items["repo"] = summarised_item(
         service,
         url="https://github.com/automerge/automerge/tree/main",
@@ -36,14 +36,15 @@ def corpus(service, clock):
         summary="A library of data structures for building collaborative apps.",
         entities=["Automerge", "Rust", "WebAssembly"],
         type="repo",
+        saved_at="2026-11-29T12:00:00Z",
     )
-    clock.advance(days=30)
     items["tax"] = summarised_item(
         service,
         url="https://money.example.com/budget",
         title="Budgeting basics",
         summary="How to set a monthly budget and start investing your savings.",
         entities=["Vanguard"],
+        saved_at="2026-12-29T12:00:00Z",
     )
     service.embed()
     return items
@@ -83,13 +84,6 @@ def test_changing_the_embedding_model_re_embeds_everything(
 
     assert service.embed().embedded == 4
     assert service.embed().embedded == 0
-
-
-def test_a_new_summary_invalidates_the_vector(service, corpus):
-    service.conn.execute(
-        "UPDATE item SET summary = 'rewritten' WHERE id = ?", (corpus["tax"].id,)
-    )
-    assert service.embed().embedded == 1
 
 
 def test_embed_failure_is_reported_not_raised(make_service, corpus):

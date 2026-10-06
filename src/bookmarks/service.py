@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 from bookmarks import store
-from bookmarks.clock import Clock, to_iso
+from bookmarks.clock import now_iso
 from bookmarks.db import transaction
 from bookmarks.embed import Embedder, EmbedReport, run_embed
 from bookmarks.ingest import drain as draining
@@ -41,7 +41,6 @@ class Bookmarks:
         self,
         conn: sqlite3.Connection,
         *,
-        clock: Clock,
         settings: Settings,
         fetcher: Fetcher,
         summariser: LLMProvider,
@@ -49,7 +48,6 @@ class Bookmarks:
         prompt: Prompt | None = None,
     ) -> None:
         self.conn = conn
-        self.clock = clock
         self.settings = settings
         self.fetcher = fetcher
         self.summariser = summariser
@@ -63,8 +61,11 @@ class Bookmarks:
         html: str | None = None,
         title: str | None = None,
         note: str | None = None,
+        saved_at: str | None = None,
     ) -> SaveResult:
-        """Keep a URL. Raises `InvalidUrl` for anything but http(s)."""
+        """Keep a URL, saved now unless `saved_at` says otherwise.
+
+        Raises `InvalidUrl` for anything but http(s)."""
         url = store.identity(url)
         note = clean(note)
         # One write lock across the lookups and the write, so a drain cannot
@@ -78,7 +79,7 @@ class Bookmarks:
                 return self._requeue(submission, html=html, title=title, note=note)
             if submission is not None:
                 return self._already_saved(url, "pending", submission.saved_at, note)
-            now = to_iso(self.clock.now())
+            now = saved_at or now_iso()
             self.conn.execute(
                 "INSERT INTO submission "
                 "(url, note, saved_at, html, capture_title, enqueued_at) "
@@ -103,7 +104,7 @@ class Bookmarks:
             "UPDATE submission SET status = 'pending', failure_reason = NULL, "
             "html = ?, capture_title = ?, attempts = 0, claimed_at = NULL, "
             "enqueued_at = ? WHERE url = ?",
-            (html or None, clean(title), to_iso(self.clock.now()), submission.url),
+            (html or None, clean(title), now_iso(), submission.url),
         )
         message = "Re-queued" + ("; note not added" if note is not None else "")
         return SaveResult(

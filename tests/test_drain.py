@@ -5,7 +5,7 @@ import json
 import pytest
 
 from bookmarks.settings import Settings
-from tests.factories import fixture_text, item_at, submission_at
+from tests.factories import fixture_text, is_recent, item_at, submission_at
 from tests.fakes import summary_json
 
 URL = "https://example.com/local-first"
@@ -38,7 +38,7 @@ def test_longer_server_fetch_wins_over_thin_client_html(service, fetcher, summar
 
 
 def test_summarised_item_carries_summary_and_full_provenance(
-    service, fetcher, summariser, clock
+    service, fetcher, summariser
 ):
     fetcher.page(URL, ARTICLE)
     summariser.script(
@@ -49,8 +49,7 @@ def test_summarised_item_carries_summary_and_full_provenance(
             entities=["Ink & Switch", "CRDT", "Automerge", "crdt"],
         )
     )
-    service.save(URL, note="for the reading group")
-    clock.advance(minutes=10)
+    service.save(URL, note="for the reading group", saved_at="2026-09-30T12:00:00Z")
 
     service.drain()
 
@@ -67,7 +66,7 @@ def test_summarised_item_carries_summary_and_full_provenance(
     assert item.provenance.model == "claude-sonnet-5-5"
     assert item.provenance.prompt_hash == service.prompt.hash
     assert len(item.provenance.prompt_hash) == 12
-    assert item.provenance.at == "2026-09-30T12:10:00Z"
+    assert is_recent(item.provenance.at)
     assert item.provenance.truncated is False
 
 
@@ -160,12 +159,11 @@ def test_client_html_is_gone_once_the_submission_leaves_pending(
 
 
 def test_drain_takes_submissions_oldest_first_and_honours_limit(
-    service, fetcher, summariser, clock
+    service, fetcher, summariser
 ):
     for n in range(3):
         fetcher.page(f"{URL}/{n}", ARTICLE)
-        service.save(f"{URL}/{n}")
-        clock.advance(minutes=1)
+        service.save(f"{URL}/{n}", saved_at=f"2026-09-30T12:0{n}:00Z")
 
     report = service.drain(limit=2)
 

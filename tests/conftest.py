@@ -6,17 +6,12 @@ import pytest
 from bookmarks import db
 from bookmarks.service import Bookmarks
 from bookmarks.settings import Settings
-from tests.fakes import FakeClock, FakeEmbedder, FakeFetcher, FakeSummariser
+from tests.fakes import FakeEmbedder, FakeFetcher, FakeSummariser
 
 
 @pytest.fixture
 def settings(tmp_path) -> Settings:
     return Settings(db_path=tmp_path / "bookmarks.db")
-
-
-@pytest.fixture
-def clock() -> FakeClock:
-    return FakeClock()
 
 
 @pytest.fixture
@@ -42,12 +37,11 @@ def conn(settings):
 
 
 @pytest.fixture
-def make_service(conn, clock, settings, fetcher, summariser, embedder):
+def make_service(conn, settings, fetcher, summariser, embedder):
     """Build the core over the real temp-dir SQLite; override any collaborator."""
 
     def build(**overrides) -> Bookmarks:
         collaborators = {
-            "clock": clock,
             "settings": settings,
             "fetcher": fetcher,
             "summariser": summariser,
