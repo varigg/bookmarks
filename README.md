@@ -68,5 +68,4 @@ Environment variables, all optional: `BOOKMARKS_DB`, `BOOKMARKS_HOST`,
 `BOOKMARKS_GITHUB_TOKEN`, `BOOKMARKS_EMBED_MODEL` (default
 `nomic-embed-text`; changing it re-embeds everything on the next embed run),
 `BOOKMARKS_OLLAMA_URL` (default `http://127.0.0.1:11434`),
-`BOOKMARKS_EMBED_TIMEOUT`, and the bm25 column weights
-`BOOKMARKS_BM25_ENTITIES` / `_TITLE` / `_NOTE` / `_SUMMARY` (3 / 2 / 2 / 1).
+and `BOOKMARKS_EMBED_TIMEOUT`.

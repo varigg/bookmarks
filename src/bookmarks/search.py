@@ -13,7 +13,6 @@ from dataclasses import dataclass, field
 
 from bookmarks import store
 from bookmarks.embed import Embedder, EmbedError, serialize
-from bookmarks.settings import Settings
 from bookmarks.store import Item
 
 DEFAULT_LIMIT = 10
@@ -21,6 +20,11 @@ MAX_LIMIT = 50
 # How deep each leg ranks before fusion.
 _LEG_DEPTH = 100
 _TOKEN = re.compile(r"\w+", re.UNICODE)
+# bm25 column weights for the keyword leg.
+_BM25_ENTITIES = 3.0
+_BM25_TITLE = 2.0
+_BM25_NOTE = 2.0
+_BM25_SUMMARY = 1.0
 
 
 @dataclass(frozen=True)
@@ -90,7 +94,7 @@ def fts_query(query: str) -> str | None:
 
 
 def _fts_leg(
-    conn: sqlite3.Connection, query: str, candidates: tuple[str, list], s: Settings
+    conn: sqlite3.Connection, query: str, candidates: tuple[str, list]
 ) -> list[int]:
     match = fts_query(query)
     if match is None:
@@ -103,10 +107,10 @@ def _fts_leg(
         (
             match,
             *params,
-            s.bm25_title,
-            s.bm25_summary,
-            s.bm25_note,
-            s.bm25_entities,
+            _BM25_TITLE,
+            _BM25_SUMMARY,
+            _BM25_NOTE,
+            _BM25_ENTITIES,
             _LEG_DEPTH,
         ),
     ).fetchall()
@@ -140,7 +144,6 @@ def clamp_limit(limit: int | None) -> int:
 def hybrid_search(
     conn: sqlite3.Connection,
     embedder: Embedder,
-    settings: Settings,
     query: str,
     filters: Filters | None = None,
     limit: int | None = None,
@@ -151,9 +154,7 @@ def hybrid_search(
         raise ValueError("query must not be empty")
     limit = clamp_limit(limit)
     candidates = _candidates_sql(filters)
-    rankings: list[tuple[str, list[int]]] = [
-        ("fts", _fts_leg(conn, query, candidates, settings))
-    ]
+    rankings: list[tuple[str, list[int]]] = [("fts", _fts_leg(conn, query, candidates))]
     notes: list[str] = []
     try:
         query_vector = embedder.embed_query(query)

@@ -42,8 +42,8 @@ The hard invariants are the strict form. Adapted from Tomas Vykruta's AGENTS.md 
    | Ingestion | Saving (outcomes and messages) | `service.py` **(moves into `ingest/`)** |
 
    Mechanisms own no domain rules: `ingest/drain.py` runs stages within the `claude -p` budget; schema in `db.py`,
-   settings in `settings.py`, the LLM adapter in `ingest/llm/`. Helpers are called only by their owner: `urls.py`
-   by `store.py`; `fetch.py`, `extract.py`, `github.py` by `ingest/retrieve.py`.
+   settings in `settings.py`, the LLM adapter in `ingest/llm/`. Helpers are called only by their owner:
+   `fetch.py`, `extract.py`, `github.py` by `ingest/retrieve.py`.
 
 2. **Never duplicate logic.** On the second use: (1) move it to the owner, (2) switch the original caller, tests
    green, no behaviour change, (3) then build the new use. Grep the expression and list every copy; the move

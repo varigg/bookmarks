@@ -4,18 +4,15 @@ The app holds no behaviour: it validates payloads, calls the core and
 translates the result.
 """
 
-from collections.abc import Callable, Iterator
-from contextlib import AbstractContextManager
+from collections.abc import Iterator
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from bookmarks.service import Bookmarks
+from bookmarks.service import Bookmarks, OpenService
 from bookmarks.store import InvalidUrl
-
-OpenService = Callable[[], AbstractContextManager[Bookmarks]]
 
 
 class CapturePayload(BaseModel):

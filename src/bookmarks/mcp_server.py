@@ -5,15 +5,10 @@ Each tool call opens its own service (one connection per call); tools raise
 docstrings are the contract the calling agent reads.
 """
 
-from collections.abc import Callable
-from contextlib import AbstractContextManager
-
 from mcp.server.fastmcp import FastMCP
 
 from bookmarks.search import Filters, Hit
-from bookmarks.service import Bookmarks
-
-OpenService = Callable[[], AbstractContextManager[Bookmarks]]
+from bookmarks.service import OpenService
 
 
 def _hit(hit: Hit) -> dict:
