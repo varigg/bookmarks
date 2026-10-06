@@ -5,10 +5,17 @@ Each tool call opens its own service (one connection per call); tools raise
 docstrings are the contract the calling agent reads.
 """
 
+from typing import Literal
+
 from mcp.server.fastmcp import FastMCP
 
+from bookmarks import store
+from bookmarks.ingest.lifecycle import Submission
 from bookmarks.search import Filters, Hit
 from bookmarks.service import OpenService
+from bookmarks.store import Item
+
+_WAYBACK = "https://web.archive.org/web/{url}"
 
 
 def _hit(hit: Hit) -> dict:
@@ -25,6 +32,50 @@ def _hit(hit: Hit) -> dict:
         "note": item.note,
         "score": round(hit.score, 6),
         "ranks": hit.ranks,
+    }
+
+
+def _listed(item: Item) -> dict:
+    return {
+        "id": item.id,
+        "url": item.url,
+        "title": item.title,
+        "type": item.type,
+        "lede": store.lede(item.summary),
+        "saved_at": item.saved_at,
+    }
+
+
+def _record(item: Item) -> dict:
+    p = item.provenance
+    return {
+        "id": item.id,
+        "url": item.url,
+        "title": item.title,
+        "type": item.type,
+        "domain": item.domain,
+        "saved_at": item.saved_at,
+        "summary": item.summary,
+        "entities": item.entities,
+        "note": item.note,
+        "provenance": {
+            "cli": p.cli,
+            "model": p.model,
+            "prompt_hash": p.prompt_hash,
+            "at": p.at,
+            "truncated": p.truncated,
+        },
+        "archive_url": _WAYBACK.format(url=item.url),
+    }
+
+
+def _submission(sub: Submission) -> dict:
+    return {
+        "url": sub.url,
+        "status": sub.status,
+        "saved_at": sub.saved_at,
+        "note": sub.note,
+        "failure_reason": sub.failure_reason,
     }
 
 
@@ -71,5 +122,79 @@ def build_server(open_service: OpenService) -> FastMCP:
             "results": [_hit(hit) for hit in result.hits],
             "notes": result.notes,
         }
+
+    @mcp.tool()
+    def list_items(limit: int = 10) -> dict:
+        """List saved items, newest first, each with its lede (the summary's
+        first sentence). Only summarised items; URLs still waiting or failed
+        are in `list_submissions`. limit: default 10, at most 50."""
+        with open_service() as svc:
+            items = svc.list_items(limit)
+        return {"items": [_listed(item) for item in items]}
+
+    @mcp.tool()
+    def get_item(id: int | None = None, url: str | None = None) -> dict:
+        """Get one item's full record by `id` or by `url` (give exactly one;
+        the URL may carry tracking parameters or a fragment). Includes its
+        provenance (which CLI, model and prompt wrote the summary) and an
+        `archive_url` on the Wayback Machine. Errors if there is no item."""
+        with open_service() as svc:
+            item = svc.find_item(item_id=id, url=url)
+        if item is None:
+            raise ValueError("no item with that id or url")
+        return _record(item)
+
+    @mcp.tool()
+    def save_item(url: str, note: str | None = None) -> dict:
+        """Save a URL to be summarised later; it shows in `list_submissions`
+        until it becomes an item.
+
+        `note` must be the user's own words saying why they kept it, passed
+        through as they said them. Never write a note yourself; omit it if
+        the user gave none.
+
+        Saving a URL that is already saved changes nothing ("Already saved"),
+        and never adds the note; saving a failed URL re-queues it."""
+        with open_service() as svc:
+            result = svc.save(url, note=note)
+        return {
+            "outcome": result.outcome,
+            "message": result.message,
+            "note_added": result.note_added,
+            "url": result.url,
+            "status": result.status,
+            "saved_at": result.saved_at,
+        }
+
+    @mcp.tool()
+    def delete_item(id: int | None = None, url: str | None = None) -> dict:
+        """Delete one item by `id` or `url` (give exactly one). It is gone from
+        lists and search for good. Returns the deleted item's id, url and
+        title; errors if there is no item."""
+        with open_service() as svc:
+            item = svc.delete_item(item_id=id, url=url)
+        if item is None:
+            raise ValueError("no item with that id or url")
+        return {"deleted": {"id": item.id, "url": item.url, "title": item.title}}
+
+    @mcp.tool()
+    def list_types() -> dict:
+        """Every item type with how many items have it, including types with
+        none. Use these names for search's `types` filter."""
+        with open_service() as svc:
+            counts = svc.list_types()
+        return {"types": [{"name": n, "count": c} for n, c in counts.items()]}
+
+    @mcp.tool()
+    def list_submissions(
+        status: Literal["pending", "failed"] | None = None, limit: int = 10
+    ) -> dict:
+        """List saved URLs that are not items yet, newest first: pending
+        (waiting to be summarised) or failed (with a `failure_reason` naming
+        the stage that failed). Saving a failed URL again retries it.
+        status: narrow to "pending" or "failed". limit: default 10, at most 50."""
+        with open_service() as svc:
+            subs = svc.list_submissions(status, limit)
+        return {"submissions": [_submission(sub) for sub in subs]}
 
     return mcp

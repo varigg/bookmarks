@@ -205,3 +205,16 @@ def replied(
         return "failed"
     _store_summary(svc, claim, reply, model=model, truncated=truncated)
     return "summarised"
+
+
+def newest_submissions(
+    conn: sqlite3.Connection, status: str | None, limit: int
+) -> list[Submission]:
+    """Pending and failed submissions, newest saved first; `status` narrows."""
+    rows = conn.execute(
+        "SELECT url, note, saved_at, status, failure_reason, attempts "
+        "FROM submission WHERE ? IS NULL OR status = ? "
+        "ORDER BY saved_at DESC, id DESC LIMIT ?",
+        (status, status, limit),
+    )
+    return [Submission(**r) for r in rows]

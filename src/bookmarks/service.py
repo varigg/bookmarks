@@ -20,7 +20,7 @@ from bookmarks.ingest.extract import clean
 from bookmarks.ingest.fetch import Fetcher
 from bookmarks.ingest.llm.provider import LLMProvider
 from bookmarks.ingest.summarise import Prompt, load_prompt
-from bookmarks.search import Filters, SearchResult, hybrid_search
+from bookmarks.search import Filters, SearchResult, clamp_limit, hybrid_search
 from bookmarks.settings import Settings
 from bookmarks.store import Item
 
@@ -125,11 +125,43 @@ class Bookmarks:
             "already_saved", url, status, saved_at, note_added=False, message=message
         )
 
-    def get_item(self, item_id: int) -> Item | None:
-        return store.get_by_id(self.conn, item_id)
+    def find_item(
+        self, *, item_id: int | None = None, url: str | None = None
+    ) -> Item | None:
+        """By id or by URL (normalised), exactly one of them.
 
-    def list_types(self) -> list[str]:
-        return store.types_in_use(self.conn)
+        Raises `ValueError` otherwise, `InvalidUrl` for a non-http(s) URL."""
+        if (item_id is None) == (url is None):
+            raise ValueError("give exactly one of id or url")
+        if item_id is not None:
+            return store.get_by_id(self.conn, item_id)
+        return store.get_by_url(self.conn, url)
+
+    def delete_item(
+        self, *, item_id: int | None = None, url: str | None = None
+    ) -> Item | None:
+        """Delete the item found as `find_item` finds it; None if there is none."""
+        with transaction(self.conn):
+            item = self.find_item(item_id=item_id, url=url)
+            if item is not None:
+                store.delete_item(self.conn, item.id)
+        return item
+
+    def list_items(self, limit: int | None = None) -> list[Item]:
+        """Items, newest saved first."""
+        return store.newest_items(self.conn, clamp_limit(limit))
+
+    def list_submissions(
+        self,
+        status: Literal["pending", "failed"] | None = None,
+        limit: int | None = None,
+    ) -> list[lifecycle.Submission]:
+        """Submissions not yet items, newest saved first."""
+        return lifecycle.newest_submissions(self.conn, status, clamp_limit(limit))
+
+    def list_types(self) -> dict[str, int]:
+        """Every type with its item count."""
+        return store.type_counts(self.conn)
 
     def drain(self, *, limit: int | None = None) -> draining.DrainReport:
         """Summarise pending submissions, oldest first, one at a time."""
