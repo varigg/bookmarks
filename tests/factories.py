@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from bookmarks import db, store
-from bookmarks.ingest.drain import Submission, get_submission
+from bookmarks.ingest.lifecycle import Submission, get_submission
 from bookmarks.service import Bookmarks
 from bookmarks.store import Item
 

@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from bookmarks.ingest.extract import Extracted, extract
 from bookmarks.ingest.fetch import Fetcher, FetchError, HttpResponse, Unacquirable
 from bookmarks.ingest.github import fetch_readme, repo_of
+from bookmarks.ingest.lifecycle import classify_status
 
 
 @dataclass(frozen=True)
@@ -17,17 +18,6 @@ class Acquired:
     text: str
     title: str | None
     description: str | None
-
-
-def classify_status(status: int) -> tuple[str, bool] | None:
-    """(reason, transient) for a non-success HTTP status, None for success."""
-    if 200 <= status < 300:
-        return None
-    if status in (404, 410):
-        return f"not found (HTTP {status})", False
-    if status == 429 or status >= 500:
-        return f"server error (HTTP {status})", True
-    return f"HTTP {status}", False
 
 
 def _source_text(extracted: Extracted) -> str:

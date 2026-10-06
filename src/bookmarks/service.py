@@ -15,6 +15,7 @@ from bookmarks import store
 from bookmarks.db import now_iso, transaction
 from bookmarks.embed import Embedder, EmbedReport, run_embed
 from bookmarks.ingest import drain as draining
+from bookmarks.ingest import lifecycle
 from bookmarks.ingest.extract import clean
 from bookmarks.ingest.fetch import Fetcher
 from bookmarks.ingest.llm.provider import LLMProvider
@@ -75,17 +76,19 @@ class Bookmarks:
             item = store.get_by_url(self.conn, url)
             if item is not None:
                 return self._already_saved(url, "summarised", item.saved_at, note)
-            submission = draining.get_submission(self.conn, url)
+            submission = lifecycle.get_submission(self.conn, url)
             if submission is not None and submission.status == "failed":
                 return self._requeue(submission, html=html, title=title, note=note)
             if submission is not None:
                 return self._already_saved(url, "pending", submission.saved_at, note)
             now = saved_at or now_iso()
-            self.conn.execute(
-                "INSERT INTO submission "
-                "(url, note, saved_at, html, capture_title, enqueued_at) "
-                "VALUES (?, ?, ?, ?, ?, ?)",
-                (url, note, now, html or None, clean(title), now),
+            lifecycle.submit(
+                self.conn,
+                url,
+                note=note,
+                saved_at=now,
+                html=html or None,
+                title=clean(title),
             )
         return SaveResult(
             "saved", url, "pending", now, note_added=note is not None, message="Saved"
@@ -93,19 +96,14 @@ class Bookmarks:
 
     def _requeue(
         self,
-        submission: draining.Submission,
+        submission: lifecycle.Submission,
         *,
         html: str | None,
         title: str | None,
         note: str | None,
     ) -> SaveResult:
-        """A failed submission gets another chance with whatever page is sent
-        now; its original note and saved time are kept."""
-        self.conn.execute(
-            "UPDATE submission SET status = 'pending', failure_reason = NULL, "
-            "html = ?, capture_title = ?, attempts = 0, claimed_at = NULL, "
-            "enqueued_at = ? WHERE url = ?",
-            (html or None, clean(title), now_iso(), submission.url),
+        lifecycle.requeue(
+            self.conn, submission.url, html=html or None, title=clean(title)
         )
         message = "Re-queued" + ("; note not added" if note is not None else "")
         return SaveResult(

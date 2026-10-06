@@ -36,7 +36,7 @@ The hard invariants are the strict form. Adapted from Tomas Vykruta's AGENTS.md 
    | Store | Item (identity, record, Note), Type | `store.py` |
    | Store | Search (filters, ranking) | `search.py` |
    | Store | Embedding | `embed.py` |
-   | Ingestion | Submission, Stage, Status (stage order, what an outcome means, retry budget, re-saving a failed URL) | `ingest/lifecycle.py` **(not built)** |
+   | Ingestion | Submission, Stage, Status (stage order, what an outcome means, retry budget, re-saving a failed URL) | `ingest/lifecycle.py` |
    | Ingestion | Source text (the retrieving stage) | `ingest/retrieve.py` **(not built; today `ingest/acquire.py`)** |
    | Ingestion | Summary, Entities, Provenance (the summarising stage) | `ingest/summarise.py` |
    | Ingestion | Saving (outcomes and messages) | `service.py` **(moves into `ingest/`)** |
