@@ -130,7 +130,7 @@ class Bookmarks:
         return store.get_by_id(self.conn, item_id)
 
     def list_types(self) -> list[str]:
-        return draining.types_in_use(self.conn)
+        return store.types_in_use(self.conn)
 
     def drain(self, *, limit: int | None = None) -> draining.DrainReport:
         """Summarise pending submissions, oldest first, one at a time."""

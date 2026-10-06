@@ -108,3 +108,7 @@ def insert_item(
         raise ItemExists(url) from exc
     conn.execute("INSERT OR IGNORE INTO type (name) VALUES (?)", (type,))
     return item_id
+
+
+def types_in_use(conn: sqlite3.Connection) -> list[str]:
+    return [r["name"] for r in conn.execute("SELECT name FROM type ORDER BY name")]

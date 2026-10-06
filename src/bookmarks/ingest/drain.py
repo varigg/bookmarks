@@ -105,10 +105,6 @@ def get_submission(conn: sqlite3.Connection, url: str) -> Submission | None:
     return Submission(**row) if row is not None else None
 
 
-def types_in_use(conn: sqlite3.Connection) -> list[str]:
-    return [r["name"] for r in conn.execute("SELECT name FROM type ORDER BY name")]
-
-
 def _store_summary(
     svc: "Bookmarks", claim: Claim, summary: Summary, *, model: str, truncated: bool
 ) -> None:
@@ -175,7 +171,7 @@ def _summarise(svc: "Bookmarks", claim: Claim, acquired: Acquired) -> str:
         url=claim.url,
         title=acquired.title or claim.capture_title,
         description=acquired.description,
-        types=types_in_use(svc.conn),
+        types=store.types_in_use(svc.conn),
         source=source,
         truncated=truncated,
         model=svc.settings.summariser_model,
