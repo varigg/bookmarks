@@ -70,15 +70,13 @@ def test_summarised_item_carries_summary_and_full_provenance(
     assert item.provenance.truncated is False
 
 
-def test_request_is_single_turn_with_the_configured_model(service, fetcher, summariser):
+def test_request_carries_the_prompt_as_system_prompt(service, fetcher, summariser):
     fetcher.page(URL, ARTICLE)
     service.save(URL)
 
     service.drain()
 
-    request = summariser.requests[0]
-    assert request.model == "claude-sonnet-5-5"
-    assert request.system_prompt == service.prompt.text
+    assert summariser.requests[0].system_prompt == service.prompt.text
 
 
 def test_source_over_the_cap_is_truncated_from_the_end(

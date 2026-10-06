@@ -15,17 +15,12 @@ PAUSE_CLASSES = ("auth", "rate_limit", "unavailable")
 class LLMRequest:
     system_prompt: str
     user_prompt: str
-    max_turns: int = 1
-    timeout: int | None = None
-    model: str | None = None
 
 
 @dataclass(frozen=True)
 class LLMResult:
     text: str
     model: str
-    raw: str
-    num_turns: int | None = None
 
 
 class ProviderFailure(Exception):

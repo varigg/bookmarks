@@ -43,8 +43,6 @@ def build_request(
     types: list[str],
     source: str,
     truncated: bool,
-    model: str | None,
-    timeout: int | None = None,
 ) -> LLMRequest:
     lines = [f"URL: {url}"]
     if title:
@@ -58,13 +56,7 @@ def build_request(
             "included. Summarise what is there."
         )
     lines += ["", "Page text:", "<<<", source, ">>>"]
-    return LLMRequest(
-        system_prompt=prompt.text,
-        user_prompt="\n".join(lines),
-        max_turns=1,
-        model=model,
-        timeout=timeout,
-    )
+    return LLMRequest(system_prompt=prompt.text, user_prompt="\n".join(lines))
 
 
 class Summary(BaseModel):

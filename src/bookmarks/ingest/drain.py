@@ -173,8 +173,6 @@ def _summarise(svc: "Bookmarks", claim: Claim, acquired: Acquired) -> str:
         types=store.types_in_use(svc.conn),
         source=source,
         truncated=truncated,
-        model=svc.settings.summariser_model,
-        timeout=svc.settings.summariser_timeout,
     )
     try:
         result = svc.summariser.submit(request)

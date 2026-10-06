@@ -72,7 +72,7 @@ class ClaudeCodeCLIProvider:
             "--output-format",
             "json",
             "--max-turns",
-            str(request.max_turns),
+            "1",
             "--system-prompt",
             request.system_prompt,
             # An explicit empty string is Claude CLI's documented sentinel for
@@ -89,10 +89,8 @@ class ClaudeCodeCLIProvider:
         # belt-and-suspenders but newer CLI versions reject an empty object
         # as invalid (it wants a top-level mcpServers key).
         cmd += ["--strict-mcp-config"]
-        model = request.model or self.model
-        if model:
-            cmd += ["--model", model]
-        timeout = request.timeout if request.timeout is not None else self.timeout
+        if self.model:
+            cmd += ["--model", self.model]
         run_dir = Path(tempfile.mkdtemp(prefix="bookmarks-claude-"))
         try:
             env = os.environ.copy()
@@ -103,13 +101,13 @@ class ClaudeCodeCLIProvider:
                     input=request.user_prompt,
                     capture_output=True,
                     text=True,
-                    timeout=timeout,
+                    timeout=self.timeout,
                     cwd=run_dir,
                     env=env,
                 )
             except subprocess.TimeoutExpired:
                 raise ProviderFailure(
-                    "timeout", f"claude -p exceeded {timeout}s"
+                    "timeout", f"claude -p exceeded {self.timeout}s"
                 ) from None
             except FileNotFoundError:
                 raise ProviderFailure(
@@ -138,14 +136,16 @@ class ClaudeCodeCLIProvider:
             shutil.rmtree(run_dir, ignore_errors=True)
 
     def _normalize(self, stdout: str) -> LLMResult:
-        try:
-            envelope = json.loads(stdout)
-        except json.JSONDecodeError:
-            raise ProviderFailure(
-                "invalid_output",
-                f"unparseable CLI output: {_excerpt(stdout, 200)}",
-            ) from None
-        if not isinstance(envelope, dict):
+        envelope = _try_parse_envelope(stdout)
+        if envelope is None:
+            # The message says which it was: not JSON, or JSON but no object.
+            try:
+                json.loads(stdout)
+            except json.JSONDecodeError:
+                raise ProviderFailure(
+                    "invalid_output",
+                    f"unparseable CLI output: {_excerpt(stdout, 200)}",
+                ) from None
             raise ProviderFailure(
                 "invalid_output",
                 f"expected JSON object envelope, got: {_excerpt(stdout, 200)}",
@@ -165,8 +165,6 @@ class ClaudeCodeCLIProvider:
         return LLMResult(
             text=result_text,
             model=envelope.get("model") or self.model or "unknown",
-            raw=stdout,
-            num_turns=envelope.get("num_turns"),
         )
 
     @staticmethod
