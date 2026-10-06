@@ -1,4 +1,7 @@
-"""The drain: claim pending submissions one at a time and summarise them.
+"""The drain: claim pending submissions one at a time and run their stages.
+
+A mechanism: it decides when work runs and when a run stops, never what an
+outcome means; it reports every outcome to `lifecycle`.
 
 The claim protocol (atomic `UPDATE ... RETURNING`, stale-claim recovery at
 startup, concurrency of one) is adapted from adventure-library
@@ -10,45 +13,18 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from bookmarks import store
-from bookmarks.db import now_iso, transaction
-from bookmarks.ingest.acquire import Acquired, acquire
-from bookmarks.ingest.fetch import Unacquirable
+from bookmarks.db import now_iso
+from bookmarks.ingest import lifecycle
+from bookmarks.ingest.fetch import Unretrievable
+from bookmarks.ingest.lifecycle import Claim
 from bookmarks.ingest.llm.provider import PAUSE_CLASSES, ProviderFailure
-from bookmarks.ingest.summarise import (
-    InvalidReply,
-    Summary,
-    Unreadable,
-    build_request,
-    cap_source,
-    parse_reply,
-)
+from bookmarks.ingest.retrieve import retrieve
+from bookmarks.ingest.summarise import build_request, cap_source
 
 if TYPE_CHECKING:
     from bookmarks.service import Bookmarks
 
 
-@dataclass(frozen=True)
-class Claim:
-    submission_id: int
-    url: str
-    note: str | None
-    saved_at: str
-    html: str | None
-    capture_title: str | None
-    attempts: int
-
-
-@dataclass(frozen=True)
-class Submission:
-    url: str
-    note: str | None
-    saved_at: str
-    status: str
-    failure_reason: str | None
-    attempts: int
-
-
-MAX_ATTEMPTS = 3
 # Copied from adventure-library worker.py (b264b17): stop after this many
 # consecutive failures, so an unrecognised outage costs a few items one
 # attempt each rather than burning every submission's retry budget.
@@ -79,63 +55,11 @@ def claim_next(
         f"           AND id NOT IN ({skip}) "
         "            ORDER BY enqueued_at, id LIMIT 1) "
         "AND claimed_at IS NULL "
-        "RETURNING id, url, note, saved_at, html, capture_title, attempts",
+        "RETURNING id AS submission_id, url, note, saved_at, html, capture_title, "
+        "attempts, source_text, source_title, source_description",
         (now, *exclude),
     ).fetchone()
-    if row is None:
-        return None
-    return Claim(
-        submission_id=row["id"],
-        url=row["url"],
-        note=row["note"],
-        saved_at=row["saved_at"],
-        html=row["html"],
-        capture_title=row["capture_title"],
-        attempts=row["attempts"],
-    )
-
-
-def get_submission(conn: sqlite3.Connection, url: str) -> Submission | None:
-    row = conn.execute(
-        "SELECT url, note, saved_at, status, failure_reason, attempts "
-        "FROM submission WHERE url = ?",
-        (url,),
-    ).fetchone()
-    return Submission(**row) if row is not None else None
-
-
-def _store_summary(
-    svc: "Bookmarks", claim: Claim, summary: Summary, *, model: str, truncated: bool
-) -> None:
-    conn = svc.conn
-    with transaction(conn):
-        store.insert_item(
-            conn,
-            url=claim.url,
-            title=summary.title,
-            type=summary.type,
-            summary=summary.summary,
-            entities=summary.entities,
-            note=claim.note,
-            saved_at=claim.saved_at,
-            provenance=store.Provenance(
-                cli=svc.summariser.name,
-                model=model,
-                prompt_hash=svc.prompt.hash,
-                at=now_iso(),
-                truncated=truncated,
-            ),
-        )
-        conn.execute("DELETE FROM submission WHERE id = ?", (claim.submission_id,))
-
-
-def mark_failed(conn: sqlite3.Connection, submission_id: int, reason: str) -> None:
-    """The capture html goes with the failure; a re-save sends it afresh."""
-    conn.execute(
-        "UPDATE submission SET status = 'failed', failure_reason = ?, html = NULL, "
-        "claimed_at = NULL WHERE id = ?",
-        (reason, submission_id),
-    )
+    return Claim(**row) if row else None
 
 
 class _Stop(Exception):
@@ -148,28 +72,34 @@ def _release(conn: sqlite3.Connection, submission_id: int) -> None:
     )
 
 
-def _retry_or_fail(svc: "Bookmarks", claim: Claim, reason: str) -> str:
-    """A transient failure costs one attempt; the last attempt fails it."""
-    attempts = claim.attempts + 1
-    if attempts >= MAX_ATTEMPTS:
-        mark_failed(
-            svc.conn, claim.submission_id, f"{reason} (after {attempts} attempts)"
+def _retrieve(svc: "Bookmarks", claim: Claim) -> Claim | str:
+    """The claim with its source text stored, or the outcome of a failure."""
+    try:
+        found = retrieve(
+            svc.fetcher,
+            claim.url,
+            claim.html,
+            github_token=svc.settings.github_token,
         )
-        return "failed"
-    svc.conn.execute(
-        "UPDATE submission SET attempts = ?, claimed_at = NULL WHERE id = ?",
-        (attempts, claim.submission_id),
+    except Unretrievable as failure:
+        return lifecycle.retrieving_failed(svc, claim, failure)
+    return lifecycle.retrieved(
+        svc.conn,
+        claim,
+        text=found.text,
+        title=found.title,
+        description=found.description,
     )
-    return "retry"
 
 
-def _summarise(svc: "Bookmarks", claim: Claim, acquired: Acquired) -> str:
-    source, truncated = cap_source(acquired.text, svc.settings.source_cap_chars)
+def _summarise(svc: "Bookmarks", claim: Claim) -> str:
+    assert claim.source_text is not None
+    source, truncated = cap_source(claim.source_text, svc.settings.source_cap_chars)
     request = build_request(
         svc.prompt,
         url=claim.url,
-        title=acquired.title or claim.capture_title,
-        description=acquired.description,
+        title=claim.source_title or claim.capture_title,
+        description=claim.source_description,
         types=store.types_in_use(svc.conn),
         source=source,
         truncated=truncated,
@@ -180,16 +110,10 @@ def _summarise(svc: "Bookmarks", claim: Claim, acquired: Acquired) -> str:
         if failure.failure_class in PAUSE_CLASSES:
             _release(svc.conn, claim.submission_id)
             raise _Stop(f"{failure.failure_class}: {failure}") from None
-        return _retry_or_fail(svc, claim, f"summariser {failure.failure_class}")
-    try:
-        reply = parse_reply(result.text)
-    except InvalidReply:
-        return _retry_or_fail(svc, claim, "summariser reply invalid")
-    if isinstance(reply, Unreadable):
-        mark_failed(svc.conn, claim.submission_id, f"unreadable: {reply.reason}")
-        return "failed"
-    _store_summary(svc, claim, reply, model=result.model, truncated=truncated)
-    return "summarised"
+        return lifecycle.summariser_failed(svc, claim, failure.failure_class)
+    return lifecycle.replied(
+        svc, claim, result.text, model=result.model, truncated=truncated
+    )
 
 
 def process(svc: "Bookmarks", claim: Claim) -> str:
@@ -198,19 +122,12 @@ def process(svc: "Bookmarks", claim: Claim) -> str:
     Raises `_Stop` on a systemic failure, with the claim released and no
     attempt counted.
     """
-    try:
-        acquired = acquire(
-            svc.fetcher,
-            claim.url,
-            claim.html,
-            github_token=svc.settings.github_token,
-        )
-    except Unacquirable as failure:
-        if failure.transient:
-            return _retry_or_fail(svc, claim, failure.reason)
-        mark_failed(svc.conn, claim.submission_id, failure.reason)
-        return "failed"
-    return _summarise(svc, claim, acquired)
+    if lifecycle.stage_of(claim) == "retrieving":
+        outcome = _retrieve(svc, claim)
+        if isinstance(outcome, str):
+            return outcome
+        claim = outcome
+    return _summarise(svc, claim)
 
 
 def run_drain(svc: "Bookmarks", *, limit: int | None = None) -> DrainReport:

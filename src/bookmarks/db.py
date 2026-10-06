@@ -40,7 +40,8 @@ SCHEMA = """
     CREATE INDEX idx_item_saved_at ON item (saved_at);
 
     -- A URL waiting to become an item; the row goes once the item exists.
-    -- The capture surface's html lives here and goes with the row.
+    -- The capture surface's html lives here until retrieving replaces it
+    -- with the source text, which stays until summarising finishes.
     CREATE TABLE submission (
         id INTEGER PRIMARY KEY,
         url TEXT NOT NULL UNIQUE,
@@ -48,6 +49,9 @@ SCHEMA = """
         saved_at TEXT NOT NULL,
         html TEXT,
         capture_title TEXT,
+        source_text TEXT,
+        source_title TEXT,
+        source_description TEXT,
         status TEXT NOT NULL DEFAULT 'pending'
             CHECK (status IN ('pending', 'failed')),
         failure_reason TEXT,

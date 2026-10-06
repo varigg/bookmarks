@@ -53,7 +53,7 @@ def test_malformed_reply_counts_an_attempt(service, fetcher, summariser):
     _drain_attempts(service, 2)
     submission = submission_at(service, URL)
     assert submission.status == "failed"
-    assert submission.failure_reason.startswith("summariser reply invalid")
+    assert submission.failure_reason.startswith("summarising: reply invalid")
 
 
 def test_transient_failure_then_success_summarises(service, fetcher, summariser):
@@ -66,6 +66,38 @@ def test_transient_failure_then_success_summarises(service, fetcher, summariser)
 
     service.drain()
     service.drain()
+
+    assert item_at(service, URL) is not None
+
+
+def test_a_summariser_retry_does_not_retrieve_again(service, fetcher, summariser):
+    fetcher.page(URL, ARTICLE)
+    summariser.script(
+        ProviderFailure("timeout", "claude -p exceeded 300s"), summary_json()
+    )
+    service.save(URL)
+
+    service.drain()
+    service.drain()
+
+    assert len(fetcher.requests) == 1
+    assert item_at(service, URL) is not None
+
+
+def test_retrieving_success_gives_summarising_a_fresh_budget(
+    service, fetcher, summariser
+):
+    fetcher.script(
+        URL,
+        FetchError("timed out"),
+        FetchError("timed out"),
+        HttpResponse(status=200, text=ARTICLE),
+    )
+    timeout = ProviderFailure("timeout", "claude -p exceeded 300s")
+    summariser.script(timeout, timeout, summary_json())
+    service.save(URL)
+
+    _drain_attempts(service, 5)
 
     assert item_at(service, URL) is not None
 
@@ -88,7 +120,7 @@ def test_404_fails_immediately_with_a_reason(service, fetcher, summariser):
 
     submission = submission_at(service, URL)
     assert submission.status == "failed"
-    assert submission.failure_reason == "not found (HTTP 404)"
+    assert submission.failure_reason == "retrieving: not found (HTTP 404)"
     assert summariser.requests == []
 
 
@@ -98,7 +130,9 @@ def test_page_with_no_readable_text_fails_immediately(service, fetcher):
 
     service.drain()
 
-    assert submission_at(service, URL).failure_reason == "no readable content"
+    assert (
+        submission_at(service, URL).failure_reason == "retrieving: no readable content"
+    )
 
 
 def test_real_client_html_beats_a_thin_server_page(service, fetcher, summariser):
@@ -198,4 +232,6 @@ def test_unreadable_reply_is_permanent(service, fetcher, summariser):
     report = service.drain()
 
     assert report.failed == 1
-    assert submission_at(service, URL).failure_reason == "unreadable: captcha"
+    assert (
+        submission_at(service, URL).failure_reason == "summarising: unreadable: captcha"
+    )

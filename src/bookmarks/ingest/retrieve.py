@@ -1,51 +1,41 @@
-"""Acquisition: turn a submission into source text at drain time.
+"""The retrieving stage: turn a submission into source text at drain time.
 
 Routes are chosen by URL rule, never by type. A route either returns source
-text or raises `Unacquirable`, saying whether the failure is transient
+text or raises `Unretrievable`, saying whether the failure is transient
 (retry on a later drain) or permanent (fail the item now).
 """
 
 from dataclasses import dataclass
 
 from bookmarks.ingest.extract import Extracted, extract
-from bookmarks.ingest.fetch import Fetcher, FetchError, HttpResponse, Unacquirable
-from bookmarks.ingest.github import fetch_readme, repo_of
+from bookmarks.ingest.fetch import Fetcher, FetchError, HttpResponse, Unretrievable
+from bookmarks.ingest.github import Repo, fetch_readme, repo_of
+from bookmarks.ingest.lifecycle import classify_status
 
 
 @dataclass(frozen=True)
-class Acquired:
+class Retrieved:
     text: str
     title: str | None
     description: str | None
-
-
-def classify_status(status: int) -> tuple[str, bool] | None:
-    """(reason, transient) for a non-success HTTP status, None for success."""
-    if 200 <= status < 300:
-        return None
-    if status in (404, 410):
-        return f"not found (HTTP {status})", False
-    if status == 429 or status >= 500:
-        return f"server error (HTTP {status})", True
-    return f"HTTP {status}", False
 
 
 def _source_text(extracted: Extracted) -> str:
     return extracted.text or extracted.description or ""
 
 
-def _no_text_failure(server: HttpResponse | FetchError | None) -> Unacquirable:
+def _no_text_failure(server: HttpResponse | FetchError | None) -> Unretrievable:
     if isinstance(server, FetchError):
-        return Unacquirable(str(server), transient=True)
+        return Unretrievable(str(server), transient=True)
     if server is not None:
         classified = classify_status(server.status)
         if classified is not None:
             reason, transient = classified
-            return Unacquirable(reason, transient=transient)
-    return Unacquirable("no readable content", transient=False)
+            return Unretrievable(reason, transient=transient)
+    return Unretrievable("no readable content", transient=False)
 
 
-def acquire_generic(fetcher: Fetcher, url: str, client_html: str | None) -> Acquired:
+def retrieve_generic(fetcher: Fetcher, url: str, client_html: str | None) -> Retrieved:
     """Server fetch and client html go through the same extractor; the longer
     source text wins."""
     server: HttpResponse | FetchError
@@ -68,36 +58,34 @@ def acquire_generic(fetcher: Fetcher, url: str, client_html: str | None) -> Acqu
     text = _source_text(winner)
     if not text.strip():
         raise _no_text_failure(server)
-    return Acquired(
+    return Retrieved(
         text=text,
         title=winner.title or other.title,
         description=winner.description or other.description,
     )
 
 
-def acquire_github(
-    fetcher: Fetcher, url: str, client_html: str | None, token: str | None
-) -> Acquired:
+def retrieve_github(
+    fetcher: Fetcher, repo: Repo, url: str, client_html: str | None, token: str | None
+) -> Retrieved:
     """The API README wins over any client html; a repo without a README
     falls back to the generic route."""
-    repo = repo_of(url)
-    assert repo is not None
     readme = fetch_readme(fetcher, repo, token)
     if not readme.text:
-        return acquire_generic(fetcher, url, client_html)
-    return Acquired(
+        return retrieve_generic(fetcher, url, client_html)
+    return Retrieved(
         text=readme.text, title=readme.full_name, description=readme.description
     )
 
 
-def acquire(
+def retrieve(
     fetcher: Fetcher,
     url: str,
     client_html: str | None,
     *,
     github_token: str | None = None,
-) -> Acquired:
-    """Pick the acquisition route by URL rule."""
-    if repo_of(url) is not None:
-        return acquire_github(fetcher, url, client_html, github_token)
-    return acquire_generic(fetcher, url, client_html)
+) -> Retrieved:
+    """Pick the retrieving route by URL rule."""
+    if (repo := repo_of(url)) is not None:
+        return retrieve_github(fetcher, repo, url, client_html, github_token)
+    return retrieve_generic(fetcher, url, client_html)
