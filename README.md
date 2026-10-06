@@ -22,6 +22,7 @@ uv run bookmarks serve        # capture API on $BOOKMARKS_HOST:$BOOKMARKS_PORT (
 uv run bookmarks drain        # summarise queued items with `claude -p` (cron job)
 uv run bookmarks embed        # embed summarised items via local Ollama (cron job)
 uv run bookmarks mcp          # MCP server over stdio
+uv run bookmarks retrieve URL # print the source text the retrieving stage would produce
 ```
 
 The store is one SQLite file at `$XDG_DATA_HOME/bookmarks/bookmarks.db`

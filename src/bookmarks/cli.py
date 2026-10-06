@@ -1,13 +1,15 @@
 """Command-line entry points; each command is a composition root."""
 
 import argparse
+import sys
 from collections.abc import Iterator
 from contextlib import contextmanager
 
 from bookmarks import db
 from bookmarks.embed import OllamaEmbedder
-from bookmarks.ingest.fetch import HttpxFetcher
+from bookmarks.ingest.fetch import HttpxFetcher, Unretrievable
 from bookmarks.ingest.llm.claude_cli import ClaudeCodeCLIProvider
+from bookmarks.ingest.retrieve import retrieve
 from bookmarks.service import Bookmarks
 from bookmarks.settings import Settings
 
@@ -69,6 +71,20 @@ def _embed(settings: Settings, args: argparse.Namespace) -> None:
         raise SystemExit(1)
 
 
+def _retrieve(settings: Settings, args: argparse.Namespace) -> None:
+    try:
+        found = retrieve(
+            HttpxFetcher(timeout=settings.fetch_timeout),
+            args.url,
+            None,
+            github_token=settings.github_token,
+        )
+    except Unretrievable as failure:
+        print(failure.reason, file=sys.stderr)
+        raise SystemExit(1) from None
+    print(found.text)
+
+
 def _mcp(settings: Settings, args: argparse.Namespace) -> None:
     from bookmarks.mcp_server import build_server
 
@@ -87,6 +103,11 @@ def main(argv: list[str] | None = None) -> None:
     commands.add_parser(
         "embed", help="embed summarised items lacking a vector"
     ).set_defaults(handler=_embed)
+    retrieve_cmd = commands.add_parser(
+        "retrieve", help="print the source text the retrieving stage would produce"
+    )
+    retrieve_cmd.add_argument("url")
+    retrieve_cmd.set_defaults(handler=_retrieve)
     commands.add_parser("mcp", help="run the MCP server over stdio").set_defaults(
         handler=_mcp
     )
