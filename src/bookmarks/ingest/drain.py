@@ -10,8 +10,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from bookmarks import store
-from bookmarks.clock import to_iso
-from bookmarks.db import transaction
+from bookmarks.db import now_iso, transaction
 from bookmarks.ingest.acquire import Acquired, acquire
 from bookmarks.ingest.fetch import Unacquirable
 from bookmarks.ingest.llm.provider import PAUSE_CLASSES, ProviderFailure
@@ -105,10 +104,6 @@ def get_submission(conn: sqlite3.Connection, url: str) -> Submission | None:
     return Submission(**row) if row is not None else None
 
 
-def types_in_use(conn: sqlite3.Connection) -> list[str]:
-    return [r["name"] for r in conn.execute("SELECT name FROM type ORDER BY name")]
-
-
 def _store_summary(
     svc: "Bookmarks", claim: Claim, summary: Summary, *, model: str, truncated: bool
 ) -> None:
@@ -127,7 +122,7 @@ def _store_summary(
                 cli=svc.summariser.name,
                 model=model,
                 prompt_hash=svc.prompt.hash,
-                at=to_iso(svc.clock.now()),
+                at=now_iso(),
                 truncated=truncated,
             ),
         )
@@ -175,7 +170,7 @@ def _summarise(svc: "Bookmarks", claim: Claim, acquired: Acquired) -> str:
         url=claim.url,
         title=acquired.title or claim.capture_title,
         description=acquired.description,
-        types=types_in_use(svc.conn),
+        types=store.types_in_use(svc.conn),
         source=source,
         truncated=truncated,
         model=svc.settings.summariser_model,
@@ -227,7 +222,7 @@ def run_drain(svc: "Bookmarks", *, limit: int | None = None) -> DrainReport:
     tried: set[int] = set()
     consecutive_retries = 0
     while limit is None or len(tried) < limit:
-        claim = claim_next(svc.conn, to_iso(svc.clock.now()), exclude=tried)
+        claim = claim_next(svc.conn, now_iso(), exclude=tried)
         if claim is None:
             break
         tried.add(claim.submission_id)

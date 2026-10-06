@@ -7,7 +7,17 @@
 import contextlib
 import sqlite3
 from collections.abc import Iterator
+from datetime import UTC, datetime
 from pathlib import Path
+
+# Stored timestamp form: UTC, second precision, trailing Z.
+TIMESTAMP_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
+
+
+def now_iso() -> str:
+    """Now in stored timestamp form."""
+    return datetime.now(UTC).strftime(TIMESTAMP_FORMAT)
+
 
 SCHEMA = """
     -- An item exists only once it is summarised (ADR 0002).

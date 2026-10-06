@@ -10,8 +10,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 from bookmarks import store
-from bookmarks.clock import Clock, to_iso
-from bookmarks.db import transaction
+from bookmarks.db import now_iso, transaction
 from bookmarks.embed import Embedder, EmbedReport, run_embed
 from bookmarks.ingest import drain as draining
 from bookmarks.ingest.extract import clean
@@ -21,7 +20,6 @@ from bookmarks.ingest.summarise import Prompt, load_prompt
 from bookmarks.search import Filters, SearchResult, hybrid_search
 from bookmarks.settings import Settings
 from bookmarks.store import Item
-from bookmarks.urls import normalise_url
 
 SaveOutcome = Literal["saved", "already_saved", "requeued"]
 Status = Literal["pending", "failed", "summarised"]
@@ -42,7 +40,6 @@ class Bookmarks:
         self,
         conn: sqlite3.Connection,
         *,
-        clock: Clock,
         settings: Settings,
         fetcher: Fetcher,
         summariser: LLMProvider,
@@ -50,7 +47,6 @@ class Bookmarks:
         prompt: Prompt | None = None,
     ) -> None:
         self.conn = conn
-        self.clock = clock
         self.settings = settings
         self.fetcher = fetcher
         self.summariser = summariser
@@ -64,9 +60,12 @@ class Bookmarks:
         html: str | None = None,
         title: str | None = None,
         note: str | None = None,
+        saved_at: str | None = None,
     ) -> SaveResult:
-        """Keep a URL. Raises `InvalidUrl` for anything but http(s)."""
-        url = normalise_url(url)
+        """Keep a URL, saved now unless `saved_at` says otherwise.
+
+        Raises `InvalidUrl` for anything but http(s)."""
+        url = store.identity(url)
         note = clean(note)
         # One write lock across the lookups and the write, so a drain cannot
         # turn the URL into an item in between.
@@ -79,7 +78,7 @@ class Bookmarks:
                 return self._requeue(submission, html=html, title=title, note=note)
             if submission is not None:
                 return self._already_saved(url, "pending", submission.saved_at, note)
-            now = to_iso(self.clock.now())
+            now = saved_at or now_iso()
             self.conn.execute(
                 "INSERT INTO submission "
                 "(url, note, saved_at, html, capture_title, enqueued_at) "
@@ -104,7 +103,7 @@ class Bookmarks:
             "UPDATE submission SET status = 'pending', failure_reason = NULL, "
             "html = ?, capture_title = ?, attempts = 0, claimed_at = NULL, "
             "enqueued_at = ? WHERE url = ?",
-            (html or None, clean(title), to_iso(self.clock.now()), submission.url),
+            (html or None, clean(title), now_iso(), submission.url),
         )
         message = "Re-queued" + ("; note not added" if note is not None else "")
         return SaveResult(
@@ -130,7 +129,7 @@ class Bookmarks:
         return store.get_by_id(self.conn, item_id)
 
     def list_types(self) -> list[str]:
-        return draining.types_in_use(self.conn)
+        return store.types_in_use(self.conn)
 
     def drain(self, *, limit: int | None = None) -> draining.DrainReport:
         """Summarise pending submissions, oldest first, one at a time."""

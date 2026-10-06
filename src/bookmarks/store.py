@@ -4,7 +4,8 @@ import json
 import sqlite3
 from dataclasses import dataclass
 
-from bookmarks.urls import domain_of
+from bookmarks.urls import InvalidUrl as InvalidUrl
+from bookmarks.urls import domain_of, normalise_url
 
 
 @dataclass(frozen=True)
@@ -28,6 +29,11 @@ class Item:
     note: str | None
     saved_at: str
     provenance: Provenance
+
+
+def identity(url: str) -> str:
+    """An item's identity is its normalised URL. Raises `InvalidUrl`."""
+    return normalise_url(url)
 
 
 class ItemExists(Exception):
@@ -61,7 +67,7 @@ def get_by_id(conn: sqlite3.Connection, item_id: int) -> Item | None:
 
 
 def get_by_url(conn: sqlite3.Connection, url: str) -> Item | None:
-    row = conn.execute("SELECT * FROM item WHERE url = ?", (url,)).fetchone()
+    row = conn.execute("SELECT * FROM item WHERE url = ?", (identity(url),)).fetchone()
     return item_from_row(row) if row is not None else None
 
 
@@ -80,6 +86,7 @@ def insert_item(
     """Add a complete item and adopt its Type if unseen. Raises `ItemExists`.
 
     Runs inside the caller's transaction, if any."""
+    url = identity(url)
     try:
         item_id = conn.execute(
             "INSERT INTO item (url, domain, title, type, summary, entities, note, "
@@ -108,3 +115,7 @@ def insert_item(
         raise ItemExists(url) from exc
     conn.execute("INSERT OR IGNORE INTO type (name) VALUES (?)", (type,))
     return item_id
+
+
+def types_in_use(conn: sqlite3.Connection) -> list[str]:
+    return [r["name"] for r in conn.execute("SELECT name FROM type ORDER BY name")]

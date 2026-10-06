@@ -33,7 +33,7 @@ The hard invariants are the strict form. Adapted from Tomas Vykruta's AGENTS.md 
 
    | System | Domain | Owner |
    |---|---|---|
-   | Store | Item (identity, record, Note), Type | `store.py` (insert and replace not there yet: #36) |
+   | Store | Item (identity, record, Note), Type | `store.py` |
    | Store | Search (filters, ranking) | `search.py` |
    | Store | Embedding | `embed.py` |
    | Ingestion | Submission, Stage, Status (stage order, what an outcome means, retry budget, re-saving a failed URL) | `ingest/lifecycle.py` **(not built)** |
