@@ -130,11 +130,6 @@ def transaction(conn: sqlite3.Connection) -> Iterator[None]:
         raise
 
 
-def create_schema(conn: sqlite3.Connection) -> None:
-    if conn.execute("PRAGMA user_version").fetchone()[0] == 0:
-        conn.executescript(f"BEGIN; {SCHEMA}; PRAGMA user_version = 1; COMMIT;")
-
-
 def connect(db_path: Path | str) -> sqlite3.Connection:
     path = Path(db_path)
     if str(path) != ":memory:":
@@ -146,7 +141,8 @@ def connect(db_path: Path | str) -> sqlite3.Connection:
         conn.execute("PRAGMA journal_mode = WAL")
         conn.execute("PRAGMA busy_timeout = 5000")
         _load_sqlite_vec(conn)
-        create_schema(conn)
+        if conn.execute("PRAGMA user_version").fetchone()[0] == 0:
+            conn.executescript(f"BEGIN; {SCHEMA}; PRAGMA user_version = 1; COMMIT;")
     except Exception:
         conn.close()
         raise
