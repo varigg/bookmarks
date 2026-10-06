@@ -21,7 +21,6 @@ from bookmarks.ingest.summarise import Prompt, load_prompt
 from bookmarks.search import Filters, SearchResult, hybrid_search
 from bookmarks.settings import Settings
 from bookmarks.store import Item
-from bookmarks.urls import normalise_url
 
 SaveOutcome = Literal["saved", "already_saved", "requeued"]
 Status = Literal["pending", "failed", "summarised"]
@@ -66,7 +65,7 @@ class Bookmarks:
         note: str | None = None,
     ) -> SaveResult:
         """Keep a URL. Raises `InvalidUrl` for anything but http(s)."""
-        url = normalise_url(url)
+        url = store.identity(url)
         note = clean(note)
         # One write lock across the lookups and the write, so a drain cannot
         # turn the URL into an item in between.

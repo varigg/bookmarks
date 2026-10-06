@@ -13,7 +13,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from bookmarks.service import Bookmarks
-from bookmarks.urls import InvalidUrl
+from bookmarks.store import InvalidUrl
 
 OpenService = Callable[[], AbstractContextManager[Bookmarks]]
 

@@ -2,7 +2,7 @@
 
 import pytest
 
-from bookmarks.urls import InvalidUrl, normalise_url
+from bookmarks.store import InvalidUrl, identity
 from tests.factories import item_at, submission_at, summarised_item
 
 
@@ -89,4 +89,4 @@ def test_non_http_urls_are_rejected(service, url):
     ],
 )
 def test_normalise_url_keeps_everything_but_tracking_and_fragment(raw, expected):
-    assert normalise_url(raw) == expected
+    assert identity(raw) == expected

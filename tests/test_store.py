@@ -49,3 +49,10 @@ def test_insert_adopts_an_unseen_type(conn):
     _insert(conn, type="paper")
 
     assert "paper" in store.types_in_use(conn)
+
+
+def test_insert_and_lookup_normalise_the_url(conn):
+    item_id = _insert(conn, url="https://example.com/a?utm_source=x#top")
+
+    assert store.get_by_id(conn, item_id).url == "https://example.com/a"
+    assert store.get_by_url(conn, "https://example.com/a?fbclid=1").id == item_id
