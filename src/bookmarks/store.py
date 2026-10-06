@@ -37,6 +37,14 @@ class InvalidUrl(ValueError):
     pass
 
 
+def type_name(value: str) -> str:
+    """A Type's name: trimmed and lowercase. Raises `ValueError` if blank."""
+    value = value.strip()
+    if not value:
+        raise ValueError("must not be blank")
+    return value.lower()
+
+
 def _is_tracking(pair: str) -> bool:
     name = pair.split("=", 1)[0].lower()
     return name in _TRACKING_PARAMS or name.startswith(_TRACKING_PREFIXES)
