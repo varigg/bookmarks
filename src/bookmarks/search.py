@@ -18,7 +18,6 @@ from bookmarks.store import Item
 
 DEFAULT_LIMIT = 10
 MAX_LIMIT = 50
-STATUSES = ("pending", "summarised", "failed")
 # How deep each leg ranks before fusion.
 _LEG_DEPTH = 100
 _TOKEN = re.compile(r"\w+", re.UNICODE)
@@ -30,7 +29,6 @@ class Filters:
     domain: str | None = None
     saved_after: str | None = None  # inclusive, ISO date or timestamp
     saved_before: str | None = None  # exclusive, ISO date or timestamp
-    statuses: Sequence[str] = ("summarised",)
 
 
 @dataclass(frozen=True)
@@ -66,12 +64,6 @@ def _candidates_sql(filters: Filters) -> tuple[str, list]:
     """SELECT id FROM item narrowed by the filters."""
     clauses: list[str] = []
     params: list = []
-    statuses = list(filters.statuses) or list(STATUSES)
-    unknown = set(statuses) - set(STATUSES)
-    if unknown:
-        raise ValueError(f"unknown status {sorted(unknown)}; choose from {STATUSES}")
-    clauses.append(f"status IN ({','.join('?' * len(statuses))})")
-    params += statuses
     if filters.types:
         clauses.append(f"type IN ({','.join('?' * len(filters.types))})")
         params += [t.lower() for t in filters.types]
@@ -85,7 +77,8 @@ def _candidates_sql(filters: Filters) -> tuple[str, list]:
     if filters.saved_before:
         clauses.append("saved_at < ?")
         params.append(filters.saved_before)
-    return "SELECT id FROM item WHERE " + " AND ".join(clauses), params
+    where = " WHERE " + " AND ".join(clauses) if clauses else ""
+    return "SELECT id FROM item" + where, params
 
 
 def fts_query(query: str) -> str | None:

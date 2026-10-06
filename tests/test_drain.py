@@ -1,11 +1,11 @@
-"""Drain on the generic route: a pending item becomes summarised."""
+"""Drain on the generic route: a pending submission becomes an item."""
 
 import json
 
 import pytest
 
 from bookmarks.settings import Settings
-from tests.factories import fixture_text
+from tests.factories import fixture_text, item_at, submission_at
 from tests.fakes import summary_json
 
 URL = "https://example.com/local-first"
@@ -17,7 +17,7 @@ def test_save_with_html_and_thin_server_fetch_summarises_client_text(
     service, fetcher, summariser
 ):
     fetcher.page(URL, THIN)
-    saved = service.save(URL, html=ARTICLE)
+    service.save(URL, html=ARTICLE)
 
     report = service.drain()
 
@@ -25,7 +25,7 @@ def test_save_with_html_and_thin_server_fetch_summarises_client_text(
     prompt = summariser.requests[0].user_prompt
     assert "Conflict-free Replicated Data Types" in prompt
     assert "enable JavaScript" not in prompt
-    assert service.get_item(saved.item.id).status == "summarised"
+    assert item_at(service, URL) is not None
 
 
 def test_longer_server_fetch_wins_over_thin_client_html(service, fetcher, summariser):
@@ -49,12 +49,16 @@ def test_summarised_item_carries_summary_and_full_provenance(
             entities=["Ink & Switch", "CRDT", "Automerge", "crdt"],
         )
     )
-    saved = service.save(URL)
+    service.save(URL, note="for the reading group")
     clock.advance(minutes=10)
 
     service.drain()
 
-    item = service.get_item(saved.item.id)
+    assert submission_at(service, URL) is None
+    item = item_at(service, URL)
+    assert item.domain == "example.com"
+    assert item.note == "for the reading group"
+    assert item.saved_at == "2026-09-30T12:00:00Z"
     assert item.title == "Local-first software"
     assert item.type == "article"
     assert item.summary == "Ink & Switch argue for local-first software."
@@ -85,7 +89,7 @@ def test_source_over_the_cap_is_truncated_from_the_end(
         settings=Settings(db_path=settings.db_path, source_cap_chars=400)
     )
     fetcher.page(URL, ARTICLE)
-    saved = service.save(URL)
+    service.save(URL)
 
     service.drain()
 
@@ -93,7 +97,7 @@ def test_source_over_the_cap_is_truncated_from_the_end(
     assert "Cloud apps like Google Docs" in prompt
     assert "open problems in sync" not in prompt
     assert "truncated" in prompt
-    assert service.get_item(saved.item.id).provenance.truncated is True
+    assert item_at(service, URL).provenance.truncated is True
 
 
 def test_the_note_never_reaches_the_summariser(service, fetcher, summariser):
@@ -112,50 +116,50 @@ def test_types_in_use_are_offered_and_a_new_type_is_adopted(
 ):
     fetcher.page(URL, ARTICLE)
     summariser.script(summary_json(type="Paper"))
-    saved = service.save(URL)
+    service.save(URL)
 
     service.drain()
 
     assert "Types in use: article, discussion, docs, media, product, repo" in (
         summariser.requests[0].user_prompt
     )
-    assert service.get_item(saved.item.id).type == "paper"
+    assert item_at(service, URL).type == "paper"
     assert "paper" in service.list_types()
 
 
-def test_unreadable_reply_marks_the_item_failed_with_the_reason(
+def test_unreadable_reply_marks_the_submission_failed_with_the_reason(
     service, fetcher, summariser
 ):
     fetcher.page(URL, ARTICLE)
     summariser.script(json.dumps({"unreadable": "login wall"}))
-    saved = service.save(URL)
+    service.save(URL)
 
     report = service.drain()
 
-    item = service.get_item(saved.item.id)
+    submission = submission_at(service, URL)
     assert report.failed == 1
-    assert item.status == "failed"
-    assert item.failure_reason == "unreadable: login wall"
-    assert item.summary is None
+    assert submission.status == "failed"
+    assert submission.failure_reason == "unreadable: login wall"
+    assert item_at(service, URL) is None
 
 
 @pytest.mark.parametrize("reply", [summary_json(), json.dumps({"unreadable": "x"})])
-def test_client_html_is_gone_once_the_item_leaves_pending(
+def test_client_html_is_gone_once_the_submission_leaves_pending(
     service, fetcher, summariser, reply
 ):
     fetcher.page(URL, ARTICLE)
     summariser.script(reply)
-    saved = service.save(URL, html=ARTICLE)
+    service.save(URL, html=ARTICLE)
 
     service.drain()
 
     row = service.conn.execute(
-        "SELECT html FROM queue WHERE item_id = ?", (saved.item.id,)
+        "SELECT html FROM submission WHERE url = ?", (URL,)
     ).fetchone()
-    assert row is None
+    assert row is None or row["html"] is None
 
 
-def test_drain_takes_items_oldest_first_and_honours_limit(
+def test_drain_takes_submissions_oldest_first_and_honours_limit(
     service, fetcher, summariser, clock
 ):
     for n in range(3):

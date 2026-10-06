@@ -83,7 +83,7 @@ def main(argv: list[str] | None = None) -> None:
     commands.add_parser("serve", help="run the web server (capture API)").set_defaults(
         handler=_serve
     )
-    drain = commands.add_parser("drain", help="summarise queued items")
+    drain = commands.add_parser("drain", help="summarise pending submissions")
     drain.add_argument("--limit", type=int, default=None)
     drain.set_defaults(handler=_drain)
     commands.add_parser(

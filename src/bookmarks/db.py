@@ -10,34 +10,37 @@ from collections.abc import Iterator
 from pathlib import Path
 
 SCHEMA = """
+    -- An item exists only once it is summarised (ADR 0002).
     CREATE TABLE item (
         id INTEGER PRIMARY KEY,
         url TEXT NOT NULL UNIQUE,
         domain TEXT NOT NULL,
-        title TEXT,
-        type TEXT,
-        summary TEXT,
+        title TEXT NOT NULL,
+        type TEXT NOT NULL,
+        summary TEXT NOT NULL,
         entities TEXT NOT NULL DEFAULT '[]',
         note TEXT,
         saved_at TEXT NOT NULL,
-        status TEXT NOT NULL DEFAULT 'pending'
-            CHECK (status IN ('pending', 'summarised', 'failed')),
-        failure_reason TEXT,
-        prov_cli TEXT,
-        prov_model TEXT,
-        prov_prompt_hash TEXT,
-        prov_at TEXT,
-        prov_truncated INTEGER
+        prov_cli TEXT NOT NULL,
+        prov_model TEXT NOT NULL,
+        prov_prompt_hash TEXT NOT NULL,
+        prov_at TEXT NOT NULL,
+        prov_truncated INTEGER NOT NULL
     );
     CREATE INDEX idx_item_saved_at ON item (saved_at);
-    CREATE INDEX idx_item_status ON item (status);
 
-    -- Work waiting for the drain. The row exists only while there is work;
-    -- the client html lives here and goes with the row.
-    CREATE TABLE queue (
-        item_id INTEGER PRIMARY KEY REFERENCES item (id) ON DELETE CASCADE,
+    -- A URL waiting to become an item; the row goes once the item exists.
+    -- The capture surface's html lives here and goes with the row.
+    CREATE TABLE submission (
+        id INTEGER PRIMARY KEY,
+        url TEXT NOT NULL UNIQUE,
+        note TEXT,
+        saved_at TEXT NOT NULL,
         html TEXT,
         capture_title TEXT,
+        status TEXT NOT NULL DEFAULT 'pending'
+            CHECK (status IN ('pending', 'failed')),
+        failure_reason TEXT,
         attempts INTEGER NOT NULL DEFAULT 0,
         claimed_at TEXT,
         enqueued_at TEXT NOT NULL

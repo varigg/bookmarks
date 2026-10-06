@@ -53,7 +53,7 @@ def _ids(result):
     return [hit.item.id for hit in result.hits]
 
 
-def test_embed_covers_every_summarised_item_once(service, embedder, corpus):
+def test_embed_covers_every_item_once(service, embedder, corpus):
     assert len(embedder.documents) == 4
     assert service.embed().embedded == 0
 
@@ -65,7 +65,7 @@ def test_embedded_text_is_title_summary_and_note_not_entities(embedder, corpus):
     assert "King Arthur" not in bread
 
 
-def test_pending_and_failed_items_are_not_embedded(service, embedder, fetcher):
+def test_submissions_are_not_embedded(service, embedder, fetcher):
     fetcher.page("https://example.com/x", "gone", status=404)
     service.save("https://example.com/x")
     service.save("https://example.com/pending-forever")
@@ -148,22 +148,16 @@ def test_filters_narrow_candidates_before_both_legs(service, corpus, filters, ex
     assert names == expected
 
 
-def test_pending_and_failed_items_are_excluded_by_default(service, corpus, fetcher):
+def test_submissions_are_never_searched(service, corpus, fetcher):
     fetcher.page("https://example.com/dead", "gone", status=404)
     service.save("https://example.com/dead", title="Vanguard dead page")
     service.drain()
     service.save("https://example.com/new", title="Vanguard pending page")
 
-    default = service.search("Vanguard")
-    everything = service.search(
-        "Vanguard", Filters(statuses=["pending", "failed", "summarised"])
-    )
+    result = service.search("Vanguard")
 
-    assert {hit.item.status for hit in default.hits} == {"summarised"}
-    assert {hit.item.status for hit in everything.hits} == {
-        "summarised",
-        "pending",
-        "failed",
+    assert {hit.item.url for hit in result.hits} == {
+        item.url for item in corpus.values()
     }
 
 

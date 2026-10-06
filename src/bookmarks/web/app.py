@@ -47,10 +47,9 @@ def create_app(open_service: OpenService) -> FastAPI:
                 "message": result.message,
                 "note_added": result.note_added,
                 "item": {
-                    "id": result.item.id,
-                    "url": result.item.url,
-                    "status": result.item.status,
-                    "saved_at": result.item.saved_at,
+                    "url": result.url,
+                    "status": result.status,
+                    "saved_at": result.saved_at,
                 },
             },
         )
