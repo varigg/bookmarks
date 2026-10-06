@@ -8,6 +8,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, ValidationError, field_validator
 
+from bookmarks import store
 from bookmarks.ingest.llm.provider import LLMRequest
 
 PROMPT_PATH = Path(__file__).parent / "prompts" / "summarise.md"
@@ -65,7 +66,7 @@ class Summary(BaseModel):
     summary: str
     entities: list[str]
 
-    @field_validator("title", "type", "summary")
+    @field_validator("title", "summary")
     @classmethod
     def _non_blank(cls, value: str) -> str:
         value = value.strip()
@@ -76,7 +77,7 @@ class Summary(BaseModel):
     @field_validator("type")
     @classmethod
     def _type_name(cls, value: str) -> str:
-        return value.lower()
+        return store.type_name(value)
 
     @field_validator("entities")
     @classmethod
