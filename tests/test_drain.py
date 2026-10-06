@@ -4,6 +4,7 @@ import json
 
 import pytest
 
+from bookmarks.ingest.llm.provider import ProviderFailure
 from bookmarks.settings import Settings
 from tests.factories import fixture_text, is_recent, item_at, submission_at
 from tests.fakes import summary_json
@@ -136,12 +137,12 @@ def test_unreadable_reply_marks_the_submission_failed_with_the_reason(
     submission = submission_at(service, URL)
     assert report.failed == 1
     assert submission.status == "failed"
-    assert submission.failure_reason == "unreadable: login wall"
+    assert submission.failure_reason == "summarising: unreadable: login wall"
     assert item_at(service, URL) is None
 
 
 @pytest.mark.parametrize("reply", [summary_json(), json.dumps({"unreadable": "x"})])
-def test_client_html_is_gone_once_the_submission_leaves_pending(
+def test_page_text_is_gone_once_the_submission_leaves_pending(
     service, fetcher, summariser, reply
 ):
     fetcher.page(URL, ARTICLE)
@@ -151,9 +152,27 @@ def test_client_html_is_gone_once_the_submission_leaves_pending(
     service.drain()
 
     row = service.conn.execute(
-        "SELECT html FROM submission WHERE url = ?", (URL,)
+        "SELECT html, source_text FROM submission WHERE url = ?", (URL,)
     ).fetchone()
-    assert row is None or row["html"] is None
+    assert row is None or (row["html"] is None and row["source_text"] is None)
+
+
+def test_retrieving_keeps_the_source_text_in_place_of_the_html(
+    service, fetcher, summariser
+):
+    fetcher.page(URL, THIN)
+    summariser.script(ProviderFailure("timeout", "claude -p exceeded 300s"))
+    service.save(URL, html=ARTICLE)
+
+    service.drain()
+
+    row = service.conn.execute(
+        "SELECT html, source_text, source_title FROM submission WHERE url = ?",
+        (URL,),
+    ).fetchone()
+    assert row["html"] is None
+    assert "Conflict-free Replicated Data Types" in row["source_text"]
+    assert row["source_title"]
 
 
 def test_drain_takes_submissions_oldest_first_and_honours_limit(

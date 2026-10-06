@@ -5,9 +5,10 @@ final, turning a summarised submission into an item, and re-saving a failed
 URL. The drain runs stages; it reports each outcome here.
 """
 
+import dataclasses
 import sqlite3
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from bookmarks import store
 from bookmarks.db import now_iso, transaction
@@ -27,6 +28,9 @@ class Claim:
     html: str | None
     capture_title: str | None
     attempts: int
+    source_text: str | None
+    source_title: str | None
+    source_description: str | None
 
 
 @dataclass(frozen=True)
@@ -39,7 +43,12 @@ class Submission:
     attempts: int
 
 
+# Per stage: a stage that succeeds resets the count for the next one.
 MAX_ATTEMPTS = 3
+
+
+def stage_of(claim: Claim) -> Literal["retrieving", "summarising"]:
+    return "retrieving" if claim.source_text is None else "summarising"
 
 
 def get_submission(conn: sqlite3.Connection, url: str) -> Submission | None:
@@ -77,9 +86,11 @@ def _store_summary(
 
 
 def mark_failed(conn: sqlite3.Connection, submission_id: int, reason: str) -> None:
-    """The capture html goes with the failure; a re-save sends it afresh."""
+    """The capture html and source text go with the failure; a re-save
+    retrieves afresh."""
     conn.execute(
         "UPDATE submission SET status = 'failed', failure_reason = ?, html = NULL, "
+        "source_text = NULL, source_title = NULL, source_description = NULL, "
         "claimed_at = NULL WHERE id = ?",
         (reason, submission_id),
     )
@@ -141,16 +152,42 @@ def requeue(
     )
 
 
+def retrieved(
+    conn: sqlite3.Connection,
+    claim: Claim,
+    *,
+    text: str,
+    title: str | None,
+    description: str | None,
+) -> Claim:
+    """Keep the source text in place of the capture html; summarising starts
+    with a fresh retry budget."""
+    conn.execute(
+        "UPDATE submission SET source_text = ?, source_title = ?, "
+        "source_description = ?, html = NULL, attempts = 0 WHERE id = ?",
+        (text, title, description, claim.submission_id),
+    )
+    return dataclasses.replace(
+        claim,
+        html=None,
+        attempts=0,
+        source_text=text,
+        source_title=title,
+        source_description=description,
+    )
+
+
 def retrieving_failed(svc: "Bookmarks", claim: Claim, failure: Unretrievable) -> str:
+    reason = f"retrieving: {failure.reason}"
     if failure.transient:
-        return _retry_or_fail(svc, claim, failure.reason)
-    mark_failed(svc.conn, claim.submission_id, failure.reason)
+        return _retry_or_fail(svc, claim, reason)
+    mark_failed(svc.conn, claim.submission_id, reason)
     return "failed"
 
 
 def summariser_failed(svc: "Bookmarks", claim: Claim, failure_class: str) -> str:
     """Any failure the drain does not pause on costs an attempt."""
-    return _retry_or_fail(svc, claim, f"summariser {failure_class}")
+    return _retry_or_fail(svc, claim, f"summarising: {failure_class}")
 
 
 def replied(
@@ -161,9 +198,10 @@ def replied(
     try:
         reply = parse_reply(text)
     except InvalidReply:
-        return _retry_or_fail(svc, claim, "summariser reply invalid")
+        return _retry_or_fail(svc, claim, "summarising: reply invalid")
     if isinstance(reply, Unreadable):
-        mark_failed(svc.conn, claim.submission_id, f"unreadable: {reply.reason}")
+        reason = f"summarising: unreadable: {reply.reason}"
+        mark_failed(svc.conn, claim.submission_id, reason)
         return "failed"
     _store_summary(svc, claim, reply, model=model, truncated=truncated)
     return "summarised"

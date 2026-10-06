@@ -53,7 +53,7 @@ def test_missing_repo_fails_permanently(service, fetcher, summariser):
 
     submission = submission_at(service, REPO_URL)
     assert submission.status == "failed"
-    assert submission.failure_reason == "GitHub repository not found"
+    assert submission.failure_reason == "retrieving: GitHub repository not found"
     assert summariser.requests == []
 
 

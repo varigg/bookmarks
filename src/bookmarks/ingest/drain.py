@@ -18,7 +18,7 @@ from bookmarks.ingest import lifecycle
 from bookmarks.ingest.fetch import Unretrievable
 from bookmarks.ingest.lifecycle import Claim
 from bookmarks.ingest.llm.provider import PAUSE_CLASSES, ProviderFailure
-from bookmarks.ingest.retrieve import Retrieved, retrieve
+from bookmarks.ingest.retrieve import retrieve
 from bookmarks.ingest.summarise import build_request, cap_source
 
 if TYPE_CHECKING:
@@ -56,7 +56,7 @@ def claim_next(
         "            ORDER BY enqueued_at, id LIMIT 1) "
         "AND claimed_at IS NULL "
         "RETURNING id AS submission_id, url, note, saved_at, html, capture_title, "
-        "attempts",
+        "attempts, source_text, source_title, source_description",
         (now, *exclude),
     ).fetchone()
     return Claim(**row) if row else None
@@ -72,13 +72,34 @@ def _release(conn: sqlite3.Connection, submission_id: int) -> None:
     )
 
 
-def _summarise(svc: "Bookmarks", claim: Claim, retrieved: Retrieved) -> str:
-    source, truncated = cap_source(retrieved.text, svc.settings.source_cap_chars)
+def _retrieve(svc: "Bookmarks", claim: Claim) -> Claim | str:
+    """The claim with its source text stored, or the outcome of a failure."""
+    try:
+        found = retrieve(
+            svc.fetcher,
+            claim.url,
+            claim.html,
+            github_token=svc.settings.github_token,
+        )
+    except Unretrievable as failure:
+        return lifecycle.retrieving_failed(svc, claim, failure)
+    return lifecycle.retrieved(
+        svc.conn,
+        claim,
+        text=found.text,
+        title=found.title,
+        description=found.description,
+    )
+
+
+def _summarise(svc: "Bookmarks", claim: Claim) -> str:
+    assert claim.source_text is not None
+    source, truncated = cap_source(claim.source_text, svc.settings.source_cap_chars)
     request = build_request(
         svc.prompt,
         url=claim.url,
-        title=retrieved.title or claim.capture_title,
-        description=retrieved.description,
+        title=claim.source_title or claim.capture_title,
+        description=claim.source_description,
         types=store.types_in_use(svc.conn),
         source=source,
         truncated=truncated,
@@ -101,16 +122,12 @@ def process(svc: "Bookmarks", claim: Claim) -> str:
     Raises `_Stop` on a systemic failure, with the claim released and no
     attempt counted.
     """
-    try:
-        retrieved = retrieve(
-            svc.fetcher,
-            claim.url,
-            claim.html,
-            github_token=svc.settings.github_token,
-        )
-    except Unretrievable as failure:
-        return lifecycle.retrieving_failed(svc, claim, failure)
-    return _summarise(svc, claim, retrieved)
+    if lifecycle.stage_of(claim) == "retrieving":
+        outcome = _retrieve(svc, claim)
+        if isinstance(outcome, str):
+            return outcome
+        claim = outcome
+    return _summarise(svc, claim)
 
 
 def run_drain(svc: "Bookmarks", *, limit: int | None = None) -> DrainReport:
