@@ -55,20 +55,11 @@ def claim_next(
         f"           AND id NOT IN ({skip}) "
         "            ORDER BY enqueued_at, id LIMIT 1) "
         "AND claimed_at IS NULL "
-        "RETURNING id, url, note, saved_at, html, capture_title, attempts",
+        "RETURNING id AS submission_id, url, note, saved_at, html, capture_title, "
+        "attempts",
         (now, *exclude),
     ).fetchone()
-    if row is None:
-        return None
-    return Claim(
-        submission_id=row["id"],
-        url=row["url"],
-        note=row["note"],
-        saved_at=row["saved_at"],
-        html=row["html"],
-        capture_title=row["capture_title"],
-        attempts=row["attempts"],
-    )
+    return Claim(**row) if row else None
 
 
 class _Stop(Exception):

@@ -9,7 +9,7 @@ from dataclasses import dataclass
 
 from bookmarks.ingest.extract import Extracted, extract
 from bookmarks.ingest.fetch import Fetcher, FetchError, HttpResponse, Unretrievable
-from bookmarks.ingest.github import fetch_readme, repo_of
+from bookmarks.ingest.github import Repo, fetch_readme, repo_of
 from bookmarks.ingest.lifecycle import classify_status
 
 
@@ -66,12 +66,10 @@ def retrieve_generic(fetcher: Fetcher, url: str, client_html: str | None) -> Ret
 
 
 def retrieve_github(
-    fetcher: Fetcher, url: str, client_html: str | None, token: str | None
+    fetcher: Fetcher, repo: Repo, url: str, client_html: str | None, token: str | None
 ) -> Retrieved:
     """The API README wins over any client html; a repo without a README
     falls back to the generic route."""
-    repo = repo_of(url)
-    assert repo is not None
     readme = fetch_readme(fetcher, repo, token)
     if not readme.text:
         return retrieve_generic(fetcher, url, client_html)
@@ -88,6 +86,6 @@ def retrieve(
     github_token: str | None = None,
 ) -> Retrieved:
     """Pick the retrieving route by URL rule."""
-    if repo_of(url) is not None:
-        return retrieve_github(fetcher, url, client_html, github_token)
+    if (repo := repo_of(url)) is not None:
+        return retrieve_github(fetcher, repo, url, client_html, github_token)
     return retrieve_generic(fetcher, url, client_html)
