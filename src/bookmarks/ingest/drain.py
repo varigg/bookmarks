@@ -15,10 +15,10 @@ from typing import TYPE_CHECKING
 from bookmarks import store
 from bookmarks.db import now_iso
 from bookmarks.ingest import lifecycle
-from bookmarks.ingest.acquire import Acquired, acquire
-from bookmarks.ingest.fetch import Unacquirable
+from bookmarks.ingest.fetch import Unretrievable
 from bookmarks.ingest.lifecycle import Claim
 from bookmarks.ingest.llm.provider import PAUSE_CLASSES, ProviderFailure
+from bookmarks.ingest.retrieve import Retrieved, retrieve
 from bookmarks.ingest.summarise import build_request, cap_source
 
 if TYPE_CHECKING:
@@ -81,13 +81,13 @@ def _release(conn: sqlite3.Connection, submission_id: int) -> None:
     )
 
 
-def _summarise(svc: "Bookmarks", claim: Claim, acquired: Acquired) -> str:
-    source, truncated = cap_source(acquired.text, svc.settings.source_cap_chars)
+def _summarise(svc: "Bookmarks", claim: Claim, retrieved: Retrieved) -> str:
+    source, truncated = cap_source(retrieved.text, svc.settings.source_cap_chars)
     request = build_request(
         svc.prompt,
         url=claim.url,
-        title=acquired.title or claim.capture_title,
-        description=acquired.description,
+        title=retrieved.title or claim.capture_title,
+        description=retrieved.description,
         types=store.types_in_use(svc.conn),
         source=source,
         truncated=truncated,
@@ -111,15 +111,15 @@ def process(svc: "Bookmarks", claim: Claim) -> str:
     attempt counted.
     """
     try:
-        acquired = acquire(
+        retrieved = retrieve(
             svc.fetcher,
             claim.url,
             claim.html,
             github_token=svc.settings.github_token,
         )
-    except Unacquirable as failure:
+    except Unretrievable as failure:
         return lifecycle.retrieving_failed(svc, claim, failure)
-    return _summarise(svc, claim, acquired)
+    return _summarise(svc, claim, retrieved)
 
 
 def run_drain(svc: "Bookmarks", *, limit: int | None = None) -> DrainReport:

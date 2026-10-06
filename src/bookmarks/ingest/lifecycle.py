@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 
 from bookmarks import store
 from bookmarks.db import now_iso, transaction
-from bookmarks.ingest.fetch import Unacquirable
+from bookmarks.ingest.fetch import Unretrievable
 from bookmarks.ingest.summarise import InvalidReply, Summary, Unreadable, parse_reply
 
 if TYPE_CHECKING:
@@ -141,7 +141,7 @@ def requeue(
     )
 
 
-def retrieving_failed(svc: "Bookmarks", claim: Claim, failure: Unacquirable) -> str:
+def retrieving_failed(svc: "Bookmarks", claim: Claim, failure: Unretrievable) -> str:
     if failure.transient:
         return _retry_or_fail(svc, claim, failure.reason)
     mark_failed(svc.conn, claim.submission_id, failure.reason)

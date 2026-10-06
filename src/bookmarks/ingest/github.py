@@ -7,7 +7,7 @@ import re
 from dataclasses import dataclass
 from urllib.parse import urlsplit
 
-from bookmarks.ingest.fetch import Fetcher, FetchError, HttpResponse, Unacquirable
+from bookmarks.ingest.fetch import Fetcher, FetchError, HttpResponse, Unretrievable
 
 API = "https://api.github.com"
 
@@ -61,26 +61,28 @@ def _get(fetcher: Fetcher, url: str, token: str | None) -> HttpResponse:
     try:
         return fetcher.get(url, headers=headers)
     except FetchError as exc:
-        raise Unacquirable(str(exc), transient=True) from None
+        raise Unretrievable(str(exc), transient=True) from None
 
 
 def _raise_for(response: HttpResponse, what: str) -> None:
     if response.status in (404, 410, 451):
-        raise Unacquirable(f"GitHub {what} not found", transient=False)
+        raise Unretrievable(f"GitHub {what} not found", transient=False)
     if response.status in (403, 429):
-        raise Unacquirable("GitHub API rate limit", transient=True)
+        raise Unretrievable("GitHub API rate limit", transient=True)
     if response.status >= 500:
-        raise Unacquirable(f"GitHub API error (HTTP {response.status})", transient=True)
-    raise Unacquirable(f"GitHub API HTTP {response.status}", transient=False)
+        raise Unretrievable(
+            f"GitHub API error (HTTP {response.status})", transient=True
+        )
+    raise Unretrievable(f"GitHub API HTTP {response.status}", transient=False)
 
 
 def _json(response: HttpResponse) -> dict:
     try:
         data = json.loads(response.text)
     except json.JSONDecodeError:
-        raise Unacquirable("GitHub API returned non-JSON", transient=True) from None
+        raise Unretrievable("GitHub API returned non-JSON", transient=True) from None
     if not isinstance(data, dict):
-        raise Unacquirable("GitHub API returned non-object JSON", transient=True)
+        raise Unretrievable("GitHub API returned non-object JSON", transient=True)
     return data
 
 
@@ -102,5 +104,5 @@ def fetch_readme(fetcher: Fetcher, repo: Repo, token: str | None = None) -> Read
     try:
         text = base64.b64decode(readme.get("content") or "").decode("utf-8", "replace")
     except (binascii.Error, ValueError):
-        raise Unacquirable("GitHub README not decodable", transient=True) from None
+        raise Unretrievable("GitHub README not decodable", transient=True) from None
     return Readme(full_name=full_name, description=description, text=text.strip())

@@ -18,7 +18,7 @@ class FetchError(Exception):
     """No HTTP response at all: timeout, DNS, connection refused, TLS."""
 
 
-class Unacquirable(Exception):
+class Unretrievable(Exception):
     """No source text; `transient` says whether a later drain may succeed."""
 
     def __init__(self, reason: str, *, transient: bool) -> None:
