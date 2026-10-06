@@ -1,6 +1,7 @@
 """Item records and the SQL that reads and writes them."""
 
 import json
+import re
 import sqlite3
 from dataclasses import dataclass
 from urllib.parse import urlsplit, urlunsplit
@@ -164,4 +165,35 @@ def insert_item(
 
 
 def types_in_use(conn: sqlite3.Connection) -> list[str]:
-    return [r["name"] for r in conn.execute("SELECT name FROM type ORDER BY name")]
+    return list(type_counts(conn))
+
+
+def type_counts(conn: sqlite3.Connection) -> dict[str, int]:
+    """Every type, adopted or base, with its item count; unused types count 0."""
+    rows = conn.execute(
+        "SELECT type.name, COUNT(item.id) AS n FROM type "
+        "LEFT JOIN item ON item.type = type.name GROUP BY type.name ORDER BY type.name"
+    )
+    return {r["name"]: r["n"] for r in rows}
+
+
+def newest_items(conn: sqlite3.Connection, limit: int) -> list[Item]:
+    rows = conn.execute(
+        "SELECT * FROM item ORDER BY saved_at DESC, id DESC LIMIT ?", (limit,)
+    )
+    return [item_from_row(r) for r in rows]
+
+
+def delete_item(conn: sqlite3.Connection, item_id: int) -> None:
+    """Its embeddings and keyword index entries go with it (cascade, trigger)."""
+    conn.execute("DELETE FROM item WHERE id = ?", (item_id,))
+
+
+# ponytail: splits at the first ". ", "! " or "? "; an abbreviation like
+# "e.g. " cuts early. Use a sentence splitter if ledes read badly.
+_SENTENCE_END = re.compile(r"(?<=[.!?])\s")
+
+
+def lede(summary: str) -> str:
+    """A summary is written lede-first: its first sentence stands alone."""
+    return _SENTENCE_END.split(summary.strip(), maxsplit=1)[0]
