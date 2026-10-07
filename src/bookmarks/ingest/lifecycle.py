@@ -220,3 +220,18 @@ def newest_submissions(
         (status, status, limit),
     )
     return [Submission(**r) for r in rows]
+
+
+def submission_counts(conn: sqlite3.Connection) -> dict[str, int]:
+    """How many submissions are pending and how many failed."""
+    counts = {"pending": 0, "failed": 0}
+    for row in conn.execute("SELECT status, COUNT(*) FROM submission GROUP BY status"):
+        counts[row[0]] = row[1]
+    return counts
+
+
+def oldest_pending(conn: sqlite3.Connection) -> str | None:
+    """Since when the longest-waiting pending submission has been owed a drain."""
+    return conn.execute(
+        "SELECT MIN(enqueued_at) FROM submission WHERE status = 'pending'"
+    ).fetchone()[0]

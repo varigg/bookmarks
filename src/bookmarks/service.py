@@ -12,8 +12,8 @@ from dataclasses import dataclass
 from typing import Literal
 
 from bookmarks import store
-from bookmarks.db import now_iso, transaction
-from bookmarks.embed import Embedder, EmbedReport, run_embed
+from bookmarks.db import hours_since, now_iso, transaction
+from bookmarks.embed import Embedder, EmbedReport, run_embed, unembedded_count
 from bookmarks.ingest import drain as draining
 from bookmarks.ingest import lifecycle
 from bookmarks.ingest.extract import clean
@@ -42,6 +42,17 @@ class SaveResult:
     saved_at: str
     note_added: bool
     message: str
+
+
+@dataclass(frozen=True)
+class PipelineStatus:
+    last_successful_drain: str | None
+    oldest_pending_since: str | None
+    oldest_pending_hours: int | None
+    pending: int
+    failed: int
+    items: int
+    unembedded: int
 
 
 class Bookmarks:
@@ -183,6 +194,20 @@ class Bookmarks:
     def embed(self) -> EmbedReport:
         """Embed items lacking a vector for the current model."""
         return run_embed(self.conn, self.embedder)
+
+    def status(self) -> PipelineStatus:
+        """How the pipeline stands: is it draining, and is anything stuck."""
+        counts = lifecycle.submission_counts(self.conn)
+        since = lifecycle.oldest_pending(self.conn)
+        return PipelineStatus(
+            last_successful_drain=draining.last_successful_drain(self.conn),
+            oldest_pending_since=since,
+            oldest_pending_hours=hours_since(since) if since else None,
+            pending=counts["pending"],
+            failed=counts["failed"],
+            items=sum(store.type_counts(self.conn).values()),
+            unembedded=unembedded_count(self.conn, self.embedder.model),
+        )
 
     def search(
         self, query: str, filters: Filters | None = None, limit: int | None = None

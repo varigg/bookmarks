@@ -19,6 +19,12 @@ def now_iso() -> str:
     return datetime.now(UTC).strftime(TIMESTAMP_FORMAT)
 
 
+def hours_since(stamp: str) -> int:
+    """Whole hours from a stored timestamp to now."""
+    then = datetime.strptime(stamp, TIMESTAMP_FORMAT).replace(tzinfo=UTC)
+    return int((datetime.now(UTC) - then).total_seconds() // 3600)
+
+
 SCHEMA = """
     -- An item exists only once it is summarised (ADR 0002).
     CREATE TABLE item (

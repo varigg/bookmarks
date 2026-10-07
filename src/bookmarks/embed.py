@@ -88,6 +88,12 @@ _UNEMBEDDED = (
 )
 
 
+def unembedded_count(conn: sqlite3.Connection, model: str) -> int:
+    return conn.execute(
+        f"SELECT COUNT(*) FROM item WHERE {_UNEMBEDDED}", (model,)
+    ).fetchone()[0]
+
+
 @dataclass
 class EmbedReport:
     embedded: int = 0

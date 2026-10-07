@@ -5,6 +5,7 @@ Each tool call opens its own service (one connection per call); tools raise
 docstrings are the contract the calling agent reads.
 """
 
+from dataclasses import asdict
 from typing import Literal
 
 from mcp.server.fastmcp import FastMCP
@@ -207,5 +208,21 @@ def build_server(open_service: OpenService) -> FastMCP:
         with open_service() as svc:
             subs = svc.list_submissions(status, limit)
         return {"submissions": [_submission(sub) for sub in subs]}
+
+    @mcp.tool()
+    def status() -> dict:
+        """How the save-to-search pipeline stands. Use it when something saved
+        is not showing up, or to check the pipeline is healthy.
+
+        - last_successful_drain: when summarising last ran without stopping
+          early (null: never)
+        - oldest_pending_since / oldest_pending_hours: how long the
+          longest-waiting URL has waited to be summarised (null: none waiting)
+        - pending, failed: saved URLs not yet items (see `list_submissions`)
+        - items: summarised items
+        - unembedded: items not yet findable by meaning, only by keyword
+        """
+        with open_service() as svc:
+            return asdict(svc.status())
 
     return mcp
