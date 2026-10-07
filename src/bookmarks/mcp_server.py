@@ -15,8 +15,6 @@ from bookmarks.search import Filters, Hit
 from bookmarks.service import OpenService
 from bookmarks.store import Item
 
-_WAYBACK = "https://web.archive.org/web/{url}"
-
 
 def _hit(hit: Hit) -> dict:
     item = hit.item
@@ -65,7 +63,7 @@ def _record(item: Item) -> dict:
             "at": p.at,
             "truncated": p.truncated,
         },
-        "archive_url": _WAYBACK.format(url=item.url),
+        "archive_url": store.archive_url(item.url),
     }
 
 

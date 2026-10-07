@@ -58,6 +58,14 @@ def normalise_url(url: str) -> str:
     return urlunsplit((parts.scheme, parts.netloc, parts.path, "&".join(kept), ""))
 
 
+_WAYBACK = "https://web.archive.org/web/{url}"
+
+
+def archive_url(url: str) -> str:
+    """The item's page on the Wayback Machine."""
+    return _WAYBACK.format(url=url)
+
+
 def domain_of(url: str) -> str:
     host = (urlsplit(url).hostname or "").lower()
     return host.removeprefix("www.")
