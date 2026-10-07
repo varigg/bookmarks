@@ -1,138 +1,89 @@
-# Firefox Browser Extension for Bookmarks Server
+# Bookmarks for Firefox
 
-This extension adds a toolbar button to Firefox that allows you to quickly save the current page to your self-hosted bookmarks server.
+A toolbar button that saves the page you are reading to the bookmarks
+server's capture API (`POST /api/items`). Manifest V3, Firefox only.
 
-## Features
+It sends the page's `url`, its `title`, the rendered `html` as the browser
+holds it, and an optional `note` typed in the popup. The rendered page lets
+the server keep pages it cannot fetch itself: Reddit, single-page apps,
+logged-in pages. Pages scripts cannot reach (`about:` pages, the add-ons
+site) are sent without html, and the server fetches them.
 
-- 🔖 One-click bookmark addition from any webpage
-- 📝 Edit title, description, and tags before saving
-- ⚙️ Configurable server URL for self-hosting
-- 🚀 Fast and lightweight
-
-## Developer Resources
-
-- **Mozilla Add-ons Developer Page**: [https://addons.mozilla.org/developers/addon/2970205/versions](https://addons.mozilla.org/developers/addon/2970205/versions)
-  - View all signed versions
-  - Manage extension updates
-  - Access signing history
-
-## Installation
-
-### Step 1: Generate Icon Files
-
-Before installing, you need to create PNG icons from the SVG file:
-
-1. Navigate to `browser-extension/icons/`
-2. Follow the instructions in `icons/README.md` to convert `bookmark.svg` to PNG files
-3. You need: `bookmark-16.png`, `bookmark-32.png`, `bookmark-48.png`, `bookmark-96.png`
-
-### Step 2: Install in Firefox
-
-#### Temporary Installation (for testing)
-
-1. Open Firefox
-2. Navigate to `about:debugging#/runtime/this-firefox`
-3. Click "Load Temporary Add-on..."
-4. Select the `manifest.json` file from the `browser-extension/` directory
-5. The extension is now installed (will be removed when you close Firefox)
-
-#### Permanent Installation (unsigned)
-
-Firefox requires extensions to be signed for permanent installation. You have two options:
-
-**Option A: Use Firefox Developer Edition or Nightly**
-
-1. Install [Firefox Developer Edition](https://www.mozilla.org/en-US/firefox/developer/) or [Firefox Nightly](https://www.mozilla.org/en-US/firefox/channel/desktop/)
-2. Navigate to `about:config`
-3. Set `xpinstall.signatures.required` to `false`
-4. Create a ZIP file of the extension:
-   ```bash
-   cd browser-extension
-   zip -r bookmarks-extension.zip manifest.json popup.html popup.js options.html options.js icons/
-   ```
-5. Navigate to `about:addons`
-6. Click the gear icon → "Install Add-on From File..."
-7. Select `bookmarks-extension.zip`
-
-**Option B: Sign the extension (recommended for production)**
-
-1. Create an account at [addons.mozilla.org](https://addons.mozilla.org/developers/)
-2. Get API credentials from [addons.mozilla.org/developers/addon/api/key/](https://addons.mozilla.org/developers/addon/api/key/)
-   - You'll receive a **JWT Issuer** (looks like `user:12345:67`) and a **JWT Secret** (long alphanumeric string)
-   - **Note**: Mozilla calls these "JWT" credentials, but `web-ext` still uses the parameter names `--api-key` and `--api-secret`
-3. Use [web-ext](https://extensionworkshop.com/documentation/develop/getting-started-with-web-ext/) to sign:
-   ```bash
-   npm install -g web-ext
-   cd browser-extension
-   # Use JWT Issuer as --api-key and JWT Secret as --api-secret
-   # Use --channel=unlisted for personal use (faster, not listed publicly)
-   # Use --channel=listed if you want it on addons.mozilla.org (requires review)
-   web-ext sign --api-key=YOUR_JWT_ISSUER --api-secret=YOUR_JWT_SECRET --channel=unlisted
-   ```
-4. Install the signed `.xpi` file (will be in `web-ext-artifacts/` directory)
-
-### Step 3: Configure the Extension
-
-1. Click the extension icon in the toolbar
-2. Click "Configure Server URL" at the bottom
-3. Enter your bookmarks server URL (default: `http://localhost:5001`)
-4. Click "Save Settings"
-
-## Usage
-
-1. Navigate to any webpage you want to bookmark
-2. Click the bookmark extension icon in the toolbar
-3. The URL and title are automatically filled in
-4. Optionally edit the title, add a description, or add tags
-5. Click "Add Bookmark"
-6. The bookmark is sent to your server!
-
-## Server Requirements
-
-Your bookmarks server must:
-
-- Be running and accessible at the configured URL
-- Accept POST requests to `/bookmarks` endpoint
-- Accept form data with fields: `url`, `title`, `description`, `tags`
-
-This extension works with the bookmarks server in this repository.
-
-## Troubleshooting
-
-### "Failed to connect to server"
-
-- Ensure your bookmarks server is running
-- Check the server URL in the extension settings
-- If using HTTPS, ensure your certificate is valid
-- Check browser console for CORS errors
-
-### CORS Issues
-
-If your server is on a different domain, you may need to add CORS headers to your Flask app:
-
-```python
-from flask_cors import CORS
-CORS(app)
-```
-
-### Icons not showing
-
-- Make sure you generated the PNG icon files from the SVG
-- See `icons/README.md` for instructions
-
-## Development
-
-To modify the extension:
-
-1. Edit the files in `browser-extension/`
-2. Reload the extension in `about:debugging`
-3. Test your changes
+The popup shows the server's reply as the server words it: "Saved",
+"Already saved on <date>", "…; note not added", "Re-queued". If the server
+cannot be reached it shows "Not saved: server unreachable". Nothing is
+retried later.
 
 ## Files
 
-- `manifest.json` - Extension metadata and permissions
-- `popup.html` - The popup UI shown when clicking the icon
-- `popup.js` - Logic for the popup form
-- `options.html` - Settings page
-- `options.js` - Settings logic
-- `icons/` - Extension icons
+- `manifest.json`: permissions are `activeTab` and `scripting` (read the
+  page you clicked on), `storage` (the server address) and an optional host
+  permission for the server. Its `content_security_policy` drops Manifest
+  V3's default `upgrade-insecure-requests`, which would rewrite every
+  `http://` save to `https://` and fail against a plain-HTTP server
+  ("server unreachable"; uvicorn logs "Invalid HTTP request"). (2026-10-07)
+- `popup.html`, `popup.js`: the save popup.
+- `options.html`, `options.js`: the server address.
+- `server.js`: the stored address and its host permission, shared by both.
+- `icons/`: toolbar and listing icons.
+
+## Install
+
+For a quick try, open `about:debugging#/runtime/this-firefox`, click
+"Load Temporary Add-on…" and pick `manifest.json`. It is removed when
+Firefox closes.
+
+To keep it, sign it as an unlisted version of the existing add-on (the
+gecko id is unchanged) with
+[web-ext](https://extensionworkshop.com/documentation/develop/getting-started-with-web-ext/).
+The API key and secret come from addons.mozilla.org's API key page; keep
+them out of shell history and out of git.
+
+```bash
+npx web-ext sign --source-dir browser-extension --channel unlisted \
+  --api-key "$AMO_JWT_ISSUER" --api-secret "$AMO_JWT_SECRET"
+```
+
+Then install the `.xpi` from `web-ext-artifacts/` via `about:addons` →
+gear → "Install Add-on From File…".
+
+## Configure
+
+Open the extension's options (`about:addons` → Bookmarks → Options), enter
+the server address, e.g. `http://thunderbird:5000`, and save. Firefox asks
+once for permission to send data to that host; the address is saved only if
+you allow it. The capture API needs no CORS settings.
+
+## Manual test checklist
+
+Run these against a local server (`uv run bookmarks serve`) with the
+extension loaded temporarily. Watch the server's log for each request.
+
+1. **No address.** On a fresh install, open the popup and click Save →
+   "Not saved: set the server address in the extension options."
+2. **Permission refused.** In options, enter the address and refuse
+   Firefox's prompt → "Not saved: Firefox access to the server was
+   refused."; the address is not stored.
+3. **Configure.** Enter the address again and allow → "Saved." Reopen the
+   options page: the address is shown.
+4. **Saved, with html.** On an article page, type a note and click Save →
+   green "Saved". `list_submissions` (MCP) shows the URL pending with the
+   note; the server received `html` and `title`.
+5. **Already saved.** Save the same page again with a note → yellow "Already
+   saved on <date>; note not added".
+6. **Tracking parameters.** Save the same page with `?utm_source=x` added →
+   "Already saved on <date>".
+7. **Logged-in or single-page app.** Save a Reddit thread or a page behind a
+   login, then run `bookmarks drain` → the item's summary describes the page
+   you saw, not a login wall.
+8. **No html available.** Save `about:addons` or a page on
+   addons.mozilla.org → "Not saved: not an http(s) URL…" for `about:`; for
+   the add-ons site, "Saved" (sent without html).
+9. **Re-queued.** Save a URL that fails (e.g. a 404 page), run
+   `bookmarks drain` until `list_submissions` shows it failed, then save it
+   again → yellow "Re-queued".
+10. **Server down.** Stop the server and click Save → red, large
+    "Not saved: server unreachable".
+11. **Wrong address.** Set the address to a host that does not answer, e.g.
+    `http://10.255.255.1:5000` → "Not saved: server unreachable" within
+    about 15 seconds.

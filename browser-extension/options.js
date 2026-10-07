@@ -1,26 +1,25 @@
-// Load saved settings
-browser.storage.local.get({ serverUrl: 'http://localhost:5001' }).then(config => {
-  document.getElementById('serverUrl').value = config.serverUrl;
+// The server address, and Firefox's permission to post to it.
+
+const input = document.getElementById('serverUrl');
+const status = document.getElementById('status');
+
+loadServer().then((serverUrl) => {
+  input.value = serverUrl;
 });
 
-// Save settings
-document.getElementById('optionsForm').addEventListener('submit', (e) => {
-  e.preventDefault();
-  
-  const serverUrl = document.getElementById('serverUrl').value.replace(/\/$/, ''); // Remove trailing slash
-  
-  browser.storage.local.set({ serverUrl }).then(() => {
-    const statusDiv = document.getElementById('status');
-    statusDiv.textContent = 'Settings saved successfully!';
-    statusDiv.className = 'status success';
-    
-    setTimeout(() => {
-      statusDiv.className = 'status';
-    }, 3000);
-  }).catch(error => {
-    const statusDiv = document.getElementById('status');
-    statusDiv.textContent = 'Error saving settings: ' + error.message;
-    statusDiv.className = 'status error';
-    statusDiv.style.display = 'block';
+document.getElementById('options').addEventListener('submit', (event) => {
+  event.preventDefault();
+  const serverUrl = input.value.trim().replace(/\/+$/, '');
+  // permissions.request must be called directly in the user's gesture,
+  // before anything is awaited.
+  browser.permissions.request(serverOrigins(serverUrl)).then(async (granted) => {
+    if (!granted) {
+      status.textContent = 'Not saved: Firefox access to the server was refused.';
+      status.className = 'error';
+      return;
+    }
+    await browser.storage.local.set({ serverUrl });
+    status.textContent = 'Saved.';
+    status.className = '';
   });
 });

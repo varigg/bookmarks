@@ -1,70 +1,78 @@
-// Get current tab info and populate form
-browser.tabs.query({ active: true, currentWindow: true }).then(tabs => {
-  const tab = tabs[0];
-  document.getElementById('url').value = tab.url;
-  document.getElementById('title').value = tab.title;
+// Save the active tab: url, title, the rendered html and an optional note.
+// Every capture-API reply is shown as the server worded it; there is no retry.
+
+const status = document.getElementById('status');
+const saveButton = document.getElementById('save');
+let tab;
+
+browser.tabs.query({ active: true, currentWindow: true }).then(([active]) => {
+  tab = active;
+  document.getElementById('url').textContent = tab.url;
 });
 
-// Handle configure link
-document.getElementById('configureLink').addEventListener('click', (e) => {
-  e.preventDefault();
-  browser.runtime.openOptionsPage();
-});
+function show(text, kind) {
+  status.textContent = text;
+  status.className = kind;
+}
 
-// Handle form submission
-document.getElementById('bookmarkForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  
-  const submitBtn = document.getElementById('submitBtn');
-  const statusDiv = document.getElementById('status');
-  
-  // Get URL
-  const url = document.getElementById('url').value;
-  
-  // Get server URL from storage
-  const config = await browser.storage.local.get({ serverUrl: 'http://localhost:5001' });
-  const serverUrl = config.serverUrl.replace(/\/$/, ''); // Remove trailing slash
-  
-  // Disable button
-  submitBtn.disabled = true;
-  submitBtn.textContent = 'Adding...';
-  
+// The page as the browser holds it, so logged-in pages and single-page apps
+// arrive rendered. Pages scripts cannot reach (about:, the add-ons site) send
+// no html and the server fetches the URL itself.
+async function renderedHtml(tabId) {
   try {
-    // Send to bookmarks API endpoint (generates title/description and saves)
-    const response = await fetch(`${serverUrl}/api/bookmarks`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ url: url })
+    const [frame] = await browser.scripting.executeScript({
+      target: { tabId },
+      func: () => document.documentElement.outerHTML,
     });
-    
-    if (response.ok) {
-      const result = await response.json();
-      showStatus('Bookmark added successfully!', 'success');
-      
-      // Close popup after short delay
-      setTimeout(() => window.close(), 1500);
-    } else {
-      const errorData = await response.json();
-      showStatus(`Error: ${errorData.error || response.status}`, 'error');
-    }
-  } catch (error) {
-    showStatus(`Failed to connect to server: ${error.message}`, 'error');
-  } finally {
-    submitBtn.disabled = false;
-    submitBtn.textContent = 'Add Bookmark';
-  }
-});
-
-function showStatus(message, type) {
-  const statusDiv = document.getElementById('status');
-  statusDiv.textContent = message;
-  statusDiv.className = `status ${type}`;
-  
-  if (type === 'error') {
-    setTimeout(() => {
-      statusDiv.className = 'status';
-    }, 5000);
+    return frame.result;
+  } catch {
+    return null;
   }
 }
+
+async function save() {
+  const serverUrl = await loadServer();
+  if (!serverUrl) {
+    show('Not saved: set the server address in the extension options.', 'error');
+    return;
+  }
+  if (!(await browser.permissions.contains(serverOrigins(serverUrl)))) {
+    show('Not saved: allow access to the server in the extension options.', 'error');
+    return;
+  }
+  const note = document.getElementById('note').value.trim();
+  const payload = {
+    url: tab.url,
+    title: tab.title,
+    html: await renderedHtml(tab.id),
+    note: note || null,
+  };
+  let response;
+  try {
+    response = await fetch(`${serverUrl}/api/items`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(15000),
+    });
+  } catch {
+    show('Not saved: server unreachable', 'error');
+    return;
+  }
+  const body = await response.json().catch(() => ({}));
+  if (response.ok) {
+    show(body.message, body.outcome);
+  } else {
+    const detail = typeof body.detail === 'string' ? body.detail : `HTTP ${response.status}`;
+    show(`Not saved: ${detail}`, 'error');
+  }
+}
+
+saveButton.addEventListener('click', async () => {
+  saveButton.disabled = true;
+  try {
+    await save();
+  } finally {
+    saveButton.disabled = false;
+  }
+});

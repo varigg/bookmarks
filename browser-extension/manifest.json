@@ -1,20 +1,21 @@
 {
-  "manifest_version": 2,
-  "name": "Bookmarks Server",
-  "version": "1.0.1",
-  "description": "Send current page to your self-hosted bookmarks server",
-  "permissions": [
-    "activeTab",
-    "storage"
-  ],
-  "browser_action": {
+  "manifest_version": 3,
+  "name": "Bookmarks",
+  "version": "2.0.0",
+  "description": "Save the page you are reading to your self-hosted bookmarks server",
+  "permissions": ["activeTab", "scripting", "storage"],
+  "optional_host_permissions": ["http://*/*", "https://*/*"],
+  "action": {
     "default_icon": {
       "16": "icons/bookmark-16.png",
       "32": "icons/bookmark-32.png",
       "48": "icons/bookmark-48.png"
     },
-    "default_title": "Add to Bookmarks",
+    "default_title": "Save to Bookmarks",
     "default_popup": "popup.html"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'"
   },
   "options_ui": {
     "page": "options.html",
@@ -23,10 +24,9 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "{fe016f96-aeea-4b14-ae11-c2904e12a70f}",
+      "strict_min_version": "142.0",
       "data_collection_permissions": {
-        "required": [
-          "none"
-        ]
+        "required": ["none"]
       }
     }
   },
