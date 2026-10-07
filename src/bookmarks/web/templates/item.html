@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}{{ item.title }}{% endblock %}
+{% block content %}
+<h1>{{ item.title }}</h1>
+<p><a href="{{ item.url }}">{{ item.url }}</a> · <a href="{{ archive_url }}">archive</a></p>
+<p>{{ item.summary }}</p>
+<dl>
+  <dt>Type</dt><dd>{{ item.type }}</dd>
+  <dt>Saved</dt><dd>{{ item.saved_at }}</dd>
+  <dt>Entities</dt><dd>{{ item.entities | join(", ") }}</dd>
+  <dt>Note</dt><dd>{{ item.note or "" }}</dd>
+  <dt>Summarised by</dt><dd>{{ item.provenance.cli }} · {{ item.provenance.model }}</dd>
+  <dt>Prompt</dt><dd>{{ item.provenance.prompt_hash }}</dd>
+  <dt>Summarised at</dt><dd>{{ item.provenance.at }}</dd>
+  <dt>Truncated source</dt><dd>{{ "yes" if item.provenance.truncated else "no" }}</dd>
+</dl>
+<form method="post" action="/items/{{ item.id }}/delete"
+      onsubmit="return confirm('Delete this item for good?')">
+  <button type="submit">Delete</button>
+</form>
+{% endblock %}
