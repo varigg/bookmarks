@@ -153,4 +153,21 @@ def run_drain(svc: "Bookmarks", *, limit: int | None = None) -> DrainReport:
                 f"circuit breaker: {consecutive_retries} consecutive transient failures"
             )
             break
+    _log(svc.conn, report)
     return report
+
+
+def _log(conn: sqlite3.Connection, report: DrainReport) -> None:
+    conn.execute(
+        "INSERT INTO drain_run (finished_at, summarised, failed, retry, stopped) "
+        "VALUES (?, ?, ?, ?, ?)",
+        (now_iso(), report.summarised, report.failed, report.retry, report.stopped),
+    )
+
+
+def last_successful_drain(conn: sqlite3.Connection) -> str | None:
+    """When the last run that was not stopped early finished."""
+    row = conn.execute(
+        "SELECT MAX(finished_at) FROM drain_run WHERE stopped IS NULL"
+    ).fetchone()
+    return row[0]

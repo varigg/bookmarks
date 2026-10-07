@@ -88,6 +88,17 @@ SCHEMA = """
         DELETE FROM embedding WHERE item_id = old.id;
     END;
 
+    -- One row per drain run; `stopped` says why a run ended early (NULL: it
+    -- ran out of work or hit its limit).
+    CREATE TABLE drain_run (
+        id INTEGER PRIMARY KEY,
+        finished_at TEXT NOT NULL,
+        summarised INTEGER NOT NULL,
+        failed INTEGER NOT NULL,
+        retry INTEGER NOT NULL,
+        stopped TEXT
+    );
+
     -- External-content FTS5 over the item, kept in sync by triggers.
     -- Column order matters: bm25() weights are positional.
     CREATE VIRTUAL TABLE item_fts USING fts5 (

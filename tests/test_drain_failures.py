@@ -4,9 +4,10 @@ import json
 
 import pytest
 
+from bookmarks.ingest.drain import last_successful_drain
 from bookmarks.ingest.fetch import FetchError, HttpResponse
 from bookmarks.ingest.llm.provider import ProviderFailure
-from tests.factories import fixture_text, item_at, submission_at
+from tests.factories import fixture_text, is_recent, item_at, submission_at
 from tests.fakes import summary_json
 
 URL = "https://example.com/post"
@@ -235,3 +236,29 @@ def test_unreadable_reply_is_permanent(service, fetcher, summariser):
     assert (
         submission_at(service, URL).failure_reason == "summarising: unreadable: captcha"
     )
+
+
+def test_every_run_is_logged_and_a_stopped_one_is_not_a_success(
+    service, fetcher, summariser
+):
+    fetcher.page(URL, ARTICLE)
+    service.save(URL)
+    summariser.script(ProviderFailure("auth", "Error: not logged in. Run /login"))
+    service.drain()
+
+    assert last_successful_drain(service.conn) is None
+
+    summariser.script(summary_json())
+    service.drain()
+
+    runs = service.conn.execute(
+        "SELECT summarised, stopped FROM drain_run ORDER BY id"
+    ).fetchall()
+    assert [r["summarised"] for r in runs] == [0, 1]
+    assert runs[0]["stopped"].startswith("auth")
+    assert runs[1]["stopped"] is None
+    assert is_recent(last_successful_drain(service.conn))
+
+
+def test_no_drain_yet_has_no_last_success(service):
+    assert last_successful_drain(service.conn) is None
