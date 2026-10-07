@@ -82,6 +82,12 @@ def serialize(vector: list[float]) -> bytes:
     return sqlite_vec.serialize_float32(vector)
 
 
+# An item lacking a vector for the model bound to the `?`.
+_UNEMBEDDED = (
+    "NOT EXISTS (SELECT 1 FROM embedding e WHERE e.item_id = item.id AND e.model = ?)"
+)
+
+
 @dataclass
 class EmbedReport:
     embedded: int = 0
@@ -100,10 +106,8 @@ def run_embed(
     report = EmbedReport()
     while True:
         rows = conn.execute(
-            "SELECT id, title, summary, note FROM item "
-            "WHERE NOT EXISTS ("
-            "  SELECT 1 FROM embedding e WHERE e.item_id = item.id AND e.model = ?"
-            ") ORDER BY id LIMIT ?",
+            f"SELECT id, title, summary, note FROM item WHERE {_UNEMBEDDED} "
+            "ORDER BY id LIMIT ?",
             (embedder.model, batch_size),
         ).fetchall()
         if not rows:
