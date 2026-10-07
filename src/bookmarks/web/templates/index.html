@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<form class="filters" method="get" action="/">
+  <input type="search" name="q" value="{{ q }}" placeholder="Search">
+  <select name="type">
+    <option value="">All types</option>
+    {% for name, count in types.items() %}
+    <option value="{{ name }}" {% if name == type %}selected{% endif %}>{{ name }} ({{ count }})</option>
+    {% endfor %}
+  </select>
+  <input type="text" name="domain" value="{{ domain }}" placeholder="Domain">
+  <button type="submit">Go</button>
+</form>
+{% for note in notes %}<p class="meta">{{ note }}</p>{% endfor %}
+<ul class="items">
+  {% for item in items %}
+  <li>
+    <a href="/items/{{ item.id }}">{{ item.title }}</a>
+    <div>{{ lede(item.summary) }}</div>
+    <div class="meta">{{ item.type }} · {{ item.domain }} · {{ item.saved_at[:10] }}</div>
+  </li>
+  {% else %}
+  <li>No items.</li>
+  {% endfor %}
+</ul>
+{% endblock %}
