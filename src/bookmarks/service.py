@@ -20,7 +20,13 @@ from bookmarks.ingest.extract import clean
 from bookmarks.ingest.fetch import Fetcher
 from bookmarks.ingest.llm.provider import LLMProvider
 from bookmarks.ingest.summarise import Prompt, load_prompt
-from bookmarks.search import Filters, SearchResult, clamp_limit, hybrid_search
+from bookmarks.search import (
+    Filters,
+    SearchResult,
+    clamp_limit,
+    hybrid_search,
+    newest_items,
+)
 from bookmarks.settings import Settings
 from bookmarks.store import Item
 
@@ -147,9 +153,11 @@ class Bookmarks:
                 store.delete_item(self.conn, item.id)
         return item
 
-    def list_items(self, limit: int | None = None) -> list[Item]:
-        """Items, newest saved first."""
-        return store.newest_items(self.conn, clamp_limit(limit))
+    def list_items(
+        self, limit: int | None = None, filters: Filters | None = None
+    ) -> list[Item]:
+        """Items the filters admit, newest saved first."""
+        return newest_items(self.conn, filters, limit)
 
     def list_submissions(
         self,

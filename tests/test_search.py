@@ -124,22 +124,37 @@ def test_callers_never_add_prefixes(service, embedder, corpus):
     assert embedder.queries == ["anything at all"]
 
 
-@pytest.mark.parametrize(
-    "filters,expected",
-    [
-        (Filters(types=["repo"]), {"repo"}),
-        (Filters(types=["Recipe", "repo"]), {"bread", "repo"}),
-        (Filters(domain="github.com"), {"repo"}),
-        (Filters(domain="example.com"), {"tax"}),
-        (Filters(saved_after="2026-11-15"), {"repo", "tax"}),
-        (Filters(saved_before="2026-10-15"), {"crdt"}),
-    ],
-)
+FILTER_CASES = [
+    (Filters(types=["repo"]), {"repo"}),
+    (Filters(types=["Recipe", "repo"]), {"bread", "repo"}),
+    (Filters(domain="github.com"), {"repo"}),
+    (Filters(domain="example.com"), {"tax"}),
+    (Filters(saved_after="2026-11-15"), {"repo", "tax"}),
+    (Filters(saved_before="2026-10-15"), {"crdt"}),
+]
+
+
+@pytest.mark.parametrize("filters,expected", FILTER_CASES)
 def test_filters_narrow_candidates_before_both_legs(service, corpus, filters, expected):
     result = service.search("collaborative apps merge automerge budget", filters)
 
     names = {name for name, item in corpus.items() if item.id in _ids(result)}
     assert names == expected
+
+
+@pytest.mark.parametrize("filters,expected", FILTER_CASES)
+def test_listing_takes_the_same_filters(service, corpus, filters, expected):
+    listed = service.list_items(filters=filters)
+
+    assert {item.id for item in listed} == {corpus[n].id for n in expected}
+
+
+def test_listing_is_newest_first(service, corpus):
+    listed = service.list_items()
+
+    assert [item.id for item in listed] == [
+        corpus[n].id for n in ("tax", "repo", "bread", "crdt")
+    ]
 
 
 def test_submissions_are_never_searched(service, corpus, fetcher):

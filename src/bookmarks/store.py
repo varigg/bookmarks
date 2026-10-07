@@ -195,13 +195,6 @@ def type_counts(conn: sqlite3.Connection) -> dict[str, int]:
     return {r["name"]: r["n"] for r in rows}
 
 
-def newest_items(conn: sqlite3.Connection, limit: int) -> list[Item]:
-    rows = conn.execute(
-        "SELECT * FROM item ORDER BY saved_at DESC, id DESC LIMIT ?", (limit,)
-    )
-    return [item_from_row(r) for r in rows]
-
-
 def delete_item(conn: sqlite3.Connection, item_id: int) -> None:
     """Its embeddings and keyword index entries go with it (cascade, trigger)."""
     conn.execute("DELETE FROM item WHERE id = ?", (item_id,))

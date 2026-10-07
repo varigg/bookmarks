@@ -141,6 +141,18 @@ def clamp_limit(limit: int | None) -> int:
     return min(limit, MAX_LIMIT)
 
 
+def newest_items(
+    conn: sqlite3.Connection, filters: Filters | None = None, limit: int | None = None
+) -> list[Item]:
+    """Items the filters admit, newest saved first; no query, so no ranking."""
+    sql, params = _candidates_sql(filters or Filters())
+    rows = conn.execute(
+        f"{sql} ORDER BY saved_at DESC, id DESC LIMIT ?",
+        (*params, clamp_limit(limit)),
+    ).fetchall()
+    return [store.get_by_id(conn, row[0]) for row in rows]
+
+
 def hybrid_search(
     conn: sqlite3.Connection,
     embedder: Embedder,
