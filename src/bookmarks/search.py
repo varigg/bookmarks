@@ -33,6 +33,8 @@ class Filters:
     domain: str | None = None
     saved_after: str | None = None  # inclusive, ISO date or timestamp
     saved_before: str | None = None  # exclusive, ISO date or timestamp
+    # (model, prompt hash) now in use: admits items written by any other pair.
+    stale_for: tuple[str, str] | None = None
 
 
 @dataclass(frozen=True)
@@ -81,6 +83,9 @@ def _candidates_sql(filters: Filters) -> tuple[str, list]:
     if filters.saved_before:
         clauses.append("saved_at < ?")
         params.append(filters.saved_before)
+    if filters.stale_for:
+        clauses.append("(prov_model != ? OR prov_prompt_hash != ?)")
+        params += filters.stale_for
     where = " WHERE " + " AND ".join(clauses) if clauses else ""
     return "SELECT id FROM item" + where, params
 
@@ -151,6 +156,19 @@ def newest_items(
         (*params, clamp_limit(limit)),
     ).fetchall()
     return [store.get_by_id(conn, row[0]) for row in rows]
+
+
+def stalest_items(
+    conn: sqlite3.Connection, filters: Filters, limit: int | None = None
+) -> list[Item]:
+    """Items the filters admit, oldest summary first; all of them without a
+    limit, because the operator, not a reader, is asking."""
+    sql, params = _candidates_sql(filters)
+    sql += " ORDER BY prov_at, id"
+    if limit is not None:
+        sql += " LIMIT ?"
+        params.append(limit)
+    return [store.get_by_id(conn, row[0]) for row in conn.execute(sql, params)]
 
 
 def hybrid_search(

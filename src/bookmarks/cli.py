@@ -98,6 +98,23 @@ def _import_legacy(settings: Settings, args: argparse.Namespace) -> None:
     )
 
 
+def _resummarise(settings: Settings, args: argparse.Namespace) -> None:
+    item = args.item
+    with _service_opener(settings)() as svc:
+        try:
+            queued, already = svc.resummarise(
+                item_id=int(item) if item and item.isdigit() else None,
+                url=item if item and not item.isdigit() else None,
+                stale=args.stale,
+                types=args.types,
+                domain=args.domain,
+                limit=args.limit,
+            )
+        except ValueError as error:
+            raise SystemExit(f"resummarise: {error}") from None
+    print(f"resummarise: {queued} queued for the drain, {already} already queued")
+
+
 def _mcp(settings: Settings, args: argparse.Namespace) -> None:
     from bookmarks.mcp_server import build_server
 
@@ -127,6 +144,19 @@ def main(argv: list[str] | None = None) -> None:
     )
     import_cmd.add_argument("path", type=Path)
     import_cmd.set_defaults(handler=_import_legacy)
+    resummarise = commands.add_parser(
+        "resummarise", help="queue fresh summaries for existing items"
+    )
+    resummarise.add_argument("--item", help="an item id or URL")
+    resummarise.add_argument(
+        "--stale",
+        action="store_true",
+        help="items written by another model or prompt than the current ones",
+    )
+    resummarise.add_argument("--type", dest="types", action="append", default=[])
+    resummarise.add_argument("--domain")
+    resummarise.add_argument("--limit", type=int)
+    resummarise.set_defaults(handler=_resummarise)
     commands.add_parser("mcp", help="run the MCP server over stdio").set_defaults(
         handler=_mcp
     )
