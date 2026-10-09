@@ -1,5 +1,13 @@
 {% extends "base.html" %}
 {% block content %}
+<p class="meta status">
+  {{ status.items }} items · {{ status.unembedded }} unembedded ·
+  {{ status.pending }} pending · {{ status.failed }} failed<br>
+  Last successful drain: {{ status.last_successful_drain or "never" }}
+  {% if status.oldest_pending_since %}
+  · oldest pending since {{ status.oldest_pending_since }} ({{ status.oldest_pending_hours }} h)
+  {% endif %}
+</p>
 <form class="filters" method="get" action="/">
   <input type="search" name="q" value="{{ q }}" placeholder="Search">
   <select name="type">

@@ -77,6 +77,7 @@ def create_app(open_service: OpenService) -> FastAPI:
             {
                 "items": items,
                 "notes": notes,
+                "status": svc.status(),
                 "types": svc.list_types(),
                 "lede": store.lede,
                 "q": q,
