@@ -4,9 +4,12 @@ import argparse
 import sys
 from collections.abc import Iterator
 from contextlib import contextmanager
+from datetime import UTC, datetime
 from pathlib import Path
 
 from bookmarks import db
+from bookmarks.alert import AlertError, MsmtpAlerter
+from bookmarks.backup import run_backup
 from bookmarks.embed import OllamaEmbedder
 from bookmarks.ingest import legacy
 from bookmarks.ingest.fetch import HttpxFetcher, Unretrievable
@@ -17,6 +20,9 @@ from bookmarks.settings import Settings
 
 
 def _service_opener(settings: Settings):
+    if not settings.ollama_url:
+        raise SystemExit("BOOKMARKS_OLLAMA_URL is not set")
+
     @contextmanager
     def open_service() -> Iterator[Bookmarks]:
         conn = db.connect(settings.db_path)
@@ -115,6 +121,30 @@ def _resummarise(settings: Settings, args: argparse.Namespace) -> None:
     print(f"resummarise: {queued} queued for the drain, {already} already queued")
 
 
+def _backup(settings: Settings, args: argparse.Namespace) -> None:
+    if not settings.backup_dir:
+        raise SystemExit("backup: BOOKMARKS_BACKUP_DIR is not set")
+    if not settings.alert_to:
+        raise SystemExit("backup: BOOKMARKS_ALERT_TO is not set")
+    conn = db.connect(settings.db_path)
+    try:
+        made = run_backup(
+            conn,
+            target=settings.backup_dir,
+            alerter=MsmtpAlerter(settings.alert_to),
+            now=datetime.now(UTC),
+        )
+    except AlertError as error:
+        raise SystemExit(
+            f"backup: target missing and the alert failed: {error}"
+        ) from None
+    finally:
+        conn.close()
+    if made is None:
+        raise SystemExit(f"backup: {settings.backup_dir} does not exist; alerted")
+    print(f"backup: {made}")
+
+
 def _mcp(settings: Settings, args: argparse.Namespace) -> None:
     from bookmarks.mcp_server import build_server
 
@@ -157,6 +187,9 @@ def main(argv: list[str] | None = None) -> None:
     resummarise.add_argument("--domain")
     resummarise.add_argument("--limit", type=int)
     resummarise.set_defaults(handler=_resummarise)
+    commands.add_parser(
+        "backup", help="copy the store to BOOKMARKS_BACKUP_DIR, keeping the newest 14"
+    ).set_defaults(handler=_backup)
     commands.add_parser("mcp", help="run the MCP server over stdio").set_defaults(
         handler=_mcp
     )
