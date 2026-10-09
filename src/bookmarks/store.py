@@ -182,6 +182,42 @@ def insert_item(
     return item_id
 
 
+def replace_summary(
+    conn: sqlite3.Connection,
+    item_id: int,
+    *,
+    title: str,
+    type: str,
+    summary: str,
+    entities: list[str],
+    provenance: Provenance,
+) -> None:
+    """Rewrite what the summariser wrote, keeping the URL, the Note and the
+    saved time. Writing title and summary drops the item's embeddings (the
+    `item_embedding_stale` trigger), so the embed step redoes them.
+
+    Runs inside the caller's transaction, if any."""
+    type = resolve_type(conn, type)
+    conn.execute(
+        "UPDATE item SET title = ?, type = ?, summary = ?, entities = ?, "
+        "prov_cli = ?, prov_model = ?, prov_prompt_hash = ?, prov_at = ?, "
+        "prov_truncated = ? WHERE id = ?",
+        (
+            title,
+            type,
+            summary,
+            json.dumps(entities),
+            provenance.cli,
+            provenance.model,
+            provenance.prompt_hash,
+            provenance.at,
+            int(provenance.truncated),
+            item_id,
+        ),
+    )
+    conn.execute("INSERT OR IGNORE INTO type (name) VALUES (?)", (type,))
+
+
 def types_in_use(conn: sqlite3.Connection) -> list[str]:
     return list(type_counts(conn))
 

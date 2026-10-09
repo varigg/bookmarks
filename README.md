@@ -21,6 +21,7 @@ uv run ruff check . && uv run ruff format --check .
 uv run bookmarks serve        # capture API on $BOOKMARKS_HOST:$BOOKMARKS_PORT (0.0.0.0:5000)
 uv run bookmarks drain        # summarise queued items with `claude -p` (cron job)
 uv run bookmarks embed        # embed summarised items via local Ollama (cron job)
+uv run bookmarks resummarise --stale  # queue fresh summaries (also --item, --type, --domain, --limit)
 uv run bookmarks mcp          # MCP server over stdio
 uv run bookmarks retrieve URL # print the source text the retrieving stage would produce
 ```

@@ -67,7 +67,31 @@ def _store_summary(
     svc: "Bookmarks", claim: Claim, summary: Summary, *, model: str, truncated: bool
 ) -> None:
     conn = svc.conn
+    provenance = store.Provenance(
+        cli=svc.summariser.name,
+        model=model,
+        prompt_hash=svc.prompt.hash,
+        at=now_iso(),
+        truncated=truncated,
+    )
     with transaction(conn):
+        gone = conn.execute(
+            "DELETE FROM submission WHERE id = ?", (claim.submission_id,)
+        )
+        if gone.rowcount == 0:
+            return  # cancelled while summarising (its item was deleted)
+        existing = store.get_by_url(conn, claim.url)
+        if existing is not None:
+            store.replace_summary(
+                conn,
+                existing.id,
+                title=summary.title,
+                type=summary.type,
+                summary=summary.summary,
+                entities=summary.entities,
+                provenance=provenance,
+            )
+            return
         store.insert_item(
             conn,
             url=claim.url,
@@ -77,20 +101,22 @@ def _store_summary(
             entities=summary.entities,
             note=claim.note,
             saved_at=claim.saved_at,
-            provenance=store.Provenance(
-                cli=svc.summariser.name,
-                model=model,
-                prompt_hash=svc.prompt.hash,
-                at=now_iso(),
-                truncated=truncated,
-            ),
+            provenance=provenance,
         )
-        conn.execute("DELETE FROM submission WHERE id = ?", (claim.submission_id,))
 
 
 def mark_failed(conn: sqlite3.Connection, submission_id: int, reason: str) -> None:
     """The capture html and source text go with the failure; a re-save
-    retrieves afresh."""
+    retrieves afresh. A refresh of an existing item just goes away: the item
+    keeps its old summary and stays summarised."""
+    refreshing = conn.execute(
+        "SELECT 1 FROM submission JOIN item ON item.url = submission.url "
+        "WHERE submission.id = ?",
+        (submission_id,),
+    ).fetchone()
+    if refreshing:
+        conn.execute("DELETE FROM submission WHERE id = ?", (submission_id,))
+        return
     conn.execute(
         "UPDATE submission SET status = 'failed', failure_reason = ?, html = NULL, "
         "source_text = NULL, source_title = NULL, source_description = NULL, "
@@ -138,8 +164,31 @@ def submit(
         "INSERT INTO submission "
         "(url, note, saved_at, html, capture_title, enqueued_at) "
         "VALUES (?, ?, ?, ?, ?, ?)",
-        (url, note, saved_at, html, title, saved_at),
+        (url, note, saved_at, html, title, now_iso()),
     )
+
+
+def queue_refresh(conn: sqlite3.Connection, item: store.Item) -> bool:
+    """Queue a fresh summary for an existing item; False if one is queued.
+
+    A submission for a URL that already has an item is a refresh. The page is
+    fetched again, because an item keeps no source text."""
+    if get_submission(conn, item.url) is not None:
+        return False
+    submit(
+        conn,
+        item.url,
+        note=item.note,
+        saved_at=item.saved_at,
+        html=None,
+        title=None,
+    )
+    return True
+
+
+def cancel_refresh(conn: sqlite3.Connection, url: str) -> None:
+    """Drop a queued refresh, because its item is going away."""
+    conn.execute("DELETE FROM submission WHERE url = ?", (url,))
 
 
 def requeue(

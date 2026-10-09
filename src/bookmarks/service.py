@@ -6,7 +6,7 @@ and hand them in, tests hand in fakes.
 """
 
 import sqlite3
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from typing import Literal
@@ -26,6 +26,7 @@ from bookmarks.search import (
     clamp_limit,
     hybrid_search,
     newest_items,
+    stalest_items,
 )
 from bookmarks.settings import Settings
 from bookmarks.store import Item
@@ -161,8 +162,46 @@ class Bookmarks:
         with transaction(self.conn):
             item = self.find_item(item_id=item_id, url=url)
             if item is not None:
+                lifecycle.cancel_refresh(self.conn, item.url)
                 store.delete_item(self.conn, item.id)
         return item
+
+    def resummarise(
+        self,
+        *,
+        item_id: int | None = None,
+        url: str | None = None,
+        stale: bool = False,
+        types: Sequence[str] = (),
+        domain: str | None = None,
+        limit: int | None = None,
+    ) -> tuple[int, int]:
+        """Queue fresh summaries for the normal drain: (queued, already queued).
+
+        One item by id or URL, or the items that are stale (written by another
+        model or prompt than the current ones) and/or have a type or domain,
+        stalest first. Raises `ValueError` for no selector, for an item
+        combined with other selectors, or for an item that does not exist."""
+        by_item = item_id is not None or url is not None
+        if by_item and (stale or types or domain or limit is not None):
+            raise ValueError("an item cannot be combined with other selectors")
+        if by_item:
+            found = self.find_item(item_id=item_id, url=url)
+            if found is None:
+                raise ValueError("no such item")
+            items = [found]
+        elif stale or types or domain:
+            filters = Filters(
+                types=types,
+                domain=domain,
+                stale_for=(self.summariser.model, self.prompt.hash) if stale else None,
+            )
+            items = stalest_items(self.conn, filters, limit)
+        else:
+            raise ValueError("give --item, --stale, --type or --domain")
+        with transaction(self.conn):
+            queued = sum(lifecycle.queue_refresh(self.conn, i) for i in items)
+        return queued, len(items) - queued
 
     def list_items(
         self, limit: int | None = None, filters: Filters | None = None

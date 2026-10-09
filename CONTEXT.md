@@ -38,6 +38,8 @@ _Avoid_: Query, lookup, recall
 A URL sent to be kept, with whatever the sender supplied (rendered page, note), waiting to become an item. Identified by its URL, like the item it becomes; it ends when the item exists.
 _Avoid_: Job, queue entry, request
 
+A submission for a URL that already has an item is a **refresh**: the operator asked for a fresh summary. It runs through the same stages, rewrites the item's summary and provenance in place (saved time and Note stay), and if it fails it just goes away, leaving the old summary.
+
 **Capture surface**:
 A way of sending a submission: the Firefox extension, the iOS Shortcut, or the save tool on the MCP server. Each sends a URL, optionally with the rendered page and a note.
 _Avoid_: Capture client, client, integration

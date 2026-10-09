@@ -6,6 +6,7 @@ import json
 import pytest
 from fastapi.testclient import TestClient
 
+from bookmarks.ingest import lifecycle
 from bookmarks.mcp_server import build_server
 from bookmarks.web.app import create_app
 from tests.factories import is_recent, summarised_item
@@ -14,8 +15,8 @@ OLD = "2026-01-01T00:00:00Z"
 
 
 @pytest.fixture
-def busy(service, fetcher):
-    """1 failed, 3 items (1 unembedded), 2 pending: the oldest saved at OLD."""
+def busy(service, fetcher, monkeypatch):
+    """1 failed, 3 items (1 unembedded), 2 pending: the oldest queued at OLD."""
     fetcher.page("https://example.com/gone", "gone", status=404)
     service.save("https://example.com/gone")
     service.drain()
@@ -23,7 +24,9 @@ def busy(service, fetcher):
         summarised_item(service, url=f"https://example.com/{n}", title="t", summary="s")
     service.embed()
     summarised_item(service, url="https://example.com/late", title="t", summary="s")
-    service.save("https://example.com/old", saved_at=OLD)
+    with monkeypatch.context() as clock:
+        clock.setattr(lifecycle, "now_iso", lambda: OLD)
+        service.save("https://example.com/old")
     service.save("https://example.com/new")
     return service
 
