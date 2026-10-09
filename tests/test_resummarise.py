@@ -4,8 +4,9 @@ import pytest
 
 from bookmarks import cli
 from bookmarks.embed import unembedded_count
+from bookmarks.ingest import lifecycle
 from bookmarks.ingest.summarise import Prompt
-from tests.factories import item_at, submission_at, summarised_item
+from tests.factories import is_recent, item_at, submission_at, summarised_item
 from tests.fakes import FakeSummariser, summary_json
 
 A = "https://a.example.com/one"
@@ -61,10 +62,33 @@ def test_item_by_id_or_url_type_domain_and_limit_select(library):
     assert library.resummarise(url=B) == (0, 1)
 
 
-def test_limit_takes_the_stalest_first(library):
-    library.resummarise(stale=True, limit=1)
+def test_limit_takes_the_stalest_first(service, make_service, monkeypatch):
+    monkeypatch.setattr(lifecycle, "now_iso", lambda: "2026-03-01T00:00:00Z")
+    _seed(service, B)
+    monkeypatch.setattr(lifecycle, "now_iso", lambda: "2026-01-01T00:00:00Z")
+    _seed(service, A)  # saved after B, but its summary is the older one
+    current = make_service(summariser=FakeSummariser(model="new-model"))
 
-    assert len(_queued(library)) == 1
+    current.resummarise(stale=True, limit=1)
+
+    assert _queued(current) == {A}
+
+
+@pytest.mark.parametrize("limit", [0, -1])
+def test_a_limit_below_one_is_refused(library, limit):
+    with pytest.raises(ValueError, match="at least 1"):
+        library.resummarise(stale=True, limit=limit)
+
+    assert _queued(library) == set()
+
+
+def test_a_refresh_is_queued_now_not_on_the_items_save_date(library):
+    library.resummarise(url=A)  # A was saved on 2026-01-01
+
+    since = library.status().oldest_pending_since
+
+    assert is_recent(since)
+    assert library.status().oldest_pending_hours == 0
 
 
 def test_a_selector_is_required_and_an_item_stands_alone(library):

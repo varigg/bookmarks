@@ -164,7 +164,7 @@ def submit(
         "INSERT INTO submission "
         "(url, note, saved_at, html, capture_title, enqueued_at) "
         "VALUES (?, ?, ?, ?, ?, ?)",
-        (url, note, saved_at, html, title, saved_at),
+        (url, note, saved_at, html, title, now_iso()),
     )
 
 

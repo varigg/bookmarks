@@ -163,6 +163,8 @@ def stalest_items(
 ) -> list[Item]:
     """Items the filters admit, oldest summary first; all of them without a
     limit, because the operator, not a reader, is asking."""
+    if limit is not None and limit < 1:
+        raise ValueError("limit must be at least 1")  # SQLite reads -1 as no limit
     sql, params = _candidates_sql(filters)
     sql += " ORDER BY prov_at, id"
     if limit is not None:
