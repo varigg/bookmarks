@@ -3,6 +3,11 @@
 #
 # Every 10 minutes: drain (summarise queued items), then embed (vectors for
 # summarised items). Embed runs even when the drain stops early.
-# Cron never sources a login shell, so the entry sources ~/.secrets.zsh itself
-# for CLAUDE_CODE_OAUTH_TOKEN. flock keeps runs from overlapping.
-*/10 * * * * flock -n /tmp/bookmarks-drain.lock zsh -c 'source ~/.secrets.zsh; cd ~/code/bookmarks && /snap/bin/uv run --frozen --no-dev bookmarks drain; /snap/bin/uv run --frozen --no-dev bookmarks embed' >> ~/.local/state/bookmarks/drain.log 2>&1
+# Cron never sources a login shell, so each entry loads its own environment:
+# ~/.config/bookmarks/env (see deploy/env.example) and, for the drain,
+# ~/.secrets.zsh for CLAUDE_CODE_OAUTH_TOKEN. flock keeps runs from overlapping.
+*/10 * * * * flock -n /tmp/bookmarks-drain.lock zsh -c 'set -a; source ~/.config/bookmarks/env; set +a; source ~/.secrets.zsh; cd ~/code/bookmarks && /snap/bin/uv run --frozen --no-dev bookmarks drain; /snap/bin/uv run --frozen --no-dev bookmarks embed' >> ~/.local/state/bookmarks/drain.log 2>&1
+
+# Nightly: SQLite online backup, 14 kept. Uses BOOKMARKS_BACKUP_DIR (must exist)
+# and BOOKMARKS_ALERT_TO from the env file.
+30 2 * * * zsh -c 'set -a; source ~/.config/bookmarks/env; set +a; cd ~/code/bookmarks && /snap/bin/uv run --frozen --no-dev bookmarks backup' >> ~/.local/state/bookmarks/backup.log 2>&1

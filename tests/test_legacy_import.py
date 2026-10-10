@@ -42,6 +42,7 @@ def test_importing_twice_creates_no_duplicates(service):
 
 def test_cli_import_reports_the_counts(monkeypatch, capsys, tmp_path):
     monkeypatch.setenv("BOOKMARKS_DB", str(tmp_path / "b.db"))
+    monkeypatch.setenv("BOOKMARKS_OLLAMA_URL", "http://ollama.test:11434")
 
     cli.main(["import-legacy", str(FIXTURES / "legacy_bookmarks.js")])
 

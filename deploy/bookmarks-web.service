@@ -9,6 +9,7 @@ After=network-online.target
 [Service]
 Type=simple
 WorkingDirectory=%h/code/bookmarks
+EnvironmentFile=%h/.config/bookmarks/env
 ExecStart=/snap/bin/uv run --frozen --no-dev bookmarks serve
 Restart=on-failure
 RestartSec=5
