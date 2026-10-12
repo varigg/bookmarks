@@ -15,7 +15,7 @@ dependencies = [
     "pydantic>=2.10",
     "sqlite-vec>=0.1.6",
     "trafilatura>=2.3.1",
-    "uvicorn>=0.34",
+    "uvicorn>=0.54.0",
 ]
 
 [project.scripts]
