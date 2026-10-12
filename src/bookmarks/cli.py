@@ -20,9 +20,6 @@ from bookmarks.settings import Settings
 
 
 def _service_opener(settings: Settings):
-    if not settings.ollama_url:
-        raise SystemExit("BOOKMARKS_OLLAMA_URL is not set")
-
     @contextmanager
     def open_service() -> Iterator[Bookmarks]:
         conn = db.connect(settings.db_path)
