@@ -66,12 +66,12 @@ claude mcp add --scope user bookmarks -- \
 Non-secret settings live in `~/.config/bookmarks/env` (template:
 `deploy/env.example`), read by the cron entries and by the systemd unit.
 
-Required for the commands that run the service (`serve`, `drain`, `embed`,
-`mcp`, `import-legacy`): `BOOKMARKS_OLLAMA_URL`. Required for `backup`: `BOOKMARKS_BACKUP_DIR` (an existing directory; if it
+Required for `backup`: `BOOKMARKS_BACKUP_DIR` (an existing directory; if it
 is missing, nothing is written and `BOOKMARKS_ALERT_TO` is emailed) and
 `BOOKMARKS_ALERT_TO`.
 
-Optional environment variables: `BOOKMARKS_DB`, `BOOKMARKS_HOST`,
+Optional environment variables: `BOOKMARKS_OLLAMA_URL` (default
+`http://127.0.0.1:11434`, Ollama's own address), `BOOKMARKS_DB`, `BOOKMARKS_HOST`,
 `BOOKMARKS_PORT`, `BOOKMARKS_CLAUDE` (CLI path), `BOOKMARKS_SUMMARISER_MODEL`
 (default `claude-sonnet-5-5`), `BOOKMARKS_SUMMARISER_TIMEOUT`,
 `BOOKMARKS_SOURCE_CAP_CHARS` (~25K tokens), `BOOKMARKS_FETCH_TIMEOUT`,

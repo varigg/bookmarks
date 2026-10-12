@@ -25,9 +25,17 @@ def test_service_opener_configures_the_summariser_from_settings(tmp_path):
     assert summariser.timeout == 42
 
 
-def test_service_opener_needs_an_ollama_url(tmp_path):
-    with pytest.raises(SystemExit, match="BOOKMARKS_OLLAMA_URL"):
-        _service_opener(Settings(db_path=tmp_path / "bookmarks.db"))
+def test_ollama_url_defaults_to_the_stock_address_and_can_be_overridden():
+    assert Settings.from_env({}).ollama_url == "http://127.0.0.1:11434"
+    assert Settings.from_env({"BOOKMARKS_OLLAMA_URL": ""}).ollama_url == (
+        "http://127.0.0.1:11434"
+    )
+    assert (
+        Settings.from_env(
+            {"BOOKMARKS_OLLAMA_URL": "http://ollama.test:11434"}
+        ).ollama_url
+        == "http://ollama.test:11434"
+    )
 
 
 def test_retrieve_prints_the_source_text(monkeypatch, capsys, fetcher):

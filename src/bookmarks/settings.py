@@ -25,7 +25,8 @@ class Settings:
     # Optional; unauthenticated GitHub API calls are limited to 60 an hour.
     github_token: str | None = None
     embed_model: str = "nomic-embed-text"
-    ollama_url: str | None = None
+    # Ollama's own stock address, not a deployment detail (restored 2026-10-12).
+    ollama_url: str = "http://127.0.0.1:11434"
     embed_timeout: float = 60.0
     # No default: where backups go is the operator's choice.
     backup_dir: Path | None = None
@@ -51,7 +52,7 @@ class Settings:
             fetch_timeout=float(env.get("BOOKMARKS_FETCH_TIMEOUT", cls.fetch_timeout)),
             github_token=env.get("BOOKMARKS_GITHUB_TOKEN") or None,
             embed_model=env.get("BOOKMARKS_EMBED_MODEL", cls.embed_model),
-            ollama_url=env.get("BOOKMARKS_OLLAMA_URL") or None,
+            ollama_url=env.get("BOOKMARKS_OLLAMA_URL") or cls.ollama_url,
             embed_timeout=float(env.get("BOOKMARKS_EMBED_TIMEOUT", cls.embed_timeout)),
             backup_dir=Path(env["BOOKMARKS_BACKUP_DIR"])
             if env.get("BOOKMARKS_BACKUP_DIR")
