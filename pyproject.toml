@@ -13,7 +13,7 @@ dependencies = [
     "jinja2>=3.1.6",
     "mcp>=1.28.1,<2",
     "pydantic>=2.10",
-    "sqlite-vec>=0.1.6",
+    "sqlite-vec>=0.1.9",
     "trafilatura>=2.3.1",
     "uvicorn>=0.34",
 ]
