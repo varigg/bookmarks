@@ -42,9 +42,9 @@ ADAPTERS = {
     "cli.py",
     "web/app.py",
     "mcp_server.py",
-    "alert.py",
+    "msmtp.py",
     "ollama.py",
-    "ingest/fetch.py",
+    "ingest/httpx_fetcher.py",
     "ingest/llm/claude_cli.py",
 }
 
