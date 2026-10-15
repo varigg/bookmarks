@@ -70,15 +70,15 @@ The hard invariants are the strict form. Adapted from Tomas Vykruta's AGENTS.md 
   `from x import a as b` rewritten as `from x import b`. Python raises `ImportError` at import time, so the boot
   check catches it — but only if every module is imported.
 - **Gates, not promises.** A rule that matters is enforced by a test, a lint, a scan or a hook, not by a sentence
-  in this file. One script runs every gate in sequence and must end green before any deploy **(not built)**:
+  in this file. One script runs every gate in sequence and must end green before any deploy, `scripts/gate.sh`:
   1. a boot check: import every `bookmarks.*` module, build the FastAPI app and the MCP server, assert `/api/items`
-     and the `search` tool are registered, run `bookmarks --help` **(not built)**;
+     and the `search` tool are registered, run `bookmarks --help`;
   2. undefined names: `uv run ruff check .` (`F821`);
   3. the full test suite: `uv run pytest`, always against the real schema via `db.connect`, never a hand-written one;
-  4. a shape test: no handler or MCP tool over N lines; no core module imports `fastapi`, `mcp`, `httpx` or
-     `subprocess` **(not built)**;
-  5. a security scan: gitleaks (pre-commit), `pip-audit` for vulnerable dependencies **(not built)**, and no
-     `*.db`, `.env` or `data/` file tracked **(not built)**.
+  4. a shape test: no handler or MCP tool over 25 lines, docstrings excluded; no core module imports `fastapi`,
+     `mcp`, `httpx` or `subprocess`;
+  5. a security scan: gitleaks (pre-commit, and over history in the gate), `pip-audit` for vulnerable
+     dependencies, and no `*.db`, `.env` or `data/` file tracked.
   A check whose tool is missing reports SKIPPED, never pass. Never claim a check passed that was not run.
 - **No exemptions.** When a gate fires on a real case, fix the case. Do not add an allowlist to silence it. A list
   of known legacy offenders may exist only if it can only shrink.
