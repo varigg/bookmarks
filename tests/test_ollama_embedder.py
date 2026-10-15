@@ -5,7 +5,8 @@ import json
 import httpx
 import pytest
 
-from bookmarks.embed import EmbedError, OllamaEmbedder
+from bookmarks.embed import EmbedError
+from bookmarks.ollama import OllamaEmbedder
 
 
 def _embedder(handler) -> OllamaEmbedder:

@@ -6,8 +6,9 @@ from datetime import UTC, datetime, timedelta
 import pytest
 
 from bookmarks import db
-from bookmarks.alert import AlertError, MsmtpAlerter
+from bookmarks.alert import AlertError
 from bookmarks.backup import run_backup
+from bookmarks.msmtp import MsmtpAlerter
 
 START = datetime(2026, 10, 9, 2, 0, tzinfo=UTC)
 
