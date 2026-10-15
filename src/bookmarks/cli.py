@@ -10,11 +10,11 @@ from pathlib import Path
 from bookmarks import db
 from bookmarks.alert import AlertError, MsmtpAlerter
 from bookmarks.backup import run_backup
-from bookmarks.embed import OllamaEmbedder
 from bookmarks.ingest import legacy
 from bookmarks.ingest.fetch import HttpxFetcher, Unretrievable
 from bookmarks.ingest.llm.claude_cli import ClaudeCodeCLIProvider
 from bookmarks.ingest.retrieve import retrieve
+from bookmarks.ollama import OllamaEmbedder
 from bookmarks.service import Bookmarks
 from bookmarks.settings import Settings
 
