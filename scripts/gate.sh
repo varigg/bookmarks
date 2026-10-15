@@ -8,6 +8,8 @@
 # test_import_direction.py), so they run in the tests gate.
 set -uo pipefail
 cd "$(git -C "$(dirname "$0")" rev-parse --show-toplevel)" || exit 1
+# A stale uv.lock fails the gate; plain `uv run` would rewrite it and pass.
+export UV_LOCKED=1
 
 failed=0 skipped=0 summary=()
 

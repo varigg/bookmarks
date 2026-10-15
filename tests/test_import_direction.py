@@ -47,15 +47,19 @@ ADAPTERS = {
     "ingest/httpx_fetcher.py",
     "ingest/llm/claude_cli.py",
 }
+# Importing an adapter would reach transport one step removed.
+ADAPTER_MODULES = {
+    "bookmarks." + rel.removesuffix(".py").replace("/", ".") for rel in ADAPTERS
+}
 
 
-def test_core_modules_do_not_import_transport():
+def test_core_modules_do_not_import_transport_or_adapters():
     offenders = []
     for path in PKG.rglob("*.py"):
         rel = path.relative_to(PKG).as_posix()
         if rel in ADAPTERS:
             continue
         for name in _imports(ast.parse(path.read_text())):
-            if name.split(".")[0] in TRANSPORT:
+            if name.split(".")[0] in TRANSPORT or name in ADAPTER_MODULES:
                 offenders.append(f"{rel}: {name}")
     assert offenders == []
