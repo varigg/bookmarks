@@ -12,10 +12,10 @@ dependencies = [
     "httpx>=0.28.1",
     "jinja2>=3.1.6",
     "mcp>=1.28.1,<2",
-    "pydantic>=2.10",
-    "sqlite-vec>=0.1.6",
+    "pydantic>=2.14.0",
+    "sqlite-vec>=0.1.9",
     "trafilatura>=2.3.1",
-    "uvicorn>=0.34",
+    "uvicorn>=0.54.0",
 ]
 
 [project.scripts]
@@ -29,7 +29,7 @@ build-backend = "hatchling.build"
 dev = [
     "pip-audit>=2.10.1",
     "pytest>=9.1.1",
-    "ruff>=0.14.6,<0.16",
+    "ruff>=0.17.0,<0.18",
 ]
 
 [tool.pytest.ini_options]
