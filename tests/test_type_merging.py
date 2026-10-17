@@ -4,10 +4,10 @@ import asyncio
 import json
 
 import pytest
-from mcp.server.fastmcp.exceptions import ToolError
 
 from bookmarks.mcp_server import build_server
 from tests.factories import item_at, summarised_item
+from tests.mcp_calls import refused
 
 
 @pytest.fixture
@@ -17,7 +17,7 @@ def server(open_service):
 
 def _merge(server, **arguments) -> dict:
     content = asyncio.run(server.call_tool("merge_types", arguments))
-    return json.loads(content[0].text)
+    return json.loads(content.content[0].text)
 
 
 def _item(service, url, type):
@@ -84,5 +84,4 @@ def test_merge_refuses_bad_requests(server, service, arguments):
     _item(service, "https://example.com/a", "paper")
     service.merge_types("paper", "docs")
 
-    with pytest.raises(ToolError):
-        _merge(server, **arguments)
+    refused(server, "merge_types", arguments)

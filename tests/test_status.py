@@ -62,7 +62,7 @@ def test_status_counts_ages_and_last_drain(busy):
 def test_mcp_status_tool(busy, open_service):
     content = asyncio.run(build_server(open_service).call_tool("status", {}))
 
-    status = json.loads(content[0].text)
+    status = json.loads(content.content[0].text)
     assert status["pending"] == 2
     assert status["oldest_pending_since"] == OLD
     assert status["unembedded"] == 1
