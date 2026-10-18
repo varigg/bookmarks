@@ -4,11 +4,11 @@ import asyncio
 import json
 
 import pytest
-from mcp.server.fastmcp.exceptions import ToolError
 
 from bookmarks import store
 from bookmarks.mcp_server import build_server
 from tests.factories import item_at, summarised_item
+from tests.mcp_calls import refused
 
 
 @pytest.fixture
@@ -18,7 +18,7 @@ def server(open_service):
 
 def _call(server, tool, **arguments) -> dict:
     content = asyncio.run(server.call_tool(tool, arguments))
-    return json.loads(content[0].text)
+    return json.loads(content.content[0].text)
 
 
 def _item(service, url="https://example.com/a", **fields):
@@ -57,8 +57,7 @@ def test_get_item_by_id_and_by_unnormalised_url(server, service):
     "arguments", [{}, {"id": 1, "url": "https://example.com/a"}, {"id": 999}]
 )
 def test_get_item_refuses_bad_or_unknown_lookups(server, arguments):
-    with pytest.raises(ToolError):
-        asyncio.run(server.call_tool("get_item", arguments))
+    refused(server, "get_item", arguments)
 
 
 def test_save_item_behaves_like_a_capture_save(server, service):
@@ -80,8 +79,7 @@ def test_save_item_behaves_like_a_capture_save(server, service):
 
 
 def test_save_item_refuses_a_non_http_url(server):
-    with pytest.raises(ToolError):
-        asyncio.run(server.call_tool("save_item", {"url": "ftp://example.com"}))
+    refused(server, "save_item", {"url": "ftp://example.com"})
 
 
 def test_delete_item_removes_it_from_lists_and_search(server, service):
@@ -95,8 +93,7 @@ def test_delete_item_removes_it_from_lists_and_search(server, service):
     assert item_at(service, item.url) is None
     assert _call(server, "list_items")["items"] == []
     assert _call(server, "search", query="Vanguard budget")["results"] == []
-    with pytest.raises(ToolError):
-        asyncio.run(server.call_tool("delete_item", {"id": item.id}))
+    refused(server, "delete_item", {"id": item.id})
 
 
 def test_list_types_counts_items_per_type(server, service):

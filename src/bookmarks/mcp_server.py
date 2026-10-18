@@ -1,14 +1,16 @@
 """MCP server over stdio: a thin adapter over the core.
 
-Each tool call opens its own service (one connection per call); tools raise
-`ValueError` on bad input and the SDK turns that into a tool error. The
-docstrings are the contract the calling agent reads.
+Each tool call opens its own service (one connection per call); the core
+raises `ValueError` on bad input and `_refusing` turns that into a tool error
+the agent can read. The docstrings are the contract the calling agent reads.
 """
 
+import functools
 from dataclasses import asdict
 from typing import Literal
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server.mcpserver import MCPServer
+from mcp.server.mcpserver.exceptions import ToolError
 
 from bookmarks import store
 from bookmarks.ingest.lifecycle import Submission
@@ -78,10 +80,25 @@ def _submission(sub: Submission) -> dict:
     }
 
 
-def build_server(open_service: OpenService) -> FastMCP:
-    mcp = FastMCP("bookmarks")
+def _refusing(tool):
+    """Report the core's `ValueError` as a `ToolError`: mcp 2 treats any other
+    exception as a crash and hides its message from the agent (2026-10)."""
+
+    @functools.wraps(tool)
+    def wrapper(*args, **kwargs):
+        try:
+            return tool(*args, **kwargs)
+        except ValueError as error:
+            raise ToolError(str(error)) from error
+
+    return wrapper
+
+
+def build_server(open_service: OpenService) -> MCPServer:
+    mcp = MCPServer("bookmarks")
 
     @mcp.tool()
+    @_refusing
     def search(
         query: str,
         types: list[str] | None = None,
@@ -123,6 +140,7 @@ def build_server(open_service: OpenService) -> FastMCP:
         }
 
     @mcp.tool()
+    @_refusing
     def list_items(limit: int = 10) -> dict:
         """List saved items, newest first, each with its lede (the summary's
         first sentence). Only summarised items; URLs still waiting or failed
@@ -132,6 +150,7 @@ def build_server(open_service: OpenService) -> FastMCP:
         return {"items": [_listed(item) for item in items]}
 
     @mcp.tool()
+    @_refusing
     def get_item(id: int | None = None, url: str | None = None) -> dict:
         """Get one item's full record by `id` or by `url` (give exactly one;
         the URL may carry tracking parameters or a fragment). Includes its
@@ -144,6 +163,7 @@ def build_server(open_service: OpenService) -> FastMCP:
         return _record(item)
 
     @mcp.tool()
+    @_refusing
     def save_item(url: str, note: str | None = None) -> dict:
         """Save a URL to be summarised later; it shows in `list_submissions`
         until it becomes an item.
@@ -166,6 +186,7 @@ def build_server(open_service: OpenService) -> FastMCP:
         }
 
     @mcp.tool()
+    @_refusing
     def delete_item(id: int | None = None, url: str | None = None) -> dict:
         """Delete one item by `id` or `url` (give exactly one). It is gone from
         lists and search for good. Returns the deleted item's id, url and
@@ -177,6 +198,7 @@ def build_server(open_service: OpenService) -> FastMCP:
         return {"deleted": {"id": item.id, "url": item.url, "title": item.title}}
 
     @mcp.tool()
+    @_refusing
     def list_types() -> dict:
         """Every item type with how many items have it, including types with
         none. Use these names for search's `types` filter."""
@@ -185,6 +207,7 @@ def build_server(open_service: OpenService) -> FastMCP:
         return {"types": [{"name": n, "count": c} for n, c in counts.items()]}
 
     @mcp.tool()
+    @_refusing
     def merge_types(source: str, into: str) -> dict:
         """Merge the type `source` into the type `into`: every item of `source`
         moves to `into`, and `source` is retired for good (a later summary
@@ -198,6 +221,7 @@ def build_server(open_service: OpenService) -> FastMCP:
         return {"moved": moved}
 
     @mcp.tool()
+    @_refusing
     def list_submissions(
         status: Literal["pending", "failed"] | None = None, limit: int = 10
     ) -> dict:
@@ -210,6 +234,7 @@ def build_server(open_service: OpenService) -> FastMCP:
         return {"submissions": [_submission(sub) for sub in subs]}
 
     @mcp.tool()
+    @_refusing
     def status() -> dict:
         """How the save-to-search pipeline stands. Use it when something saved
         is not showing up, or to check the pipeline is healthy.

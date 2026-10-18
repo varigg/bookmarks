@@ -4,10 +4,10 @@ import asyncio
 import json
 
 import pytest
-from mcp.server.fastmcp.exceptions import ToolError
 
 from bookmarks.mcp_server import build_server
 from tests.factories import summarised_item
+from tests.mcp_calls import refused
 
 
 @pytest.fixture
@@ -17,7 +17,7 @@ def server(open_service):
 
 def _call(server, **arguments) -> dict:
     content = asyncio.run(server.call_tool("search", arguments))
-    return json.loads(content[0].text)
+    return json.loads(content.content[0].text)
 
 
 def test_search_passes_through_to_the_core(server, service):
@@ -53,8 +53,7 @@ def test_search_passes_through_to_the_core(server, service):
     ],
 )
 def test_search_rejects_invalid_input(server, arguments):
-    with pytest.raises(ToolError):
-        asyncio.run(server.call_tool("search", arguments))
+    refused(server, "search", arguments)
 
 
 def test_limit_above_50_is_capped(server, service):
