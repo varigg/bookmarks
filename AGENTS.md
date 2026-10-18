@@ -82,7 +82,8 @@ The hard invariants are the strict form. Adapted from Tomas Vykruta's AGENTS.md 
   A check whose tool is missing reports SKIPPED, never pass. Never claim a check passed that was not run.
 - **No exemptions.** When a gate fires on a real case, fix the case. Do not add an allowlist to silence it. A list
   of known legacy offenders may exist only if it can only shrink.
-- **Deploy is self-reverting.** Pull, restart, probe and revert happen in one command **(not built)**.
+- **Deploy is self-reverting.** Gate, build, install, restart, probe and revert happen in one command,
+  `scripts/deploy.sh`.
 - **A probe is not a test.** After a deploy that touches a critical path, exercise it end to end: capture → drain →
   embed → MCP search. A route that answers 200 proves it is registered, not that it works. A real drain makes paid
   `claude -p` calls; say so before running one.

@@ -29,10 +29,25 @@ uv run bookmarks retrieve URL # print the source text the retrieving stage would
 The store is one SQLite file at `$XDG_DATA_HOME/bookmarks/bookmarks.db`
 (override with `BOOKMARKS_DB`).
 
-Deployment files (not installed until cutover) are in `deploy/`:
-`bookmarks-web.service` is the systemd user unit for the web server;
-`crontab` holds the drain + embed entry (every 10 minutes). The cron log
-directory `~/.local/state/bookmarks/` must exist.
+## Deploying
+
+Production runs the `bookmarks` uv tool at `~/.local/bin/bookmarks`, never a
+clone (ADR 0003). From any clone on thunderbird:
+
+```sh
+scripts/deploy.sh          # deploy origin/main
+scripts/deploy.sh <ref>    # deploy another commit
+```
+
+It gates the commit in a clean worktree, builds its wheel and lock-pinned
+constraints into `~/.local/share/bookmarks/releases/<sha>/`, then, holding the
+drain's lock, installs it, installs `deploy/bookmarks-web.service`, restarts
+the web server and probes the console, the capture route and the MCP tools
+(`scripts/probe.py`). A failed probe reinstalls the previous release. Exit 0:
+live; 1: refused, nothing changed; 2: reverted; 3: no probed release is live.
+
+`deploy/crontab` holds the drain + embed and backup entries, installed once
+with `crontab -e`. The cron log directory `~/.local/state/bookmarks/` must exist.
 
 ## Capture API
 
@@ -50,15 +65,14 @@ Tools: `search` (hybrid keyword + semantic; filters `types`, `domain`,
 Register it for every Claude Code session on thunderbird (user scope):
 
 ```sh
-claude mcp add --scope user bookmarks -- \
-  /snap/bin/uv --directory /home/varigg/code/bookmarks run --frozen --no-dev bookmarks mcp
+claude mcp add --scope user bookmarks -- /home/varigg/.local/bin/bookmarks mcp
 ```
 
 From another machine, wrap the same command in SSH (stdio passes through):
 
 ```sh
 claude mcp add --scope user bookmarks -- \
-  ssh thunderbird /snap/bin/uv --directory /home/varigg/code/bookmarks run --frozen --no-dev bookmarks mcp
+  ssh thunderbird /home/varigg/.local/bin/bookmarks mcp
 ```
 
 ## Configuration
