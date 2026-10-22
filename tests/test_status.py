@@ -1,8 +1,5 @@
 """Pipeline status: the core, and the MCP tool and console panel over it."""
 
-import asyncio
-import json
-
 import pytest
 from fastapi.testclient import TestClient
 
@@ -10,6 +7,7 @@ from bookmarks.ingest import lifecycle
 from bookmarks.mcp_server import build_server
 from bookmarks.web.app import create_app
 from tests.factories import is_recent, summarised_item
+from tests.mcp_calls import called
 
 OLD = "2026-01-01T00:00:00Z"
 
@@ -60,9 +58,7 @@ def test_status_counts_ages_and_last_drain(busy):
 
 
 def test_mcp_status_tool(busy, open_service):
-    content = asyncio.run(build_server(open_service).call_tool("status", {}))
-
-    status = json.loads(content.content[0].text)
+    status = called(build_server(open_service), "status")
     assert status["pending"] == 2
     assert status["oldest_pending_since"] == OLD
     assert status["unembedded"] == 1

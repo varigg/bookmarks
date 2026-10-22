@@ -1,23 +1,15 @@
 """Smoke tests for the MCP search tool: validation and pass-through."""
 
-import asyncio
-import json
-
 import pytest
 
 from bookmarks.mcp_server import build_server
 from tests.factories import summarised_item
-from tests.mcp_calls import refused
+from tests.mcp_calls import called, refused
 
 
 @pytest.fixture
 def server(open_service):
     return build_server(open_service)
-
-
-def _call(server, **arguments) -> dict:
-    content = asyncio.run(server.call_tool("search", arguments))
-    return json.loads(content.content[0].text)
 
 
 def test_search_passes_through_to_the_core(server, service):
@@ -31,7 +23,7 @@ def test_search_passes_through_to_the_core(server, service):
     )
     service.embed()
 
-    body = _call(server, query="Vanguard", types=["article"])
+    body = called(server, "search", query="Vanguard", types=["article"])
 
     assert body["legs"] == ["fts", "vector"]
     result = body["results"][0]
@@ -65,4 +57,4 @@ def test_limit_above_50_is_capped(server, service):
             summary="About gardening.",
         )
 
-    assert len(_call(server, query="gardening", limit=80)["results"]) == 50
+    assert len(called(server, "search", query="gardening", limit=80)["results"]) == 50
