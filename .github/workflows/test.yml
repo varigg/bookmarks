@@ -15,6 +15,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # the secrets gate scans history
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v7
@@ -25,13 +27,17 @@ jobs:
         run: pip install uv
 
       - name: Install dependencies
-        run: uv sync
+        run: uv sync --locked
 
-      - name: Run tests
-        run: uv run pytest
+      - name: Install gitleaks
+        env:
+          VERSION: 8.30.1 # same as .pre-commit-config.yaml
+          SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+        run: |
+          curl -fsSLo gitleaks.tar.gz "https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}/gitleaks_${VERSION}_linux_x64.tar.gz"
+          echo "${SHA256}  gitleaks.tar.gz" | sha256sum -c -
+          sudo tar -xzf gitleaks.tar.gz -C /usr/local/bin gitleaks
+          rm gitleaks.tar.gz
 
-      - name: Run linter
-        run: uv run ruff check .
-
-      - name: Check formatting
-        run: uv run ruff format --check .
+      - name: Run the gate
+        run: scripts/gate.sh
