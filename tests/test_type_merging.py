@@ -1,23 +1,15 @@
 """Merging and renaming types; a merged-away name never comes back."""
 
-import asyncio
-import json
-
 import pytest
 
 from bookmarks.mcp_server import build_server
 from tests.factories import item_at, summarised_item
-from tests.mcp_calls import refused
+from tests.mcp_calls import called, refused
 
 
 @pytest.fixture
 def server(open_service):
     return build_server(open_service)
-
-
-def _merge(server, **arguments) -> dict:
-    content = asyncio.run(server.call_tool("merge_types", arguments))
-    return json.loads(content.content[0].text)
 
 
 def _item(service, url, type):
@@ -29,7 +21,7 @@ def test_merge_moves_items_and_list_types_reflects_it(server, service):
     _item(service, "https://example.com/b", "paper")
     _item(service, "https://example.com/c", "article")
 
-    assert _merge(server, source="paper", into="Article") == {"moved": 2}
+    assert called(server, "merge_types", source="paper", into="Article") == {"moved": 2}
 
     types = service.list_types()
     assert "paper" not in types
