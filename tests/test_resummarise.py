@@ -169,9 +169,10 @@ def test_deleting_an_item_while_it_is_summarising_does_not_bring_it_back(
     flaky = make_service(summariser=DeletesMidFlight(model="new-model"))
     flaky.resummarise(url=A)
 
-    flaky.drain()
+    report = flaky.drain()
 
     assert item_at(flaky, A) is None
+    assert report.summarised == 0
 
 
 @pytest.mark.parametrize("selector", [{"url": A}, {"stale": True}])

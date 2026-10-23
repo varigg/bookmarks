@@ -117,7 +117,8 @@ def _summarise(svc: "Bookmarks", claim: Claim) -> str:
 
 
 def process(svc: "Bookmarks", claim: Claim) -> str:
-    """Handle one claimed submission: 'summarised', 'failed' or 'retry'.
+    """Handle one claimed submission: 'summarised', 'failed', 'retry' or
+    'cancelled'.
 
     Raises `_Stop` on a systemic failure, with the claim released and no
     attempt counted.
@@ -146,7 +147,8 @@ def run_drain(svc: "Bookmarks", *, limit: int | None = None) -> DrainReport:
         except _Stop as stop:
             report.stopped = str(stop)
             break
-        setattr(report, outcome, getattr(report, outcome) + 1)
+        if outcome != "cancelled":  # too rare to count (#66)
+            setattr(report, outcome, getattr(report, outcome) + 1)
         consecutive_retries = consecutive_retries + 1 if outcome == "retry" else 0
         if consecutive_retries >= BREAKER_THRESHOLD:
             report.stopped = (

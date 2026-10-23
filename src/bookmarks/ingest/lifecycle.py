@@ -65,7 +65,8 @@ def get_submission(conn: sqlite3.Connection, url: str) -> Submission | None:
 
 def _store_summary(
     svc: "Bookmarks", claim: Claim, summary: Summary, *, model: str, truncated: bool
-) -> None:
+) -> bool:
+    """Store the summary; False if it was cancelled (its item deleted) meanwhile."""
     conn = svc.conn
     provenance = store.Provenance(
         cli=svc.summariser.name,
@@ -79,7 +80,7 @@ def _store_summary(
             "DELETE FROM submission WHERE id = ?", (claim.submission_id,)
         )
         if gone.rowcount == 0:
-            return  # cancelled while summarising (its item was deleted)
+            return False
         existing = store.get_by_url(conn, claim.url)
         if existing is not None:
             store.replace_summary(
@@ -91,7 +92,7 @@ def _store_summary(
                 entities=summary.entities,
                 provenance=provenance,
             )
-            return
+            return True
         store.insert_item(
             conn,
             url=claim.url,
@@ -103,6 +104,7 @@ def _store_summary(
             saved_at=claim.saved_at,
             provenance=provenance,
         )
+    return True
 
 
 def mark_failed(conn: sqlite3.Connection, submission_id: int, reason: str) -> None:
@@ -246,7 +248,7 @@ def replied(
     svc: "Bookmarks", claim: Claim, text: str, *, model: str, truncated: bool
 ) -> str:
     """An invalid reply costs an attempt; an unreadable page fails for good;
-    a summary becomes an item."""
+    a summary becomes an item, unless the item was deleted meanwhile."""
     try:
         reply = parse_reply(text)
     except InvalidReply:
@@ -255,8 +257,8 @@ def replied(
         reason = f"summarising: unreadable: {reply.reason}"
         mark_failed(svc.conn, claim.submission_id, reason)
         return "failed"
-    _store_summary(svc, claim, reply, model=model, truncated=truncated)
-    return "summarised"
+    stored = _store_summary(svc, claim, reply, model=model, truncated=truncated)
+    return "summarised" if stored else "cancelled"
 
 
 def newest_submissions(
