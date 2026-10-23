@@ -8,7 +8,7 @@ If the text is readable content, reply:
 
 {"title": "...", "type": "...", "summary": "...", "entities": ["...", "..."]}
 
-- title: the page's own title, lightly tidied (drop site-name suffixes, "| Blog", stray punctuation). Write your own short title only when the page has none.
+- title: the page's own title, lightly tidied (drop site-name suffixes, "| Blog", stray punctuation), when it names what the page is about. When it doesn't — a site-wide title, "Home", the site name alone, a greeting — write a short title from the content.
 - type: the single kind of thing the page is. Prefer a type already in use. Adopt a new type only when none of them fits; a new type is one lowercase word or short hyphenated phrase naming a kind of thing (e.g. "paper", "podcast"), never a topic.
 - summary: a lede sentence that stands alone and says what the item is and what it offers, followed by at most four sentences on what it says: its claims, findings, approach, or the questions it answers. About 60–120 words; fewer for a thin page. Plain prose, no lists, no "This article…" throat-clearing after the first sentence.
 - entities: the specific named things the page mentions — people, organisations, tools, projects, publications, and named techniques or terms of art (e.g. "CRDT", "event sourcing"). Apply this test to each candidate: would someone search this exact string and expect only things about it? General topics ("system design", "productivity") fail the test and are not entities. Use each entity's usual written form. Up to about 15, most important first; an empty list is fine.
