@@ -3,6 +3,7 @@
 import pytest
 
 from bookmarks import cli
+from bookmarks import service as service_module
 from bookmarks.embed import unembedded_count
 from bookmarks.ingest import lifecycle
 from bookmarks.ingest.summarise import Prompt
@@ -171,6 +172,29 @@ def test_deleting_an_item_while_it_is_summarising_does_not_bring_it_back(
     flaky.drain()
 
     assert item_at(flaky, A) is None
+
+
+@pytest.mark.parametrize("selector", [{"url": A}, {"stale": True}])
+def test_items_are_chosen_under_the_write_lock_that_queues_them(
+    library, monkeypatch, selector
+):
+    # A delete between choosing and queuing would bring the item back (#65).
+    locked = []
+    find_item, stalest = library.find_item, service_module.stalest_items
+
+    def spy(select):
+        def chosen(*args, **kwargs):
+            locked.append(library.conn.in_transaction)
+            return select(*args, **kwargs)
+
+        return chosen
+
+    monkeypatch.setattr(library, "find_item", spy(find_item))
+    monkeypatch.setattr(service_module, "stalest_items", spy(stalest))
+
+    library.resummarise(**selector)
+
+    assert locked == [True]
 
 
 def test_the_cli_reports_the_counts_and_refuses_no_selector(
