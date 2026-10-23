@@ -17,8 +17,10 @@ from bookmarks.store import Item
 
 DEFAULT_LIMIT = 10
 MAX_LIMIT = 50
-# How deep each leg ranks before fusion.
-_LEG_DEPTH = 100
+# How deep each leg ranks before fusion. RRF rewards ranking in both legs, so a
+# leg cut at MAX_LIMIT would drop items that belong in the top MAX_LIMIT; twice
+# the cap is a heuristic headroom, not a derived bound (2026-10-23).
+_LEG_DEPTH = 2 * MAX_LIMIT
 _TOKEN = re.compile(r"\w+", re.UNICODE)
 # bm25 column weights for the keyword leg.
 _BM25_ENTITIES = 3.0
@@ -49,6 +51,33 @@ class SearchResult:
     legs: list[str]
     hits: list[Hit]
     notes: list[str] = field(default_factory=list)
+    more: bool = False  # a higher limit would show more hits
+
+
+@dataclass(frozen=True)
+class ItemPage:
+    """One page of the newest-first listing, numbered from 1."""
+
+    items: list[Item]
+    total: int
+    page: int
+    size: int
+
+    @property
+    def first(self) -> int:
+        return (self.page - 1) * self.size + 1 if self.items else 0
+
+    @property
+    def last(self) -> int:
+        return (self.page - 1) * self.size + len(self.items)
+
+    @property
+    def previous(self) -> int | None:
+        return self.page - 1 if self.page > 1 else None
+
+    @property
+    def next(self) -> int | None:
+        return self.page + 1 if self.page * self.size < self.total else None
 
 
 def rrf(
@@ -147,15 +176,35 @@ def clamp_limit(limit: int | None) -> int:
 
 
 def newest_items(
-    conn: sqlite3.Connection, filters: Filters | None = None, limit: int | None = None
+    conn: sqlite3.Connection,
+    filters: Filters | None = None,
+    limit: int | None = None,
+    offset: int = 0,
 ) -> list[Item]:
     """Items the filters admit, newest saved first; no query, so no ranking."""
+    if offset < 0:
+        raise ValueError("offset must not be negative")
     sql, params = _candidates_sql(filters or Filters())
     rows = conn.execute(
-        f"{sql} ORDER BY saved_at DESC, id DESC LIMIT ?",
-        (*params, clamp_limit(limit)),
+        f"{sql} ORDER BY saved_at DESC, id DESC LIMIT ? OFFSET ?",
+        (*params, clamp_limit(limit), offset),
     ).fetchall()
     return [store.get_by_id(conn, row[0]) for row in rows]
+
+
+def page_of_items(
+    conn: sqlite3.Connection, filters: Filters | None = None, page: int = 1
+) -> ItemPage:
+    """Page `page` of the newest-first listing; a page past the end is the
+    last page, so a stale link still lands on items."""
+    if page < 1:
+        raise ValueError("page must be at least 1")
+    filters = filters or Filters()
+    sql, params = _candidates_sql(filters)
+    total = conn.execute(f"SELECT count(*) FROM ({sql})", params).fetchone()[0]
+    page = min(page, max(1, -(-total // DEFAULT_LIMIT)))
+    items = newest_items(conn, filters, DEFAULT_LIMIT, (page - 1) * DEFAULT_LIMIT)
+    return ItemPage(items=items, total=total, page=page, size=DEFAULT_LIMIT)
 
 
 def stalest_items(
@@ -203,4 +252,9 @@ def hybrid_search(
         item = store.get_by_id(conn, item_id)
         if item is not None:
             hits.append(Hit(item=item, score=scores[item_id], ranks=ranks[item_id]))
-    return SearchResult(legs=[name for name, _ in rankings], hits=hits, notes=notes)
+    return SearchResult(
+        legs=[name for name, _ in rankings],
+        hits=hits,
+        notes=notes,
+        more=len(ordered) > limit and limit < MAX_LIMIT,
+    )

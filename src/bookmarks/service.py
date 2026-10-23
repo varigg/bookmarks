@@ -22,10 +22,12 @@ from bookmarks.ingest.llm.provider import LLMProvider
 from bookmarks.ingest.summarise import Prompt, load_prompt
 from bookmarks.search import (
     Filters,
+    ItemPage,
     SearchResult,
     clamp_limit,
     hybrid_search,
     newest_items,
+    page_of_items,
     stalest_items,
 )
 from bookmarks.settings import Settings
@@ -211,6 +213,10 @@ class Bookmarks:
     ) -> list[Item]:
         """Items the filters admit, newest saved first."""
         return newest_items(self.conn, filters, limit)
+
+    def item_page(self, filters: Filters | None = None, page: int = 1) -> ItemPage:
+        """One page of the newest-first listing, with the total it is part of."""
+        return page_of_items(self.conn, filters, page)
 
     def list_submissions(
         self,

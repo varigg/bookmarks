@@ -51,3 +51,20 @@ def summarised_item(
     saved = service.save(url, note=note, saved_at=saved_at)
     service.drain()
     return item_at(service, saved.url)
+
+
+def many_items(
+    service: Bookmarks, count: int, *, type: str = "article", start: int = 0
+) -> list[Item]:
+    """`count` items a minute apart, oldest first, numbered from `start`."""
+    return [
+        summarised_item(
+            service,
+            url=f"https://many.example.com/{type}/{n}",
+            title=f"{type} {n:02d}",
+            summary=f"Item number {n}.",
+            type=type,
+            saved_at=f"2026-01-01T00:{n:02d}:00Z",
+        )
+        for n in range(start, start + count)
+    ]
