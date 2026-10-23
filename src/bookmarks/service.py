@@ -185,21 +185,24 @@ class Bookmarks:
         by_item = item_id is not None or url is not None
         if by_item and (stale or types or domain or limit is not None):
             raise ValueError("an item cannot be combined with other selectors")
-        if by_item:
-            found = self.find_item(item_id=item_id, url=url)
-            if found is None:
-                raise ValueError("no such item")
-            items = [found]
-        elif stale or types or domain:
-            filters = Filters(
-                types=types,
-                domain=domain,
-                stale_for=(self.summariser.model, self.prompt.hash) if stale else None,
-            )
-            items = stalest_items(self.conn, filters, limit)
-        else:
+        if not (by_item or stale or types or domain):
             raise ValueError("give --item, --stale, --type or --domain")
+        # Choose under the queuing lock, or a delete in between revives the item.
         with transaction(self.conn):
+            if by_item:
+                found = self.find_item(item_id=item_id, url=url)
+                if found is None:
+                    raise ValueError("no such item")
+                items = [found]
+            else:
+                filters = Filters(
+                    types=types,
+                    domain=domain,
+                    stale_for=(self.summariser.model, self.prompt.hash)
+                    if stale
+                    else None,
+                )
+                items = stalest_items(self.conn, filters, limit)
             queued = sum(lifecycle.queue_refresh(self.conn, i) for i in items)
         return queued, len(items) - queued
 
