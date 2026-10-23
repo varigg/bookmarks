@@ -4,7 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from bookmarks.web.app import create_app
-from tests.factories import item_at, summarised_item
+from tests.factories import item_at, many_items, summarised_item
 
 
 @pytest.fixture
@@ -118,3 +118,45 @@ def test_delete_removes_the_item_and_returns_to_the_list(client, service, items)
 
 def test_delete_of_a_missing_item_is_404(client):
     assert client.post("/items/999/delete").status_code == 404
+
+
+def test_the_list_pages_with_previous_and_next(client, service):
+    many_items(service, 25)
+
+    first, middle, last = (client.get(f"/?page={n}").text for n in (1, 2, 3))
+
+    assert "1–10 of 25" in first and "page=2" in first and "Previous" not in first
+    assert "11–20 of 25" in middle and "page=1" in middle and "page=3" in middle
+    assert "21–25 of 25" in last and "page=2" in last and "Next" not in last
+
+
+def test_the_filters_survive_paging(client, service):
+    many_items(service, 12, type="repo")
+    many_items(service, 5, start=12)
+
+    response = client.get("/?type=repo&domain=many.example.com")
+
+    assert "1–10 of 12" in response.text
+    assert "type=repo&amp;domain=many.example.com&amp;page=2" in response.text
+
+
+def test_a_page_past_the_end_shows_the_last_page(client, service):
+    many_items(service, 25)
+
+    assert "21–25 of 25" in client.get("/?page=99").text
+
+
+def test_a_page_or_limit_below_one_is_refused(client):
+    assert client.get("/?page=0").status_code == 422
+    assert client.get("/?q=x&limit=0").status_code == 422
+
+
+def test_search_can_show_more_than_ten(client, service):
+    many_items(service, 25)
+    service.embed()
+
+    first = client.get("/?q=item+number").text
+    more = client.get("/?q=item+number&limit=20").text
+
+    assert "Showing 10" in first and "limit=20" in first
+    assert "Showing 20" in more and "limit=30" in more

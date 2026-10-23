@@ -31,4 +31,17 @@
   <li>No items.</li>
   {% endfor %}
 </ul>
+{% set keep = {"q": q, "type": type, "domain": domain} %}
+{% if listing and listing.total %}
+<p class="meta pager">
+  {% if listing.previous %}<a href="/?{{ dict(keep, page=listing.previous)|urlencode }}">Previous</a> ·{% endif %}
+  {{ listing.first }}–{{ listing.last }} of {{ listing.total }}
+  {% if listing.next %}· <a href="/?{{ dict(keep, page=listing.next)|urlencode }}">Next</a>{% endif %}
+</p>
+{% elif q %}
+<p class="meta pager">
+  Showing {{ items|length }}
+  {% if more_limit %}· <a href="/?{{ dict(keep, limit=more_limit)|urlencode }}">Show more</a>{% endif %}
+</p>
+{% endif %}
 {% endblock %}

@@ -2,8 +2,9 @@
 
 import pytest
 
+from bookmarks import search
 from bookmarks.search import Filters
-from tests.factories import summarised_item
+from tests.factories import many_items, summarised_item
 from tests.fakes import FakeEmbedder
 
 
@@ -208,3 +209,53 @@ def test_vector_leg_degrades_when_the_embedder_is_down(service, embedder, corpus
 def test_empty_query_is_rejected(service, query):
     with pytest.raises(ValueError):
         service.search(query)
+
+
+def test_pages_walk_the_newest_first_listing(service):
+    newest_first = [i.id for i in reversed(many_items(service, 25))]
+
+    pages = [service.item_page(page=n) for n in (1, 2, 3)]
+
+    assert [i.id for p in pages for i in p.items] == newest_first
+    assert [(p.first, p.last, p.total) for p in pages] == [
+        (1, 10, 25),
+        (11, 20, 25),
+        (21, 25, 25),
+    ]
+    assert [(p.previous, p.next) for p in pages] == [(None, 2), (1, 3), (2, None)]
+
+
+def test_a_page_past_the_end_is_the_last_page(service):
+    many_items(service, 25)
+
+    assert service.item_page(page=9).page == 3
+
+
+def test_an_empty_listing_is_one_empty_page(service):
+    empty = service.item_page(page=4)
+
+    assert (empty.page, empty.first, empty.total, empty.next) == (1, 0, 0, None)
+
+
+def test_a_page_below_one_is_refused(service):
+    with pytest.raises(ValueError, match="at least 1"):
+        service.item_page(page=0)
+
+
+def test_pages_count_only_what_the_filters_admit(service):
+    many_items(service, 12, type="repo")
+    many_items(service, 5, start=12)
+
+    page = service.item_page(Filters(types=["repo"]), page=2)
+
+    assert (page.first, page.last, page.total) == (11, 12, 12)
+    assert {i.type for i in page.items} == {"repo"}
+
+
+def test_search_says_whether_a_higher_limit_shows_more(service, corpus, monkeypatch):
+    query = "collaborative apps merge automerge budget"
+
+    assert service.search(query, limit=1).more
+    assert not service.search(query, limit=len(corpus)).more
+    monkeypatch.setattr(search, "MAX_LIMIT", 2)
+    assert not service.search(query, limit=2).more  # at the cap, asking is futile

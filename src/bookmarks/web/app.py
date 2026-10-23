@@ -8,13 +8,13 @@ from collections.abc import Iterator
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
 from bookmarks import store
-from bookmarks.search import Filters
+from bookmarks.search import DEFAULT_LIMIT, Filters
 from bookmarks.service import Bookmarks, OpenService
 from bookmarks.store import InvalidUrl
 
@@ -64,19 +64,20 @@ def create_app(open_service: OpenService) -> FastAPI:
         q: str = "",
         type: str = "",
         domain: str = "",
+        page: Annotated[int, Query(ge=1)] = 1,
+        limit: Annotated[int, Query(ge=1)] = DEFAULT_LIMIT,
     ):
         filters = Filters(types=[type] if type else (), domain=domain or None)
-        if q.strip():
-            result = svc.search(q, filters)
-            items, notes = [hit.item for hit in result.hits], result.notes
-        else:
-            items, notes = svc.list_items(filters=filters), []
+        result = svc.search(q, filters, limit) if q.strip() else None
+        listing = svc.item_page(filters, page) if result is None else None
         return templates.TemplateResponse(
             request,
             "index.html",
             {
-                "items": items,
-                "notes": notes,
+                "items": listing.items if listing else [h.item for h in result.hits],
+                "notes": result.notes if result else [],
+                "listing": listing,
+                "more_limit": limit + DEFAULT_LIMIT if result and result.more else None,
                 "status": svc.status(),
                 "types": svc.list_types(),
                 "lede": store.lede,
