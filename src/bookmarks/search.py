@@ -17,8 +17,10 @@ from bookmarks.store import Item
 
 DEFAULT_LIMIT = 10
 MAX_LIMIT = 50
-# How deep each leg ranks before fusion.
-_LEG_DEPTH = 100
+# How deep each leg ranks before fusion. RRF rewards ranking in both legs, so a
+# leg cut at MAX_LIMIT would drop items that belong in the top MAX_LIMIT; twice
+# the cap is a heuristic headroom, not a derived bound (2026-10-23).
+_LEG_DEPTH = 2 * MAX_LIMIT
 _TOKEN = re.compile(r"\w+", re.UNICODE)
 # bm25 column weights for the keyword leg.
 _BM25_ENTITIES = 3.0
