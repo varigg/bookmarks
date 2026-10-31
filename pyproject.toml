@@ -28,7 +28,7 @@ build-backend = "hatchling.build"
 [dependency-groups]
 dev = [
     "pip-audit>=2.10.1",
-    "pytest>=9.1.1",
+    "pytest>=9.2.0",
     "ruff>=0.17.0,<0.18",
 ]
 
