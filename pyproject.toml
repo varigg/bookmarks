@@ -29,7 +29,7 @@ build-backend = "hatchling.build"
 dev = [
     "pip-audit>=2.10.1",
     "pytest>=9.1.1",
-    "ruff>=0.17.0,<0.18",
+    "ruff>=0.17.3,<0.18",
 ]
 
 [tool.pytest.ini_options]
